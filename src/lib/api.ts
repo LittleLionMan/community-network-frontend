@@ -40,6 +40,11 @@ interface PasswordUpdateData {
   new_password: string;
 }
 
+interface ProfileImageResponse {
+  profile_image_url: string;
+  message: string;
+}
+
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
@@ -68,9 +73,12 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
+
+    if (options.body && typeof options.body === 'string') {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
@@ -148,6 +156,21 @@ class ApiClient {
 
     list: (params?: URLSearchParams) =>
       this.request(`/api/users/${params ? '?' + params.toString() : ''}`),
+
+    uploadProfileImage: (file: File) => {
+      const formData = new FormData();
+      formData.append('profile_image', file);
+
+      return this.request<ProfileImageResponse>('/api/users/me/profile-image', {
+        method: 'POST',
+        body: formData,
+      });
+    },
+
+    deleteProfileImage: () =>
+      this.request<{ message: string }>('/api/users/me/profile-image', {
+        method: 'DELETE',
+      }),
   };
 
   events = {

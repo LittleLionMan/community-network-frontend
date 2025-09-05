@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Camera, Upload, Loader2, X, Check } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 
 interface ProfileImageUploadProps {
   currentUser: {
@@ -48,9 +49,6 @@ export function ProfileImageUpload({
     setUploadProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append('profile_image', file);
-
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
@@ -61,22 +59,10 @@ export function ProfileImageUpload({
         });
       }, 100);
 
-      const response = await fetch('/api/users/me/profile-image', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-        body: formData,
-      });
+      const result = await apiClient.users.uploadProfileImage(file);
 
       clearInterval(progressInterval);
       setUploadProgress(100);
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
-      }
-
-      const result = await response.json();
 
       onImageUpdate(result.profile_image_url);
 
@@ -125,17 +111,7 @@ export function ProfileImageUpload({
 
     setIsUploading(true);
     try {
-      const response = await fetch('/api/users/me/profile-image', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Löschen fehlgeschlagen');
-      }
-
+      await apiClient.users.deleteProfileImage();
       onImageUpdate(null);
     } catch (error) {
       setError(
