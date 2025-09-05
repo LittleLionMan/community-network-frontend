@@ -1,83 +1,129 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface RegisterData {
+  display_name: string;
+  email: string;
+  password: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface TokenResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+}
 
 class ApiClient {
-  private baseURL: string
-  private token: string | null = null
+  private baseURL: string;
+  private token: string | null = null;
 
   constructor(baseURL: string) {
-    this.baseURL = baseURL
+    this.baseURL = baseURL;
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('auth_token')
+      this.token = localStorage.getItem('auth_token');
     }
   }
 
   setToken(token: string | null) {
-    this.token = token
+    this.token = token;
     if (typeof window !== 'undefined') {
       if (token) {
-        localStorage.setItem('auth_token', token)
+        localStorage.setItem('auth_token', token);
       } else {
-        localStorage.removeItem('auth_token')
+        localStorage.removeItem('auth_token');
       }
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`
-    const headers: HeadersInit = {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseURL}${endpoint}`;
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
-    }
+      ...(options.headers as Record<string, string>),
+    };
 
     if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`
+      headers.Authorization = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(url, { ...options, headers })
+    const response = await fetch(url, { ...options, headers });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
+      throw new Error(`HTTP ${response.status}`);
     }
 
     if (response.status === 204) {
-      return undefined as T
+      return undefined as T;
     }
 
-    return await response.json()
+    return await response.json();
   }
 
-  // Auth endpoints
   auth = {
-    login: (data: any) => this.request<{access_token: string}>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-    register: (data: any) => this.request('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
+    login: (data: LoginCredentials) =>
+      this.request<TokenResponse>('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    register: (data: RegisterData) =>
+      this.request('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
     me: () => this.request('/api/auth/me'),
-  }
+
+    checkAvailability: (data: { email?: string; display_name?: string }) =>
+      this.request<{ available: boolean; message?: string }>(
+        '/api/auth/check-availability',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+    resendVerification: (data: { email: string }) =>
+      this.request<{ message: string }>('/api/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    verifyEmail: (token: string) =>
+      this.request('/api/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      }),
+  };
 
   // Events endpoints
   events = {
     list: (params?: URLSearchParams) =>
       this.request(`/api/events/${params ? '?' + params.toString() : ''}`),
     get: (id: number) => this.request(`/api/events/${id}`),
-    join: (id: number) => this.request(`/api/events/${id}/join`, { method: 'POST' }),
-  }
+    join: (id: number) =>
+      this.request(`/api/events/${id}/join`, { method: 'POST' }),
+  };
 
   // Services endpoints
   services = {
     list: (params?: URLSearchParams) =>
       this.request(`/api/services/${params ? '?' + params.toString() : ''}`),
-  }
+  };
 
   // Forum endpoints
   discussions = {
     list: (params?: URLSearchParams) =>
       this.request(`/api/discussions/${params ? '?' + params.toString() : ''}`),
-  }
+  };
 }
 
-export const apiClient = new ApiClient(API_BASE_URL)
+export const apiClient = new ApiClient(API_BASE_URL);

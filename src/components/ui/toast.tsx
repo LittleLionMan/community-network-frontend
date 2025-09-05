@@ -1,21 +1,39 @@
-'use client'
+'use client';
 
-import { toast as sonnerToast, Toaster } from 'sonner'
-import { CheckCircle, XCircle } from 'lucide-react'
+import { toast as sonnerToast, Toaster } from 'sonner';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export const toast = {
-  success: (message: string) => {
+  success: (message: string, description?: string) => {
     return sonnerToast.success(message, {
-      icon: <CheckCircle className="w-4 h-4" />,
-    })
+      description,
+      icon: <CheckCircle className="h-4 w-4" />,
+      duration: 4000,
+    });
   },
-  error: (message: string) => {
+
+  error: (message: string, description?: string) => {
     return sonnerToast.error(message, {
-      icon: <XCircle className="w-4 h-4" />,
-    })
+      description,
+      icon: <XCircle className="h-4 w-4" />,
+      duration: 6000,
+    });
   },
-}
+};
 
 export function ToastProvider() {
-  return <Toaster position="bottom-right" richColors />
+  return (
+    <Toaster
+      position="bottom-right"
+      toastOptions={{
+        style: {
+          background: 'hsl(var(--background))',
+          color: 'hsl(var(--foreground))',
+          border: '1px solid hsl(var(--border))',
+        },
+      }}
+      closeButton
+      richColors
+    />
+  );
 }
