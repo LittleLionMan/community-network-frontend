@@ -96,6 +96,14 @@ export function useProfile() {
     }
   };
 
+  const updateProfileImage = (imageUrl: string | null) => {
+    if (user) {
+      const updatedUser = { ...user, profile_image_url: imageUrl };
+      setUser(updatedUser);
+      login(updatedUser);
+    }
+  };
+
   useEffect(() => {
     if (authUser && !user) {
       refreshUser();
@@ -109,5 +117,6 @@ export function useProfile() {
     refreshUser,
     updateProfile,
     updatePrivacy,
+    updateProfileImage,
   };
 }

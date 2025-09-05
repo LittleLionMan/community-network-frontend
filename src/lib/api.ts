@@ -94,7 +94,54 @@ class ApiClient {
       return undefined as T;
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    return this.transformRelativeUrls(data);
+  }
+
+  private transformRelativeUrls<T>(data: T): T {
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
+
+    if (Array.isArray(data)) {
+      return data.map((item) => this.transformRelativeUrls(item)) as T;
+    }
+
+    const transformed = { ...data } as Record<string, unknown>;
+
+    const urlFields = [
+      'profile_image_url',
+      // Add more URL fields as needed
+    ];
+
+    for (const field of urlFields) {
+      if (field in transformed && typeof transformed[field] === 'string') {
+        transformed[field] = this.makeAbsoluteUrl(transformed[field] as string);
+      }
+    }
+
+    for (const key in transformed) {
+      if (transformed[key] && typeof transformed[key] === 'object') {
+        transformed[key] = this.transformRelativeUrls(transformed[key]);
+      }
+    }
+
+    return transformed as T;
+  }
+
+  private makeAbsoluteUrl(url: string): string {
+    if (!url) return url;
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
+    if (url.startsWith('/')) {
+      return `${this.baseURL}${url}`;
+    }
+
+    return `${this.baseURL}/${url}`;
   }
 
   auth = {

@@ -16,7 +16,8 @@ export default function ProfilePage() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'profile';
 
-  const { user, isLoading, updateProfile, updatePrivacy } = useProfile();
+  const { user, isLoading, updateProfile, updatePrivacy, updateProfileImage } =
+    useProfile();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditing, setIsEditing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -92,9 +93,8 @@ export default function ProfilePage() {
   };
 
   const handleImageUpdate = (imageUrl: string | null) => {
-    if (user) {
-      user.profile_image_url = imageUrl;
-    }
+    updateProfileImage(imageUrl);
+
     setToastMessage({
       type: 'success',
       message: imageUrl
