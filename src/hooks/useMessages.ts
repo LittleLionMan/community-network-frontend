@@ -257,6 +257,13 @@ export function useConversation(conversationId: number | null) {
         conversationId,
         upToMessageId
       );
+
+      window.dispatchEvent(
+        new CustomEvent('messages-marked-read', {
+          detail: { conversationId, upToMessageId },
+        })
+      );
+
       setMessages((prev) =>
         prev.map((msg) =>
           !upToMessageId || msg.id <= upToMessageId

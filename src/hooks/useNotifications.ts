@@ -85,13 +85,11 @@ export function useNotifications() {
 
         notification.onclick = (event) => {
           event.preventDefault();
+          notification.close();
           window.focus();
-
           if (data.data?.type === 'message') {
             window.location.href = '/messages';
           }
-
-          notification.close();
         };
 
         setTimeout(() => {

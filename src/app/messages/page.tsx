@@ -6,6 +6,8 @@ import { Plus, Search, Settings, X } from 'lucide-react';
 import MessagesInterface from '@/components/messages/MessagesInterface';
 import { SecurityBanner } from '@/components/messages/SecurityBanner';
 import { MessageError } from '@/components/messages/MessageError';
+import { MessageErrorBoundary } from '@/components/messages/ErrorBoundary';
+import { MessageSearch } from '@/components/messages/MessageSearch';
 import { NotificationPermissionBanner } from '@/components/notifications/NotificationPermissionBanner';
 import {
   useConversations,
@@ -16,6 +18,7 @@ import {
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
 import { useMessageNotifications } from '@/hooks/useMessageNotifications';
 import { useAuthStore } from '@/store/auth';
+import { apiClient } from '@/lib/api';
 import type { Conversation, CreateConversationData } from '@/types/message';
 
 interface NewConversationModalProps {
@@ -75,19 +78,35 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
 
     setIsSearching(true);
     try {
-      const mockResults = [
-        { id: 1, display_name: 'Anna Mueller', email: 'anna@example.com' },
-        { id: 2, display_name: 'Max Schmidt', email: 'max@example.com' },
-        { id: 3, display_name: 'Lisa Weber', email: 'lisa@example.com' },
-      ].filter(
-        (user) =>
-          user.display_name.toLowerCase().includes(query.toLowerCase()) ||
-          user.email.toLowerCase().includes(query.toLowerCase())
-      );
+      const params = new URLSearchParams();
+      params.append('search', query);
+      params.append('page', '1');
+      params.append('size', '10');
 
-      setSearchResults(mockResults);
+      const response = (await apiClient.users.list(params)) as Array<{
+        id: number;
+        display_name: string;
+        first_name: string;
+        last_name: string;
+        bio: string;
+        location: string;
+        created_at: string;
+        profile_image_url: string;
+      }>;
+
+      const userResults: SearchUser[] = response.map((user) => ({
+        id: user.id,
+        display_name: user.display_name,
+        email:
+          user.first_name && user.last_name
+            ? `${user.first_name} ${user.last_name}`
+            : user.display_name,
+      }));
+
+      setSearchResults(userResults);
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error('User search failed:', error);
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -205,7 +224,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                 }
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {isLoading ? 'Sende...' : 'Conversation starten'}
+                {isLoading ? 'Sende...' : 'Konversation starten'}
               </button>
             </div>
           </div>
@@ -224,8 +243,8 @@ export default function MessagesPage() {
   const [showNewConversationModal, setShowNewConversationModal] =
     useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
-  // Hooks
   const {
     conversations,
     isLoading: conversationsLoading,
@@ -250,7 +269,8 @@ export default function MessagesPage() {
     clearError: clearMessageError,
   } = useConversation(selectedConversationId);
 
-  const { unreadCount, updateUnreadCount } = useUnreadCount();
+  const { unreadCount, updateUnreadCount, refreshUnreadCount } =
+    useUnreadCount();
 
   const { isConnected, typingUsers, startTyping, stopTyping } =
     useMessageWebSocket(selectedConversationId);
@@ -283,7 +303,15 @@ export default function MessagesPage() {
             markAsRead(message.message?.id);
           } else {
             refreshConversations();
+            refreshUnreadCount();
           }
+          break;
+
+        case 'messages_read':
+          if (message.user_id !== user?.id) {
+            refreshConversations();
+          }
+          refreshUnreadCount();
           break;
 
         case 'unread_count_update':
@@ -305,8 +333,10 @@ export default function MessagesPage() {
   }, [
     selectedConversationId,
     markAsRead,
+    refreshUnreadCount,
     refreshConversations,
     updateUnreadCount,
+    user?.id,
   ]);
 
   useEffect(() => {
@@ -318,8 +348,57 @@ export default function MessagesPage() {
     }
   }, [selectedConversationId, messages, markAsRead, user?.id]);
 
+  useEffect(() => {
+    const handleMarkedRead = () => {
+      refreshUnreadCount();
+      refreshConversations();
+    };
+
+    window.addEventListener('messages-marked-read', handleMarkedRead);
+
+    return () => {
+      window.removeEventListener('messages-marked-read', handleMarkedRead);
+    };
+  }, [refreshUnreadCount, refreshConversations]);
+
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversationId(conversation.id);
+  };
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshConversations();
+        refreshUnreadCount();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        refreshConversations();
+      }
+    }, 60000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [refreshConversations, refreshUnreadCount]);
+
+  const handleSelectMessageFromSearch = (
+    conversationId: number,
+    messageId: number
+  ) => {
+    setSelectedConversationId(conversationId);
+    setShowSearch(false);
+    console.log(
+      'Navigate to conversation:',
+      conversationId,
+      'message:',
+      messageId
+    );
   };
 
   const handleCreateConversation = async (data: CreateConversationData) => {
@@ -355,6 +434,18 @@ export default function MessagesPage() {
     }
   };
 
+  const retryFailedOperation = (errorKey: string) => {
+    switch (errorKey) {
+      case 'load':
+        refreshConversations();
+        break;
+      case 'send':
+        break;
+      default:
+        console.log('Retry not implemented for:', errorKey);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -373,234 +464,272 @@ export default function MessagesPage() {
   if (Object.keys(conversationErrors).length > 0) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-600">Fehler</h2>
-          <p className="text-gray-600">
-            {Object.values(conversationErrors)[0]}
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-          >
-            Neu laden
-          </button>
-        </div>
+        <MessageError
+          error={Object.values(conversationErrors)[0]}
+          onRetry={() => window.location.reload()}
+          type="error"
+        />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      {notificationsSupported && !notificationsEnabled && (
-        <NotificationPermissionBanner />
-      )}
+    <MessageErrorBoundary>
+      <div className="flex h-screen flex-col">
+        {notificationsSupported && !notificationsEnabled && (
+          <NotificationPermissionBanner />
+        )}
 
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
+        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
 
-          {unreadCount.total_unread > 0 && (
-            <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-2 text-xs font-medium text-white">
-              {unreadCount.total_unread > 99 ? '99+' : unreadCount.total_unread}
-            </span>
-          )}
+            {unreadCount.total_unread > 0 && (
+              <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-2 text-xs font-medium text-white">
+                {unreadCount.total_unread > 99
+                  ? '99+'
+                  : unreadCount.total_unread}
+              </span>
+            )}
 
-          <div
-            className={`flex items-center space-x-1 text-xs ${
-              isConnected ? 'text-green-600' : 'text-gray-400'
-            }`}
-          >
-            <div
-              className={`h-2 w-2 rounded-full ${
-                isConnected ? 'bg-green-500' : 'bg-gray-400'
-              }`}
-            />
-            <span>{isConnected ? 'Online' : 'Offline'}</span>
-          </div>
-
-          {notificationsSupported && (
             <div
               className={`flex items-center space-x-1 text-xs ${
-                notificationsEnabled ? 'text-blue-600' : 'text-gray-400'
+                isConnected ? 'text-green-600' : 'text-gray-400'
               }`}
             >
               <div
                 className={`h-2 w-2 rounded-full ${
-                  notificationsEnabled ? 'bg-blue-500' : 'bg-gray-400'
+                  isConnected ? 'bg-green-500' : 'bg-gray-400'
                 }`}
               />
-              <span>
-                {notificationsEnabled
-                  ? 'Benachrichtigungen an'
-                  : 'Benachrichtigungen aus'}
-              </span>
+              <span>{isConnected ? 'Online' : 'Offline'}</span>
             </div>
+
+            {notificationsSupported && (
+              <div
+                className={`flex items-center space-x-1 text-xs ${
+                  notificationsEnabled ? 'text-blue-600' : 'text-gray-400'
+                }`}
+              >
+                <div
+                  className={`h-2 w-2 rounded-full ${
+                    notificationsEnabled ? 'bg-blue-500' : 'bg-gray-400'
+                  }`}
+                />
+                <span>
+                  {notificationsEnabled
+                    ? 'Benachrichtigungen an'
+                    : 'Benachrichtigungen aus'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowSearch(true)}
+              className="flex items-center space-x-2 rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
+              title="Nachrichten durchsuchen"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Suchen</span>
+            </button>
+
+            <button
+              onClick={() => setShowNewConversationModal(true)}
+              className="flex items-center space-x-2 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Neue Nachricht</span>
+            </button>
+
+            <button
+              onClick={() => setShowSettings(true)}
+              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <SecurityBanner
+            isBlocked={isMainBlocked}
+            blockReason={mainBlockReason}
+            onClear={clearMainBlock}
+            type="error"
+          />
+
+          {Object.entries(conversationErrors).map(([key, error]) => (
+            <MessageError
+              key={`conversation-${key}`}
+              error={error}
+              onRetry={() => retryFailedOperation(key)}
+              onDismiss={() => clearConversationError(key)}
+              type="error"
+            />
+          ))}
+
+          {Object.entries(messageErrors).map(([key, error]) => (
+            <MessageError
+              key={`message-${key}`}
+              error={error}
+              onRetry={() => retryFailedOperation(key)}
+              onDismiss={() => clearMessageError(key)}
+              type={
+                key === 'send' && offlineQueueLength > 0 ? 'warning' : 'error'
+              }
+            />
+          ))}
+
+          {offlineQueueLength > 0 && (
+            <MessageError
+              error={`${offlineQueueLength} Nachricht(en) warten auf Übertragung`}
+              type="warning"
+            />
           )}
         </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowNewConversationModal(true)}
-            className="flex items-center space-x-2 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Neue Nachricht</span>
-          </button>
-
-          <button
-            onClick={() => setShowSettings(true)}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-          >
-            <Settings className="h-5 w-5" />
-          </button>
+        <div className="flex-1 overflow-hidden">
+          {conversationsLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center">
+                <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+                <p className="text-gray-600">Lade Conversations...</p>
+              </div>
+            </div>
+          ) : (
+            <MessageErrorBoundary
+              fallback={
+                <div className="flex h-full items-center justify-center">
+                  <MessageError
+                    error="Fehler beim Laden der Nachrichten-Interface"
+                    onRetry={() => window.location.reload()}
+                    type="error"
+                  />
+                </div>
+              }
+            >
+              <MessagesInterface
+                conversations={conversations}
+                selectedConversation={selectedConversation}
+                messages={messages}
+                currentUserId={user.id}
+                typingUsers={typingUsers}
+                onSelectConversation={handleSelectConversation}
+                onSendMessage={handleSendMessage}
+                onEditMessage={handleEditMessage}
+                onDeleteMessage={handleDeleteMessage}
+                onLoadMoreMessages={loadMoreMessages}
+                onTyping={startTyping}
+                onStopTyping={stopTyping}
+                isLoading={messagesLoading || isMainBlocked}
+                hasMoreMessages={hasMoreMessages}
+              />
+            </MessageErrorBoundary>
+          )}
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <SecurityBanner
-          isBlocked={isMainBlocked}
-          blockReason={mainBlockReason}
-          onClear={clearMainBlock}
-          type="error"
+        <NewConversationModal
+          isOpen={showNewConversationModal}
+          onClose={() => setShowNewConversationModal(false)}
+          onCreateConversation={handleCreateConversation}
         />
 
-        {Object.entries(messageErrors).map(([key, error]) => (
-          <MessageError
-            key={key}
-            error={error}
-            onDismiss={() => clearMessageError(key)}
-            type={
-              key === 'send' && offlineQueueLength > 0 ? 'warning' : 'error'
-            }
-          />
-        ))}
+        <MessageSearch
+          isOpen={showSearch}
+          onClose={() => setShowSearch(false)}
+          onSelectMessage={handleSelectMessageFromSearch}
+        />
 
-        {offlineQueueLength > 0 && (
-          <div className="border-b border-yellow-200 bg-yellow-50 px-4 py-2 text-sm text-yellow-800">
-            {offlineQueueLength} Nachricht(en) warten auf Übertragung
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 overflow-hidden">
-        {conversationsLoading ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
-              <p className="text-gray-600">Lade Conversations...</p>
-            </div>
-          </div>
-        ) : (
-          <MessagesInterface
-            conversations={conversations}
-            selectedConversation={selectedConversation}
-            messages={messages}
-            currentUserId={user.id}
-            typingUsers={typingUsers}
-            onSelectConversation={handleSelectConversation}
-            onSendMessage={handleSendMessage}
-            onEditMessage={handleEditMessage}
-            onDeleteMessage={handleDeleteMessage}
-            onLoadMoreMessages={loadMoreMessages}
-            onTyping={startTyping}
-            onStopTyping={stopTyping}
-            isLoading={messagesLoading || isMainBlocked}
-            hasMoreMessages={hasMoreMessages}
-          />
-        )}
-      </div>
-
-      <NewConversationModal
-        isOpen={showNewConversationModal}
-        onClose={() => setShowNewConversationModal(false)}
-        onCreateConversation={handleCreateConversation}
-      />
-
-      {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-            <div className="p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Nachrichten-Einstellungen
-                </h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      Nachrichten aktiviert
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      Erlaube anderen dir zu schreiben
-                    </div>
-                  </div>
-                  <input type="checkbox" defaultChecked className="rounded" />
+        {showSettings && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+              <div className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Nachrichten-Einstellungen
+                  </h2>
+                  <button
+                    onClick={() => setShowSettings(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-900">Von Fremden</div>
-                    <div className="text-sm text-gray-500">
-                      Nachrichten von unbekannten Personen
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        Nachrichten aktiviert
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Erlaube anderen dir zu schreiben
+                      </div>
                     </div>
+                    <input type="checkbox" defaultChecked className="rounded" />
                   </div>
-                  <input type="checkbox" defaultChecked className="rounded" />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      Browser-Benachrichtigungen
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        Von Fremden
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Nachrichten von unbekannten Personen
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Desktop-Benachrichtigungen bei neuen Nachrichten
+                    <input type="checkbox" defaultChecked className="rounded" />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        Browser-Benachrichtigungen
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Desktop-Benachrichtigungen bei neuen Nachrichten
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={notificationsEnabled}
+                        disabled
+                        className="rounded"
+                      />
+                      <span
+                        className={`text-xs ${notificationsEnabled ? 'text-green-600' : 'text-gray-400'}`}
+                      >
+                        {notificationsEnabled ? 'Aktiviert' : 'Deaktiviert'}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={notificationsEnabled}
-                      disabled
-                      className="rounded"
-                    />
-                    <span
-                      className={`text-xs ${notificationsEnabled ? 'text-green-600' : 'text-gray-400'}`}
-                    >
-                      {notificationsEnabled ? 'Aktiviert' : 'Deaktiviert'}
-                    </span>
+
+                  <div className="border-t pt-4">
+                    <button className="w-full rounded p-2 text-left text-red-600 hover:bg-red-50">
+                      Alle Conversations löschen
+                    </button>
                   </div>
                 </div>
 
-                <div className="border-t pt-4">
-                  <button className="w-full rounded p-2 text-left text-red-600 hover:bg-red-50">
-                    Alle Conversations löschen
+                <div className="flex justify-end space-x-3 pt-6">
+                  <button
+                    onClick={() => setShowSettings(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                  >
+                    Abbrechen
+                  </button>
+                  <button className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
+                    Speichern
                   </button>
                 </div>
               </div>
-
-              <div className="flex justify-end space-x-3 pt-6">
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                >
-                  Abbrechen
-                </button>
-                <button className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
-                  Speichern
-                </button>
-              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </MessageErrorBoundary>
   );
 }

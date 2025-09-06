@@ -209,14 +209,25 @@ class ApiClient {
   users = {
     get: (id: number) => this.request(`/api/users/${id}`),
 
+    list: (params?: URLSearchParams) =>
+      this.request<
+        Array<{
+          id: number;
+          display_name: string;
+          first_name: string;
+          last_name: string;
+          bio: string;
+          location: string;
+          created_at: string;
+          profile_image_url: string;
+        }>
+      >(`/api/users${params ? '?' + params.toString() : ''}`),
+
     updateMe: (data: ProfileUpdateData) =>
       this.request('/api/users/me', {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-
-    list: (params?: URLSearchParams) =>
-      this.request(`/api/users/${params ? '?' + params.toString() : ''}`),
 
     uploadProfileImage: (file: File) => {
       const formData = new FormData();
@@ -322,6 +333,8 @@ class ApiClient {
       const params = new URLSearchParams();
       if (upToMessageId)
         params.append('up_to_message_id', upToMessageId.toString());
+
+      console.log('Marking as read:', { conversationId, upToMessageId });
 
       return this.request(
         `/api/messages/conversations/${conversationId}/read`,
