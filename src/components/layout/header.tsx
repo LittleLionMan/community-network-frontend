@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
-import { useUnreadCount } from '@/hooks/useMessages';
+import { useGlobalUnreadCount } from '@/components/providers/UnreadCountProvider';
 
 export function Header() {
   const { user, isAuthenticated, isLoading, logout, validateToken } =
@@ -24,7 +24,7 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  const { unreadCount } = useUnreadCount();
+  const { unreadCount } = useGlobalUnreadCount();
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;

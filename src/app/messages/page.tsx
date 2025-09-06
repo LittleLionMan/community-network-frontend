@@ -14,12 +14,18 @@ import {
   useConversation,
   useMessageWebSocket,
   useUnreadCount,
+  useGlobalMessageWebSocket,
 } from '@/hooks/useMessages';
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
 import { useMessageNotifications } from '@/hooks/useMessageNotifications';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
-import type { Conversation, CreateConversationData } from '@/types/message';
+import type {
+  Conversation,
+  CreateConversationData,
+  WebSocketMessage,
+  UnreadCount,
+} from '@/types/message';
 
 interface NewConversationModalProps {
   isOpen: boolean;
@@ -251,6 +257,8 @@ export default function MessagesPage() {
     errors: conversationErrors,
     createConversation,
     refreshConversations,
+    updateConversation,
+    updateConversationUnreadCount,
     clearError: clearConversationError,
   } = useConversations();
 
@@ -264,16 +272,25 @@ export default function MessagesPage() {
     editMessage,
     deleteMessage,
     markAsRead,
+    addMessage,
+    updateMessage,
     loadMoreMessages,
     hasMoreMessages,
     clearError: clearMessageError,
   } = useConversation(selectedConversationId);
 
-  const { unreadCount, updateUnreadCount, refreshUnreadCount } =
-    useUnreadCount();
+  const {
+    unreadCount,
+    updateUnreadCount,
+    updateConversationUnreadCount: updateUnreadForConversation,
+    refreshUnreadCount,
+  } = useUnreadCount();
 
-  const { isConnected, typingUsers, startTyping, stopTyping } =
-    useMessageWebSocket(selectedConversationId);
+  const { typingUsers, startTyping, stopTyping } = useMessageWebSocket(
+    selectedConversationId
+  );
+
+  const { isConnected } = useGlobalMessageWebSocket();
 
   const {
     validateAndSendMessage,
@@ -294,50 +311,93 @@ export default function MessagesPage() {
   }, [user, router]);
 
   useEffect(() => {
-    const handleWebSocketMessage = (event: CustomEvent) => {
-      const message = event.detail;
+    const handleGlobalWebSocketMessage = (event: CustomEvent) => {
+      const message: WebSocketMessage = event.detail;
 
       switch (message.type) {
         case 'new_message':
-          if (message.conversation_id === selectedConversationId) {
-            markAsRead(message.message?.id);
-          } else {
+          if (message.message && message.conversation_id) {
             refreshConversations();
-            refreshUnreadCount();
+
+            if (message.conversation_id === selectedConversationId) {
+              addMessage(message.message);
+              if (message.message.sender.id !== user?.id) {
+                markAsRead(message.message.id);
+              }
+            } else {
+              refreshUnreadCount();
+            }
+          }
+          break;
+
+        case 'message_edited':
+          if (
+            message.message &&
+            message.conversation_id === selectedConversationId
+          ) {
+            updateMessage(message.message);
+          }
+          break;
+
+        case 'message_deleted':
+          if (
+            message.message &&
+            message.conversation_id === selectedConversationId
+          ) {
+            updateMessage(message.message);
           }
           break;
 
         case 'messages_read':
           if (message.user_id !== user?.id) {
             refreshConversations();
+            refreshUnreadCount();
           }
-          refreshUnreadCount();
           break;
 
         case 'unread_count_update':
-          updateUnreadCount(message.data);
+          if (message.data && typeof message.data === 'object') {
+            const unreadData = message.data as unknown as UnreadCount;
+            if ('total_unread' in unreadData && 'conversations' in unreadData) {
+              updateUnreadCount(unreadData);
+            }
+          }
           break;
       }
     };
 
     window.addEventListener(
-      'websocket-message',
-      handleWebSocketMessage as EventListener
+      'global-websocket-message',
+      handleGlobalWebSocketMessage as EventListener
     );
+
     return () => {
       window.removeEventListener(
-        'websocket-message',
-        handleWebSocketMessage as EventListener
+        'global-websocket-message',
+        handleGlobalWebSocketMessage as EventListener
       );
     };
   }, [
     selectedConversationId,
+    addMessage,
+    updateMessage,
     markAsRead,
     refreshUnreadCount,
     refreshConversations,
     updateUnreadCount,
     user?.id,
   ]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      const interval = setInterval(() => {
+        refreshUnreadCount();
+        refreshConversations();
+      }, 30000); // Alle 30 Sekunden
+
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, refreshUnreadCount, refreshConversations]);
 
   useEffect(() => {
     if (selectedConversationId && messages.length > 0) {
@@ -349,21 +409,24 @@ export default function MessagesPage() {
   }, [selectedConversationId, messages, markAsRead, user?.id]);
 
   useEffect(() => {
-    const handleMarkedRead = () => {
-      refreshUnreadCount();
-      refreshConversations();
+    const handleMarkedRead = (event: CustomEvent) => {
+      const { conversationId } = event.detail;
+      updateUnreadForConversation(conversationId, 0);
+      updateConversationUnreadCount(conversationId, 0);
     };
 
-    window.addEventListener('messages-marked-read', handleMarkedRead);
+    window.addEventListener(
+      'messages-marked-read',
+      handleMarkedRead as EventListener
+    );
 
     return () => {
-      window.removeEventListener('messages-marked-read', handleMarkedRead);
+      window.removeEventListener(
+        'messages-marked-read',
+        handleMarkedRead as EventListener
+      );
     };
-  }, [refreshUnreadCount, refreshConversations]);
-
-  const handleSelectConversation = (conversation: Conversation) => {
-    setSelectedConversationId(conversation.id);
-  };
+  }, [updateUnreadForConversation, updateConversationUnreadCount]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -375,17 +438,14 @@ export default function MessagesPage() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const interval = setInterval(() => {
-      if (!document.hidden) {
-        refreshConversations();
-      }
-    }, 60000);
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(interval);
     };
   }, [refreshConversations, refreshUnreadCount]);
+
+  const handleSelectConversation = (conversation: Conversation) => {
+    setSelectedConversationId(conversation.id);
+  };
 
   const handleSelectMessageFromSearch = (
     conversationId: number,

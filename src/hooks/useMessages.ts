@@ -108,6 +108,30 @@ export function useConversations() {
     }
   };
 
+  const updateConversation = useCallback(
+    (updatedConversation: Conversation) => {
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === updatedConversation.id ? updatedConversation : conv
+        )
+      );
+    },
+    []
+  );
+
+  const updateConversationUnreadCount = useCallback(
+    (conversationId: number, unreadCount: number) => {
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === conversationId
+            ? { ...conv, unread_count: unreadCount }
+            : conv
+        )
+      );
+    },
+    []
+  );
+
   useEffect(() => {
     loadConversations(true);
   }, []);
@@ -119,6 +143,8 @@ export function useConversations() {
     hasMore,
     loadConversations,
     createConversation,
+    updateConversation,
+    updateConversationUnreadCount,
     clearError,
     refreshConversations: () => loadConversations(true),
   };
@@ -296,6 +322,21 @@ export function useConversation(conversationId: number | null) {
     }
   };
 
+  const addMessage = useCallback((message: Message) => {
+    setMessages((prev) => {
+      if (prev.some((msg) => msg.id === message.id)) {
+        return prev;
+      }
+      return [...prev, message];
+    });
+  }, []);
+
+  const updateMessage = useCallback((updatedMessage: Message) => {
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+    );
+  }, []);
+
   const processOfflineQueue = useCallback(async () => {
     if (!conversationId || offlineQueue.length === 0) return;
 
@@ -347,6 +388,8 @@ export function useConversation(conversationId: number | null) {
     editMessage,
     deleteMessage,
     markAsRead,
+    addMessage,
+    updateMessage,
     clearError,
     processOfflineQueue,
     refreshConversation: loadConversation,
@@ -371,6 +414,45 @@ export function useUnreadCount() {
     }
   }, []);
 
+  const updateConversationUnreadCount = useCallback(
+    (conversationId: number, count: number) => {
+      setUnreadCount((prev) => {
+        const existingConvIndex = prev.conversations.findIndex(
+          (c) => c.conversation_id === conversationId
+        );
+        const newConversations = [...prev.conversations];
+
+        if (existingConvIndex >= 0) {
+          if (count === 0) {
+            newConversations.splice(existingConvIndex, 1);
+          } else {
+            newConversations[existingConvIndex] = {
+              conversation_id: conversationId,
+              unread_count: count,
+            };
+          }
+        } else if (count > 0) {
+          // Füge neue Conversation hinzu
+          newConversations.push({
+            conversation_id: conversationId,
+            unread_count: count,
+          });
+        }
+
+        const total_unread = newConversations.reduce(
+          (sum, conv) => sum + conv.unread_count,
+          0
+        );
+
+        return {
+          total_unread,
+          conversations: newConversations,
+        };
+      });
+    },
+    []
+  );
+
   useEffect(() => {
     loadUnreadCount();
   }, [loadUnreadCount]);
@@ -379,12 +461,116 @@ export function useUnreadCount() {
     unreadCount,
     isLoading,
     updateUnreadCount: setUnreadCount,
+    updateConversationUnreadCount,
     refreshUnreadCount: loadUnreadCount,
   };
 }
 
-export function useMessageWebSocket(conversationId: number | null) {
+// Globaler WebSocket Manager für bessere Verbindungsverwaltung
+export function useGlobalMessageWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const { user } = useAuthStore();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
+
+  const connect = useCallback(() => {
+    if (!user) return;
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    try {
+      // Schließe bestehende Verbindung
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+
+      const ws = apiClient.createWebSocket('/api/messages/ws', token);
+
+      ws.onopen = () => {
+        setIsConnected(true);
+        reconnectAttempts.current = 0;
+        console.log('Global WebSocket connected');
+      };
+
+      ws.onclose = (event) => {
+        setIsConnected(false);
+        console.log('Global WebSocket disconnected:', event.code, event.reason);
+
+        if (event.code !== 1000 && reconnectAttempts.current < 5) {
+          const delay = Math.min(
+            1000 * Math.pow(2, reconnectAttempts.current),
+            30000
+          );
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttempts.current++;
+            connect();
+          }, delay);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('Global WebSocket error:', error);
+        setIsConnected(false);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message: WebSocketMessage = JSON.parse(event.data);
+          window.dispatchEvent(
+            new CustomEvent('global-websocket-message', { detail: message })
+          );
+        } catch (err) {
+          console.error('Failed to parse WebSocket message:', err);
+        }
+      };
+
+      wsRef.current = ws;
+    } catch (err) {
+      console.error('Failed to create WebSocket connection:', err);
+    }
+  }, [user]);
+
+  const disconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    if (wsRef.current) {
+      wsRef.current.close(1000, 'Manual disconnect');
+      wsRef.current = null;
+    }
+    setIsConnected(false);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      connect();
+    } else {
+      disconnect();
+    }
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && !isConnected) {
+        connect();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      disconnect();
+    };
+  }, [user, connect, disconnect]);
+
+  return {
+    isConnected,
+    reconnect: connect,
+  };
+}
+
+export function useMessageWebSocket(conversationId: number | null) {
   const [typingUsers, setTypingUsers] = useState<MessageUser[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const { user } = useAuthStore();
@@ -397,24 +583,26 @@ export function useMessageWebSocket(conversationId: number | null) {
     if (!token) return;
 
     try {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+
       const ws = apiClient.createWebSocket(
         `/api/messages/ws/conversations/${conversationId}`,
         token
       );
 
       ws.onopen = () => {
-        setIsConnected(true);
-        console.log('WebSocket connected to conversation', conversationId);
+        console.log('Conversation WebSocket connected to', conversationId);
       };
 
       ws.onclose = () => {
-        setIsConnected(false);
-        console.log('WebSocket disconnected from conversation', conversationId);
+        console.log('Conversation WebSocket disconnected from', conversationId);
+        setTypingUsers([]);
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setIsConnected(false);
+        console.error('Conversation WebSocket error:', error);
       };
 
       ws.onmessage = (event) => {
@@ -428,7 +616,7 @@ export function useMessageWebSocket(conversationId: number | null) {
 
       wsRef.current = ws;
     } catch (err) {
-      console.error('Failed to create WebSocket connection:', err);
+      console.error('Failed to create conversation WebSocket:', err);
     }
   }, [conversationId, user]);
 
@@ -437,7 +625,6 @@ export function useMessageWebSocket(conversationId: number | null) {
       wsRef.current.close();
       wsRef.current = null;
     }
-    setIsConnected(false);
     setTypingUsers([]);
   }, []);
 
@@ -450,13 +637,6 @@ export function useMessageWebSocket(conversationId: number | null) {
             .map((id) => ({ id, display_name: `User ${id}` }));
           setTypingUsers(typingUserObjects);
         }
-        break;
-      case 'new_message':
-      case 'message_edited':
-      case 'message_deleted':
-        window.dispatchEvent(
-          new CustomEvent('websocket-message', { detail: message })
-        );
         break;
     }
   };
@@ -507,7 +687,6 @@ export function useMessageWebSocket(conversationId: number | null) {
   }, [conversationId, connect, disconnect]);
 
   return {
-    isConnected,
     typingUsers,
     startTyping,
     stopTyping,

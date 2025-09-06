@@ -99,7 +99,7 @@ export interface WebSocketMessage {
   conversation_id?: number;
   message?: Message;
   user_id?: number;
-  data?: WebSocketMessage;
+  data?: UnreadCount | WebSocketMessageData;
   typing_users?: number[];
   total_unread?: number;
   message_id?: number;
