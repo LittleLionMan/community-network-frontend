@@ -1,8 +1,8 @@
+// src/hooks/useMessages.ts - Fixed Race Conditions
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '@/lib/api';
-import { useAuthStore } from '@/store/auth';
 import type {
   Conversation,
   ConversationDetail,
@@ -12,8 +12,6 @@ import type {
   UpdateMessageData,
   MessagePrivacySettings,
   UnreadCount,
-  WebSocketMessage,
-  MessageUser,
 } from '@/types/message';
 
 interface RetryOptions {
@@ -26,21 +24,14 @@ interface ErrorState {
   [key: string]: string;
 }
 
-export function useConversations() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errors, setErrors] = useState<ErrorState>({});
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
+interface PaginationState {
+  currentPage: number;
+  isLoading: boolean;
+  hasMore: boolean;
+}
 
-  const clearError = useCallback((key: string) => {
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[key];
-      return newErrors;
-    });
-  }, []);
-
+// Retry utility hook
+function useRetry() {
   const retry = useCallback(
     async <T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> => {
       const { maxAttempts = 3, delay = 1000, backoff = true } = options;
@@ -61,52 +52,126 @@ export function useConversations() {
     []
   );
 
+  return { retry };
+}
+
+export function useConversations() {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [errors, setErrors] = useState<ErrorState>({});
+  const [pagination, setPagination] = useState<PaginationState>({
+    currentPage: 1,
+    isLoading: true,
+    hasMore: false,
+  });
+
+  // Use refs to prevent race conditions
+  const loadingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const { retry } = useRetry();
+
+  const clearError = useCallback((key: string) => {
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[key];
+      return newErrors;
+    });
+  }, []);
+
   const loadConversations = useCallback(
-    async (refresh = false) => {
+    async (refresh = false, signal?: AbortSignal) => {
+      // Prevent multiple concurrent requests
+      if (loadingRef.current && !refresh) {
+        return;
+      }
+
+      loadingRef.current = true;
+
       try {
-        setIsLoading(true);
+        setPagination((prev) => ({
+          ...prev,
+          isLoading: true,
+        }));
+
         clearError('load');
 
-        const currentPage = refresh ? 1 : page;
-        const response = await retry(() =>
-          apiClient.messages.getConversations(currentPage, 20)
-        );
+        const targetPage = refresh ? 1 : pagination.currentPage;
 
-        if (refresh) {
-          setConversations(response.conversations);
-          setPage(1);
-        } else {
-          setConversations((prev) => [...prev, ...response.conversations]);
+        const response = await retry(() => {
+          if (signal?.aborted) {
+            throw new Error('Request aborted');
+          }
+          return apiClient.messages.getConversations(targetPage, 20);
+        });
+
+        // Check if request was aborted
+        if (signal?.aborted) {
+          return;
         }
 
-        setHasMore(response.has_more);
-        if (!refresh) setPage((prev) => prev + 1);
+        setConversations((prev) => {
+          if (refresh) {
+            return response.conversations;
+          }
+          // Prevent duplicates when concatenating
+          const existingIds = new Set(prev.map((conv) => conv.id));
+          const newConversations = response.conversations.filter(
+            (conv) => !existingIds.has(conv.id)
+          );
+          return [...prev, ...newConversations];
+        });
+
+        setPagination((prev) => ({
+          currentPage: refresh ? 2 : prev.currentPage + 1,
+          isLoading: false,
+          hasMore: response.has_more,
+        }));
       } catch (err) {
+        if (signal?.aborted) {
+          return; // Don't set errors for aborted requests
+        }
+
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to load conversations';
         setErrors((prev) => ({ ...prev, load: errorMessage }));
+
+        setPagination((prev) => ({
+          ...prev,
+          isLoading: false,
+        }));
       } finally {
-        setIsLoading(false);
+        loadingRef.current = false;
       }
     },
-    [page, retry, clearError]
+    [pagination.currentPage, retry, clearError]
   );
 
-  const createConversation = async (data: CreateConversationData) => {
-    try {
-      clearError('create');
-      const newConversation = await retry(() =>
-        apiClient.messages.createConversation(data)
-      );
-      setConversations((prev) => [newConversation, ...prev]);
-      return newConversation;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to create conversation';
-      setErrors((prev) => ({ ...prev, create: errorMessage }));
-      throw new Error(errorMessage);
-    }
-  };
+  const createConversation = useCallback(
+    async (data: CreateConversationData) => {
+      try {
+        clearError('create');
+        const newConversation = await retry(() =>
+          apiClient.messages.createConversation(data)
+        );
+
+        setConversations((prev) => {
+          // Check if conversation already exists (prevent duplicates)
+          const exists = prev.some((conv) => conv.id === newConversation.id);
+          if (exists) {
+            return prev;
+          }
+          return [newConversation, ...prev];
+        });
+
+        return newConversation;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to create conversation';
+        setErrors((prev) => ({ ...prev, create: errorMessage }));
+        throw new Error(errorMessage);
+      }
+    },
+    [retry, clearError]
+  );
 
   const updateConversation = useCallback(
     (updatedConversation: Conversation) => {
@@ -132,21 +197,63 @@ export function useConversations() {
     []
   );
 
+  const refreshConversations = useCallback(() => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+
+    // Reset pagination state
+    setPagination({
+      currentPage: 1,
+      isLoading: true,
+      hasMore: false,
+    });
+
+    loadConversations(true, abortControllerRef.current.signal);
+  }, [loadConversations]);
+
+  const loadMore = useCallback(() => {
+    if (!pagination.isLoading && pagination.hasMore) {
+      loadConversations(false);
+    }
+  }, [loadConversations, pagination.isLoading, pagination.hasMore]);
+
+  // Initial load with proper cleanup
   useEffect(() => {
-    loadConversations(true);
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    loadConversations(true, abortController.signal);
+
+    return () => {
+      abortController.abort();
+    };
+  }, []); // Only run once on mount
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   return {
     conversations,
-    isLoading,
+    isLoading: pagination.isLoading,
     errors,
-    hasMore,
-    loadConversations,
+    hasMore: pagination.hasMore,
+    loadMore,
     createConversation,
     updateConversation,
     updateConversationUnreadCount,
     clearError,
-    refreshConversations: () => loadConversations(true),
+    refreshConversations,
   };
 }
 
@@ -155,11 +262,19 @@ export function useConversation(conversationId: number | null) {
     null
   );
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<ErrorState>({});
+  const [loadingStates, setLoadingStates] = useState({
+    initial: false,
+    loadingMore: false,
+  });
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [offlineQueue, setOfflineQueue] = useState<CreateMessageData[]>([]);
+
+  // Refs to prevent race conditions
+  const currentConversationIdRef = useRef<number | null>(null);
+  const isLoadingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const { retry } = useRetry();
 
   const clearError = useCallback((key: string) => {
     setErrors((prev) => {
@@ -169,182 +284,257 @@ export function useConversation(conversationId: number | null) {
     });
   }, []);
 
-  const retry = useCallback(
-    async <T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> => {
-      const { maxAttempts = 3, delay = 1000, backoff = true } = options;
-
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          return await fn();
-        } catch (error) {
-          if (attempt === maxAttempts) {
-            throw error;
-          }
-          const waitTime = backoff ? delay * Math.pow(2, attempt - 1) : delay;
-          await new Promise((resolve) => setTimeout(resolve, waitTime));
-        }
+  const loadConversation = useCallback(
+    async (targetConversationId: number, signal?: AbortSignal) => {
+      // Prevent concurrent loads for same conversation
+      if (
+        isLoadingRef.current &&
+        currentConversationIdRef.current === targetConversationId
+      ) {
+        return;
       }
-      throw new Error('Max retry attempts reached');
+
+      isLoadingRef.current = true;
+      currentConversationIdRef.current = targetConversationId;
+
+      try {
+        setLoadingStates((prev) => ({ ...prev, initial: true }));
+        clearError('load');
+
+        const response = await retry(() => {
+          if (signal?.aborted) {
+            throw new Error('Request aborted');
+          }
+          return apiClient.messages.getConversation(targetConversationId);
+        });
+
+        // Check if request was aborted or conversation changed
+        if (
+          signal?.aborted ||
+          currentConversationIdRef.current !== targetConversationId
+        ) {
+          return;
+        }
+
+        setConversation(response);
+        setMessages(response.messages);
+        setHasMoreMessages(response.has_more);
+      } catch (err) {
+        if (
+          signal?.aborted ||
+          currentConversationIdRef.current !== targetConversationId
+        ) {
+          return;
+        }
+
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load conversation';
+        setErrors((prev) => ({ ...prev, load: errorMessage }));
+      } finally {
+        setLoadingStates((prev) => ({ ...prev, initial: false }));
+        isLoadingRef.current = false;
+      }
     },
-    []
+    [retry, clearError]
   );
 
-  const loadConversation = useCallback(async () => {
-    if (!conversationId) return;
+  const sendMessage = useCallback(
+    async (data: CreateMessageData) => {
+      const targetConversationId = currentConversationIdRef.current;
+      if (!targetConversationId) throw new Error('No conversation selected');
 
-    try {
-      setIsLoading(true);
-      clearError('load');
+      try {
+        clearError('send');
+        const newMessage = await retry(() =>
+          apiClient.messages.sendMessage(targetConversationId, data)
+        );
 
-      const response = await retry(() =>
-        apiClient.messages.getConversation(conversationId)
-      );
-      setConversation(response);
-      setMessages(response.messages);
-      setHasMoreMessages(response.has_more);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load conversation';
-      setErrors((prev) => ({ ...prev, load: errorMessage }));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [conversationId, retry, clearError]);
+        // Only add message if we're still on the same conversation
+        if (currentConversationIdRef.current === targetConversationId) {
+          setMessages((prev) => {
+            // Prevent duplicates
+            if (prev.some((msg) => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
+        }
 
-  const sendMessage = async (data: CreateMessageData) => {
-    if (!conversationId) throw new Error('No conversation selected');
+        return newMessage;
+      } catch (err) {
+        // Handle offline scenario
+        if (err instanceof Error && err.message.includes('fetch')) {
+          setOfflineQueue((prev) => [...prev, data]);
+          setErrors((prev) => ({
+            ...prev,
+            send: 'Nachricht wird gesendet, sobald die Verbindung wiederhergestellt ist.',
+          }));
+          return null;
+        }
 
-    try {
-      clearError('send');
-      const newMessage = await retry(() =>
-        apiClient.messages.sendMessage(conversationId, data)
-      );
-      setMessages((prev) => [...prev, newMessage]);
-      return newMessage;
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('fetch')) {
-        setOfflineQueue((prev) => [...prev, data]);
-        setErrors((prev) => ({
-          ...prev,
-          send: 'Nachricht wird gesendet, sobald die Verbindung wiederhergestellt ist.',
-        }));
-        return null;
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to send message';
+        setErrors((prev) => ({ ...prev, send: errorMessage }));
+        throw new Error(errorMessage);
       }
+    },
+    [retry, clearError]
+  );
 
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to send message';
-      setErrors((prev) => ({ ...prev, send: errorMessage }));
-      throw new Error(errorMessage);
-    }
-  };
+  const editMessage = useCallback(
+    async (messageId: number, data: UpdateMessageData) => {
+      try {
+        clearError('edit');
+        const updatedMessage = await retry(() =>
+          apiClient.messages.editMessage(messageId, data)
+        );
 
-  const editMessage = async (messageId: number, data: UpdateMessageData) => {
-    try {
-      clearError('edit');
-      const updatedMessage = await retry(() =>
-        apiClient.messages.editMessage(messageId, data)
-      );
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === messageId ? updatedMessage : msg))
-      );
-      return updatedMessage;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to edit message';
-      setErrors((prev) => ({ ...prev, edit: errorMessage }));
-      throw new Error(errorMessage);
-    }
-  };
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? updatedMessage : msg))
+        );
 
-  const deleteMessage = async (messageId: number) => {
-    try {
-      clearError('delete');
-      await retry(() => apiClient.messages.deleteMessage(messageId));
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId
-            ? { ...msg, is_deleted: true, content: '[Message deleted]' }
-            : msg
-        )
-      );
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to delete message';
-      setErrors((prev) => ({ ...prev, delete: errorMessage }));
-      throw new Error(errorMessage);
-    }
-  };
+        return updatedMessage;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to edit message';
+        setErrors((prev) => ({ ...prev, edit: errorMessage }));
+        throw new Error(errorMessage);
+      }
+    },
+    [retry, clearError]
+  );
 
-  const markAsRead = async (upToMessageId?: number) => {
-    if (!conversationId) return;
+  const deleteMessage = useCallback(
+    async (messageId: number) => {
+      try {
+        clearError('delete');
+        await retry(() => apiClient.messages.deleteMessage(messageId));
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, is_deleted: true, content: '[Message deleted]' }
+              : msg
+          )
+        );
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to delete message';
+        setErrors((prev) => ({ ...prev, delete: errorMessage }));
+        throw new Error(errorMessage);
+      }
+    },
+    [retry, clearError]
+  );
+
+  const markAsRead = useCallback(async (upToMessageId?: number) => {
+    const targetConversationId = currentConversationIdRef.current;
+    if (!targetConversationId) return;
 
     try {
       await apiClient.messages.markMessagesAsRead(
-        conversationId,
+        targetConversationId,
         upToMessageId
       );
 
+      // Dispatch event for other components
       window.dispatchEvent(
         new CustomEvent('messages-marked-read', {
-          detail: { conversationId, upToMessageId },
+          detail: { conversationId: targetConversationId, upToMessageId },
         })
       );
 
-      setMessages((prev) =>
-        prev.map((msg) =>
-          !upToMessageId || msg.id <= upToMessageId
-            ? { ...msg, is_read: true }
-            : msg
-        )
-      );
+      // Only update if we're still on the same conversation
+      if (currentConversationIdRef.current === targetConversationId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            !upToMessageId || msg.id <= upToMessageId
+              ? { ...msg, is_read: true }
+              : msg
+          )
+        );
+      }
     } catch (err) {
       console.error('Failed to mark messages as read:', err);
     }
-  };
+  }, []);
 
-  const loadMoreMessages = async () => {
-    if (!conversationId || isLoadingMore || !hasMoreMessages) return;
+  const loadMoreMessages = useCallback(async () => {
+    const targetConversationId = currentConversationIdRef.current;
+    if (
+      !targetConversationId ||
+      loadingStates.loadingMore ||
+      !hasMoreMessages
+    ) {
+      return;
+    }
 
     try {
-      setIsLoadingMore(true);
+      setLoadingStates((prev) => ({ ...prev, loadingMore: true }));
+
       const oldestMessageId = messages.length > 0 ? messages[0].id : undefined;
 
       const response = await retry(() =>
-        apiClient.messages.getMessages(conversationId, 1, 50, oldestMessageId)
+        apiClient.messages.getMessages(
+          targetConversationId,
+          1,
+          50,
+          oldestMessageId
+        )
       );
 
-      setMessages((prev) => [...response.messages, ...prev]);
-      setHasMoreMessages(response.has_more);
+      // Only update if we're still on the same conversation
+      if (currentConversationIdRef.current === targetConversationId) {
+        setMessages((prev) => {
+          // Prevent duplicates when prepending
+          const existingIds = new Set(prev.map((msg) => msg.id));
+          const newMessages = response.messages.filter(
+            (msg) => !existingIds.has(msg.id)
+          );
+          return [...newMessages, ...prev];
+        });
+
+        setHasMoreMessages(response.has_more);
+      }
     } catch (err) {
       console.error('Failed to load more messages:', err);
     } finally {
-      setIsLoadingMore(false);
+      setLoadingStates((prev) => ({ ...prev, loadingMore: false }));
     }
-  };
+  }, [messages.length, hasMoreMessages, loadingStates.loadingMore, retry]);
 
   const addMessage = useCallback((message: Message) => {
-    setMessages((prev) => {
-      if (prev.some((msg) => msg.id === message.id)) {
-        return prev;
-      }
-      return [...prev, message];
-    });
+    // Only add if it's for the current conversation
+    if (currentConversationIdRef.current === message.conversation_id) {
+      setMessages((prev) => {
+        // Prevent duplicates
+        if (prev.some((msg) => msg.id === message.id)) {
+          return prev;
+        }
+        return [...prev, message];
+      });
+    }
   }, []);
 
   const updateMessage = useCallback((updatedMessage: Message) => {
-    setMessages((prev) =>
-      prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
-    );
+    // Only update if it's for the current conversation
+    if (currentConversationIdRef.current === updatedMessage.conversation_id) {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+      );
+    }
   }, []);
 
+  // Process offline queue when connection is restored
   const processOfflineQueue = useCallback(async () => {
-    if (!conversationId || offlineQueue.length === 0) return;
+    const targetConversationId = currentConversationIdRef.current;
+    if (!targetConversationId || offlineQueue.length === 0) return;
 
     const failedMessages: CreateMessageData[] = [];
 
     for (const messageData of offlineQueue) {
       try {
-        await apiClient.messages.sendMessage(conversationId, messageData);
+        await apiClient.messages.sendMessage(targetConversationId, messageData);
       } catch (error) {
         failedMessages.push(messageData);
       }
@@ -355,8 +545,9 @@ export function useConversation(conversationId: number | null) {
     if (failedMessages.length === 0) {
       clearError('send');
     }
-  }, [conversationId, offlineQueue, clearError]);
+  }, [offlineQueue, clearError]);
 
+  // Handle online event for offline queue processing
   useEffect(() => {
     const handleOnline = () => {
       processOfflineQueue();
@@ -366,22 +557,41 @@ export function useConversation(conversationId: number | null) {
     return () => window.removeEventListener('online', handleOnline);
   }, [processOfflineQueue]);
 
+  // Load conversation when ID changes
   useEffect(() => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     if (conversationId) {
-      loadConversation();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      loadConversation(conversationId, abortController.signal);
     } else {
+      // Clear state when no conversation selected
+      currentConversationIdRef.current = null;
       setConversation(null);
       setMessages([]);
+      setHasMoreMessages(false);
+      setErrors({});
     }
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [conversationId, loadConversation]);
 
   return {
     conversation,
     messages,
-    isLoading,
+    isLoading: loadingStates.initial,
+    isLoadingMore: loadingStates.loadingMore,
     errors,
     hasMoreMessages,
-    isLoadingMore,
     offlineQueueLength: offlineQueue.length,
     loadMoreMessages,
     sendMessage,
@@ -392,27 +602,40 @@ export function useConversation(conversationId: number | null) {
     updateMessage,
     clearError,
     processOfflineQueue,
-    refreshConversation: loadConversation,
+    refreshConversation: () => {
+      if (conversationId) {
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+        loadConversation(conversationId, abortController.signal);
+      }
+    },
   };
 }
 
+// Rest of the hooks remain the same but with better state management
 export function useUnreadCount() {
   const [unreadCount, setUnreadCount] = useState<UnreadCount>({
     total_unread: 0,
     conversations: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const isLoadingRef = useRef(false);
+  const { retry } = useRetry();
 
   const loadUnreadCount = useCallback(async () => {
+    if (isLoadingRef.current) return; // Prevent concurrent loads
+
+    isLoadingRef.current = true;
     try {
-      const response = await apiClient.messages.getUnreadCount();
+      const response = await retry(() => apiClient.messages.getUnreadCount());
       setUnreadCount(response);
     } catch (err) {
       console.error('Failed to load unread count:', err);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
-  }, []);
+  }, [retry]);
 
   const updateConversationUnreadCount = useCallback(
     (conversationId: number, count: number) => {
@@ -432,7 +655,6 @@ export function useUnreadCount() {
             };
           }
         } else if (count > 0) {
-          // Füge neue Conversation hinzu
           newConversations.push({
             conversation_id: conversationId,
             unread_count: count,
@@ -453,6 +675,7 @@ export function useUnreadCount() {
     []
   );
 
+  // Initial load
   useEffect(() => {
     loadUnreadCount();
   }, [loadUnreadCount]);
@@ -466,234 +689,6 @@ export function useUnreadCount() {
   };
 }
 
-// Globaler WebSocket Manager für bessere Verbindungsverwaltung
-export function useGlobalMessageWebSocket() {
-  const [isConnected, setIsConnected] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const { user } = useAuthStore();
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttempts = useRef(0);
-
-  const connect = useCallback(() => {
-    if (!user) return;
-
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-
-    try {
-      // Schließe bestehende Verbindung
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-
-      const ws = apiClient.createWebSocket('/api/messages/ws', token);
-
-      ws.onopen = () => {
-        setIsConnected(true);
-        reconnectAttempts.current = 0;
-        console.log('Global WebSocket connected');
-      };
-
-      ws.onclose = (event) => {
-        setIsConnected(false);
-        console.log('Global WebSocket disconnected:', event.code, event.reason);
-
-        if (event.code !== 1000 && reconnectAttempts.current < 5) {
-          const delay = Math.min(
-            1000 * Math.pow(2, reconnectAttempts.current),
-            30000
-          );
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttempts.current++;
-            connect();
-          }, delay);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('Global WebSocket error:', error);
-        setIsConnected(false);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          window.dispatchEvent(
-            new CustomEvent('global-websocket-message', { detail: message })
-          );
-        } catch (err) {
-          console.error('Failed to parse WebSocket message:', err);
-        }
-      };
-
-      wsRef.current = ws;
-    } catch (err) {
-      console.error('Failed to create WebSocket connection:', err);
-    }
-  }, [user]);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    if (wsRef.current) {
-      wsRef.current.close(1000, 'Manual disconnect');
-      wsRef.current = null;
-    }
-    setIsConnected(false);
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      connect();
-    } else {
-      disconnect();
-    }
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user && !isConnected) {
-        connect();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      disconnect();
-    };
-  }, [user, connect, disconnect]);
-
-  return {
-    isConnected,
-    reconnect: connect,
-  };
-}
-
-export function useMessageWebSocket(conversationId: number | null) {
-  const [typingUsers, setTypingUsers] = useState<MessageUser[]>([]);
-  const wsRef = useRef<WebSocket | null>(null);
-  const { user } = useAuthStore();
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const connect = useCallback(() => {
-    if (!conversationId || !user) return;
-
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-
-    try {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-
-      const ws = apiClient.createWebSocket(
-        `/api/messages/ws/conversations/${conversationId}`,
-        token
-      );
-
-      ws.onopen = () => {
-        console.log('Conversation WebSocket connected to', conversationId);
-      };
-
-      ws.onclose = () => {
-        console.log('Conversation WebSocket disconnected from', conversationId);
-        setTypingUsers([]);
-      };
-
-      ws.onerror = (error) => {
-        console.error('Conversation WebSocket error:', error);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          handleWebSocketMessage(message);
-        } catch (err) {
-          console.error('Failed to parse WebSocket message:', err);
-        }
-      };
-
-      wsRef.current = ws;
-    } catch (err) {
-      console.error('Failed to create conversation WebSocket:', err);
-    }
-  }, [conversationId, user]);
-
-  const disconnect = useCallback(() => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    setTypingUsers([]);
-  }, []);
-
-  const handleWebSocketMessage = (message: WebSocketMessage) => {
-    switch (message.type) {
-      case 'typing_status':
-        if (message.typing_users) {
-          const typingUserObjects = message.typing_users
-            .filter((id) => id !== user?.id)
-            .map((id) => ({ id, display_name: `User ${id}` }));
-          setTypingUsers(typingUserObjects);
-        }
-        break;
-    }
-  };
-
-  const sendTyping = useCallback((isTyping: boolean) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: 'typing',
-          is_typing: isTyping,
-        })
-      );
-    }
-  }, []);
-
-  const startTyping = useCallback(() => {
-    sendTyping(true);
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      sendTyping(false);
-    }, 3000);
-  }, [sendTyping]);
-
-  const stopTyping = useCallback(() => {
-    sendTyping(false);
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-  }, [sendTyping]);
-
-  useEffect(() => {
-    if (conversationId) {
-      connect();
-    } else {
-      disconnect();
-    }
-
-    return () => {
-      disconnect();
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-    };
-  }, [conversationId, connect, disconnect]);
-
-  return {
-    typingUsers,
-    startTyping,
-    stopTyping,
-    reconnect: connect,
-  };
-}
-
 export function useMessagePrivacy() {
   const [settings, setSettings] = useState<MessagePrivacySettings>({
     messages_enabled: true,
@@ -701,31 +696,45 @@ export function useMessagePrivacy() {
     messages_notifications: true,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const isLoadingRef = useRef(false);
+  const { retry } = useRetry();
 
   const loadSettings = useCallback(async () => {
+    if (isLoadingRef.current) return;
+
+    isLoadingRef.current = true;
     try {
-      const response = await apiClient.messages.getPrivacySettings();
+      const response = await retry(() =>
+        apiClient.messages.getPrivacySettings()
+      );
       setSettings(response);
     } catch (err) {
       console.error('Failed to load privacy settings:', err);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
-  }, []);
+  }, [retry]);
 
-  const updateSettings = async (
-    newSettings: Partial<MessagePrivacySettings>
-  ) => {
-    try {
-      await apiClient.messages.updatePrivacySettings(newSettings);
-      setSettings((prev) => ({ ...prev, ...newSettings }));
-    } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : 'Failed to update privacy settings'
-      );
-    }
-  };
+  const updateSettings = useCallback(
+    async (newSettings: Partial<MessagePrivacySettings>) => {
+      try {
+        await retry(() =>
+          apiClient.messages.updatePrivacySettings(newSettings)
+        );
+        setSettings((prev) => ({ ...prev, ...newSettings }));
+      } catch (err) {
+        throw new Error(
+          err instanceof Error
+            ? err.message
+            : 'Failed to update privacy settings'
+        );
+      }
+    },
+    [retry]
+  );
 
+  // Initial load
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);

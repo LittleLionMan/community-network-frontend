@@ -1,23 +1,24 @@
+// src/app/messages/page.tsx - Complete with Unified Error Handling
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Settings, X } from 'lucide-react';
 import MessagesInterface from '@/components/messages/MessagesInterface';
 import { SecurityBanner } from '@/components/messages/SecurityBanner';
-import { MessageError } from '@/components/messages/MessageError';
-import { MessageErrorBoundary } from '@/components/messages/ErrorBoundary';
+import { UnifiedErrorBoundary } from '@/components/errors/UnifiedErrorBoundary';
+import { ErrorList } from '@/components/errors/UnifiedErrorComponents';
 import { MessageSearch } from '@/components/messages/MessageSearch';
 import { NotificationPermissionBanner } from '@/components/notifications/NotificationPermissionBanner';
 import {
   useConversations,
   useConversation,
-  useMessageWebSocket,
   useUnreadCount,
-  useGlobalMessageWebSocket,
 } from '@/hooks/useMessages';
+import { useMessageWebSocket } from '@/hooks/useMessageWebSocket';
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
 import { useMessageNotifications } from '@/hooks/useMessageNotifications';
+import { useErrorHandler } from '@/lib/error-handling';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
 import type {
@@ -27,23 +28,29 @@ import type {
   UnreadCount,
 } from '@/types/message';
 
-interface NewConversationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreateConversation: (data: CreateConversationData) => Promise<void>;
-}
-
 interface SearchUser {
   id: number;
   display_name: string;
   email: string;
 }
 
-const NewConversationModal: React.FC<NewConversationModalProps> = ({
-  isOpen,
-  onClose,
-  onCreateConversation,
-}) => {
+interface UserApiResponse {
+  id: number;
+  display_name: string;
+  first_name: string;
+  last_name: string;
+  bio: string;
+  location: string;
+  created_at: string;
+  profile_image_url: string;
+}
+
+// Memoized NewConversationModal
+const NewConversationModal = React.memo<{
+  isOpen: boolean;
+  onClose: () => void;
+  onCreateConversation: (data: CreateConversationData) => Promise<void>;
+}>(({ isOpen, onClose, onCreateConversation }) => {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,29 +61,37 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
   const { validateAndSendMessage, isBlocked, blockReason, clearBlock } =
     useMessageSecurity();
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedUserId || !message.trim()) return;
 
-    const success = await validateAndSendMessage(
-      message.trim(),
-      async (sanitizedContent) => {
+    setIsLoading(true);
+    try {
+      await validateAndSendMessage(message.trim(), async (sanitizedContent) => {
         await onCreateConversation({
           participant_id: selectedUserId,
           initial_message: sanitizedContent,
         });
-      }
-    );
+      });
 
-    if (success) {
       onClose();
       setSelectedUserId(null);
       setMessage('');
       setSearchQuery('');
       setSearchResults([]);
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [
+    selectedUserId,
+    message,
+    validateAndSendMessage,
+    onCreateConversation,
+    onClose,
+  ]);
 
-  const searchUsers = async (query: string) => {
+  const searchUsers = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -89,17 +104,9 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
       params.append('page', '1');
       params.append('size', '10');
 
-      const response = (await apiClient.users.list(params)) as Array<{
-        id: number;
-        display_name: string;
-        first_name: string;
-        last_name: string;
-        bio: string;
-        location: string;
-        created_at: string;
-        profile_image_url: string;
-      }>;
-
+      const response = (await apiClient.users.list(
+        params
+      )) as UserApiResponse[];
       const userResults: SearchUser[] = response.map((user) => ({
         id: user.id,
         display_name: user.display_name,
@@ -116,15 +123,26 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const timeoutId = setTimeout(() => {
       searchUsers(searchQuery);
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, isOpen, searchUsers]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedUserId(null);
+      setMessage('');
+      setSearchQuery('');
+      setSearchResults([]);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -220,6 +238,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
               <button
                 onClick={onClose}
                 className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                disabled={isLoading}
               >
                 Abbrechen
               </button>
@@ -230,7 +249,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                 }
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {isLoading ? 'Sende...' : 'Konversation starten'}
+                {isLoading ? 'Erstelle...' : 'Konversation starten'}
               </button>
             </div>
           </div>
@@ -238,11 +257,133 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
       </div>
     </div>
   );
-};
+});
+
+NewConversationModal.displayName = 'NewConversationModal';
+
+// Settings Modal
+const SettingsModal = React.memo<{
+  isOpen: boolean;
+  onClose: () => void;
+  notificationsEnabled: boolean;
+  isConnected: boolean;
+  isReconnecting: boolean;
+}>(({ isOpen, onClose, notificationsEnabled, isConnected, isReconnecting }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+        <div className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Nachrichten-Einstellungen
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">
+                  Nachrichten aktiviert
+                </div>
+                <div className="text-sm text-gray-500">
+                  Erlaube anderen dir zu schreiben
+                </div>
+              </div>
+              <input type="checkbox" defaultChecked className="rounded" />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">Von Fremden</div>
+                <div className="text-sm text-gray-500">
+                  Nachrichten von unbekannten Personen
+                </div>
+              </div>
+              <input type="checkbox" defaultChecked className="rounded" />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium text-gray-900">
+                  Browser-Benachrichtigungen
+                </div>
+                <div className="text-sm text-gray-500">
+                  Desktop-Benachrichtigungen bei neuen Nachrichten
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={notificationsEnabled}
+                  disabled
+                  className="rounded"
+                />
+                <span
+                  className={`text-xs ${
+                    notificationsEnabled ? 'text-green-600' : 'text-gray-400'
+                  }`}
+                >
+                  {notificationsEnabled ? 'Aktiviert' : 'Deaktiviert'}
+                </span>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <button className="w-full rounded p-2 text-left text-red-600 hover:bg-red-50">
+                Alle Conversations löschen
+              </button>
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="text-sm text-gray-500">
+                <div className="flex items-center justify-between">
+                  <span>WebSocket Status:</span>
+                  <span
+                    className={isConnected ? 'text-green-600' : 'text-red-600'}
+                  >
+                    {isConnected ? 'Verbunden' : 'Getrennt'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Reconnecting:</span>
+                  <span>{isReconnecting ? 'Ja' : 'Nein'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-6">
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+            >
+              Abbrechen
+            </button>
+            <button className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
+              Speichern
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+SettingsModal.displayName = 'SettingsModal';
 
 export default function MessagesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+
+  // UI State
   const [selectedConversationId, setSelectedConversationId] = useState<
     number | null
   >(null);
@@ -250,6 +391,20 @@ export default function MessagesPage() {
     useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+
+  // Unified Error Handling
+  const { errors, removeError, handleError, retryOperation } =
+    useErrorHandler();
+
+  // Hooks
+  const {
+    isConnected,
+    isReconnecting,
+    typingUsers,
+    startTyping,
+    stopTyping,
+    reconnect,
+  } = useMessageWebSocket(selectedConversationId);
 
   const {
     conversations,
@@ -266,6 +421,7 @@ export default function MessagesPage() {
     conversation: selectedConversation,
     messages,
     isLoading: messagesLoading,
+    isLoadingMore,
     errors: messageErrors,
     offlineQueueLength,
     sendMessage,
@@ -286,12 +442,6 @@ export default function MessagesPage() {
     refreshUnreadCount,
   } = useUnreadCount();
 
-  const { typingUsers, startTyping, stopTyping } = useMessageWebSocket(
-    selectedConversationId
-  );
-
-  const { isConnected } = useGlobalMessageWebSocket();
-
   const {
     validateAndSendMessage,
     isBlocked: isMainBlocked,
@@ -304,12 +454,134 @@ export default function MessagesPage() {
     isSupported: notificationsSupported,
   } = useMessageNotifications();
 
+  // Auth check
   useEffect(() => {
     if (!user) {
       router.push('/auth/login');
     }
   }, [user, router]);
 
+  // Handlers
+  const handleSelectConversation = useCallback((conversation: Conversation) => {
+    setSelectedConversationId(conversation.id);
+  }, []);
+
+  const handleSelectMessageFromSearch = useCallback(
+    (conversationId: number, messageId: number) => {
+      setSelectedConversationId(conversationId);
+      setShowSearch(false);
+      console.log(
+        'Navigate to conversation:',
+        conversationId,
+        'message:',
+        messageId
+      );
+    },
+    []
+  );
+
+  const handleCreateConversation = useCallback(
+    async (data: CreateConversationData) => {
+      const success = await handleError(
+        async () => {
+          const newConversation = await createConversation(data);
+          setSelectedConversationId(newConversation.id);
+          setShowNewConversationModal(false);
+        },
+        { action: 'create_conversation', participantId: data.participant_id }
+      );
+
+      if (!success) {
+        console.log('Failed to create conversation');
+      }
+    },
+    [createConversation, handleError]
+  );
+
+  const handleSendMessage = useCallback(
+    async (content: string, replyToId?: number) => {
+      await handleError(
+        async () => {
+          await validateAndSendMessage(content, async (sanitizedContent) => {
+            await sendMessage({
+              content: sanitizedContent,
+              reply_to_id: replyToId,
+            });
+          });
+        },
+        { action: 'send_message', conversationId: selectedConversationId }
+      );
+    },
+    [validateAndSendMessage, sendMessage, selectedConversationId, handleError]
+  );
+
+  const handleEditMessage = useCallback(
+    async (messageId: number, content: string) => {
+      await handleError(
+        async () => {
+          await validateAndSendMessage(content, async (sanitizedContent) => {
+            await editMessage(messageId, { content: sanitizedContent });
+          });
+        },
+        { action: 'edit_message', messageId }
+      );
+    },
+    [validateAndSendMessage, editMessage, handleError]
+  );
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: number) => {
+      if (
+        confirm('Sind Sie sicher, dass Sie diese Nachricht löschen möchten?')
+      ) {
+        await handleError(
+          async () => {
+            await deleteMessage(messageId);
+          },
+          { action: 'delete_message', messageId }
+        );
+      }
+    },
+    [deleteMessage, handleError]
+  );
+
+  const handleTyping = useCallback(() => {
+    if (selectedConversationId) {
+      startTyping(selectedConversationId);
+    }
+  }, [selectedConversationId, startTyping]);
+
+  const handleStopTyping = useCallback(() => {
+    if (selectedConversationId) {
+      stopTyping(selectedConversationId);
+    }
+  }, [selectedConversationId, stopTyping]);
+
+  const handleRetry = useCallback(
+    async (errorId: string) => {
+      const error = errors[errorId];
+      if (!error) return;
+
+      const success = await retryOperation(async () => {
+        switch (error.context?.action) {
+          case 'load_conversations':
+            await refreshConversations();
+            break;
+          case 'create_conversation':
+            throw new Error('Please try creating the conversation again');
+          default:
+            window.location.reload();
+        }
+      });
+
+      if (success) {
+        removeError(errorId);
+      }
+    },
+    [errors, retryOperation, refreshConversations, removeError]
+  );
+
+  // WebSocket message handler
   useEffect(() => {
     const handleGlobalWebSocketMessage = (event: CustomEvent) => {
       const message: WebSocketMessage = event.detail;
@@ -379,26 +651,28 @@ export default function MessagesPage() {
     };
   }, [
     selectedConversationId,
+    user?.id,
     addMessage,
     updateMessage,
     markAsRead,
     refreshUnreadCount,
     refreshConversations,
     updateUnreadCount,
-    user?.id,
   ]);
 
+  // Fallback polling when WebSocket is disconnected
   useEffect(() => {
-    if (!isConnected) {
+    if (!isConnected && !isReconnecting) {
       const interval = setInterval(() => {
         refreshUnreadCount();
         refreshConversations();
-      }, 30000); // Alle 30 Sekunden
+      }, 30000);
 
       return () => clearInterval(interval);
     }
-  }, [isConnected, refreshUnreadCount, refreshConversations]);
+  }, [isConnected, isReconnecting, refreshUnreadCount, refreshConversations]);
 
+  // Auto-mark messages as read
   useEffect(() => {
     if (selectedConversationId && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -406,8 +680,9 @@ export default function MessagesPage() {
         markAsRead(lastMessage.id);
       }
     }
-  }, [selectedConversationId, messages, markAsRead, user?.id]);
+  }, [selectedConversationId, messages.length, user?.id, markAsRead, messages]);
 
+  // Handle marked read events
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {
       const { conversationId } = event.detail;
@@ -419,15 +694,14 @@ export default function MessagesPage() {
       'messages-marked-read',
       handleMarkedRead as EventListener
     );
-
-    return () => {
+    return () =>
       window.removeEventListener(
         'messages-marked-read',
         handleMarkedRead as EventListener
       );
-    };
   }, [updateUnreadForConversation, updateConversationUnreadCount]);
 
+  // Refresh data when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -437,75 +711,61 @@ export default function MessagesPage() {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
+    return () =>
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
   }, [refreshConversations, refreshUnreadCount]);
 
-  const handleSelectConversation = (conversation: Conversation) => {
-    setSelectedConversationId(conversation.id);
-  };
+  // Convert legacy errors to unified format
+  const allErrors = useMemo(() => {
+    const unifiedErrors = Object.values(errors);
 
-  const handleSelectMessageFromSearch = (
-    conversationId: number,
-    messageId: number
-  ) => {
-    setSelectedConversationId(conversationId);
-    setShowSearch(false);
-    console.log(
-      'Navigate to conversation:',
-      conversationId,
-      'message:',
-      messageId
-    );
-  };
-
-  const handleCreateConversation = async (data: CreateConversationData) => {
-    try {
-      const newConversation = await createConversation(data);
-      setSelectedConversationId(newConversation.id);
-      setShowNewConversationModal(false);
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-      throw error;
-    }
-  };
-
-  const handleSendMessage = async (content: string, replyToId?: number) => {
-    await validateAndSendMessage(content, async (sanitizedContent) => {
-      await sendMessage({ content: sanitizedContent, reply_to_id: replyToId });
+    // Add conversation errors
+    Object.entries(conversationErrors).forEach(([key, error]) => {
+      unifiedErrors.push({
+        id: `conversation-${key}`,
+        type: 'unknown' as const,
+        severity: 'medium' as const,
+        message: error,
+        context: { source: 'conversation', key },
+        timestamp: Date.now(),
+        retryable: true,
+        userMessage: error,
+      });
     });
-  };
 
-  const handleEditMessage = async (messageId: number, content: string) => {
-    await validateAndSendMessage(content, async (sanitizedContent) => {
-      await editMessage(messageId, { content: sanitizedContent });
+    // Add message errors
+    Object.entries(messageErrors).forEach(([key, error]) => {
+      unifiedErrors.push({
+        id: `message-${key}`,
+        type: key === 'send' ? 'network' : ('unknown' as const),
+        severity: 'medium' as const,
+        message: error,
+        context: { source: 'message', key },
+        timestamp: Date.now(),
+        retryable: true,
+        userMessage: error,
+      });
     });
-  };
 
-  const handleDeleteMessage = async (messageId: number) => {
-    if (confirm('Sind Sie sicher, dass Sie diese Nachricht löschen möchten?')) {
-      try {
-        await deleteMessage(messageId);
-      } catch (error) {
-        console.error('Failed to delete message:', error);
+    return unifiedErrors;
+  }, [errors, conversationErrors, messageErrors]);
+
+  const handleErrorDismiss = useCallback(
+    (errorId: string) => {
+      if (errorId.startsWith('conversation-')) {
+        const key = errorId.replace('conversation-', '');
+        clearConversationError(key);
+      } else if (errorId.startsWith('message-')) {
+        const key = errorId.replace('message-', '');
+        clearMessageError(key);
+      } else {
+        removeError(errorId);
       }
-    }
-  };
+    },
+    [clearConversationError, clearMessageError, removeError]
+  );
 
-  const retryFailedOperation = (errorKey: string) => {
-    switch (errorKey) {
-      case 'load':
-        refreshConversations();
-        break;
-      case 'send':
-        break;
-      default:
-        console.log('Retry not implemented for:', errorKey);
-    }
-  };
-
+  // Early returns
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -521,20 +781,8 @@ export default function MessagesPage() {
     );
   }
 
-  if (Object.keys(conversationErrors).length > 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <MessageError
-          error={Object.values(conversationErrors)[0]}
-          onRetry={() => window.location.reload()}
-          type="error"
-        />
-      </div>
-    );
-  }
-
   return (
-    <MessageErrorBoundary>
+    <UnifiedErrorBoundary>
       <div className="flex h-screen flex-col">
         {notificationsSupported && !notificationsEnabled && (
           <NotificationPermissionBanner />
@@ -562,7 +810,13 @@ export default function MessagesPage() {
                   isConnected ? 'bg-green-500' : 'bg-gray-400'
                 }`}
               />
-              <span>{isConnected ? 'Online' : 'Offline'}</span>
+              <span>
+                {isConnected
+                  ? 'Online'
+                  : isReconnecting
+                    ? 'Verbinde...'
+                    : 'Offline'}
+              </span>
             </div>
 
             {notificationsSupported && (
@@ -609,8 +863,31 @@ export default function MessagesPage() {
             >
               <Settings className="h-5 w-5" />
             </button>
+
+            {!isConnected && (
+              <button
+                onClick={reconnect}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
+                title="Verbindung wiederherstellen"
+              >
+                Reconnect
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Unified Error Display */}
+        {allErrors.length > 0 && (
+          <div className="border-b bg-gray-50 px-4 py-2">
+            <ErrorList
+              errors={allErrors}
+              onDismiss={handleErrorDismiss}
+              onRetry={handleRetry}
+              maxVisible={3}
+              compact
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <SecurityBanner
@@ -620,33 +897,19 @@ export default function MessagesPage() {
             type="error"
           />
 
-          {Object.entries(conversationErrors).map(([key, error]) => (
-            <MessageError
-              key={`conversation-${key}`}
-              error={error}
-              onRetry={() => retryFailedOperation(key)}
-              onDismiss={() => clearConversationError(key)}
-              type="error"
-            />
-          ))}
-
-          {Object.entries(messageErrors).map(([key, error]) => (
-            <MessageError
-              key={`message-${key}`}
-              error={error}
-              onRetry={() => retryFailedOperation(key)}
-              onDismiss={() => clearMessageError(key)}
-              type={
-                key === 'send' && offlineQueueLength > 0 ? 'warning' : 'error'
-              }
-            />
-          ))}
-
           {offlineQueueLength > 0 && (
-            <MessageError
-              error={`${offlineQueueLength} Nachricht(en) warten auf Übertragung`}
-              type="warning"
-            />
+            <div className="mx-4 rounded-lg border-l-4 border-yellow-400 bg-yellow-50 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="h-5 w-5 rounded-full bg-yellow-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-800">
+                    {offlineQueueLength} Nachricht(en) warten auf Übertragung
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
@@ -659,14 +922,25 @@ export default function MessagesPage() {
               </div>
             </div>
           ) : (
-            <MessageErrorBoundary
+            <UnifiedErrorBoundary
               fallback={
                 <div className="flex h-full items-center justify-center">
-                  <MessageError
-                    error="Fehler beim Laden der Nachrichten-Interface"
-                    onRetry={() => window.location.reload()}
-                    type="error"
-                  />
+                  <div className="w-full max-w-md text-center">
+                    <div className="rounded-lg bg-white p-6 shadow-lg">
+                      <h2 className="mb-2 text-xl font-semibold text-gray-900">
+                        Interface-Fehler
+                      </h2>
+                      <p className="mb-4 text-gray-600">
+                        Das Nachrichten-Interface konnte nicht geladen werden.
+                      </p>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+                      >
+                        Seite neu laden
+                      </button>
+                    </div>
+                  </div>
                 </div>
               }
             >
@@ -681,12 +955,13 @@ export default function MessagesPage() {
                 onEditMessage={handleEditMessage}
                 onDeleteMessage={handleDeleteMessage}
                 onLoadMoreMessages={loadMoreMessages}
-                onTyping={startTyping}
-                onStopTyping={stopTyping}
+                onTyping={handleTyping}
+                onStopTyping={handleStopTyping}
                 isLoading={messagesLoading || isMainBlocked}
+                isLoadingMore={isLoadingMore}
                 hasMoreMessages={hasMoreMessages}
               />
-            </MessageErrorBoundary>
+            </UnifiedErrorBoundary>
           )}
         </div>
 
@@ -702,94 +977,14 @@ export default function MessagesPage() {
           onSelectMessage={handleSelectMessageFromSearch}
         />
 
-        {showSettings && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-              <div className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Nachrichten-Einstellungen
-                  </h2>
-                  <button
-                    onClick={() => setShowSettings(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        Nachrichten aktiviert
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Erlaube anderen dir zu schreiben
-                      </div>
-                    </div>
-                    <input type="checkbox" defaultChecked className="rounded" />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        Von Fremden
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Nachrichten von unbekannten Personen
-                      </div>
-                    </div>
-                    <input type="checkbox" defaultChecked className="rounded" />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        Browser-Benachrichtigungen
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Desktop-Benachrichtigungen bei neuen Nachrichten
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={notificationsEnabled}
-                        disabled
-                        className="rounded"
-                      />
-                      <span
-                        className={`text-xs ${notificationsEnabled ? 'text-green-600' : 'text-gray-400'}`}
-                      >
-                        {notificationsEnabled ? 'Aktiviert' : 'Deaktiviert'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <button className="w-full rounded p-2 text-left text-red-600 hover:bg-red-50">
-                      Alle Conversations löschen
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex justify-end space-x-3 pt-6">
-                  <button
-                    onClick={() => setShowSettings(false)}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
-                  >
-                    Abbrechen
-                  </button>
-                  <button className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
-                    Speichern
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <SettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          notificationsEnabled={notificationsEnabled}
+          isConnected={isConnected}
+          isReconnecting={isReconnecting}
+        />
       </div>
-    </MessageErrorBoundary>
+    </UnifiedErrorBoundary>
   );
 }
