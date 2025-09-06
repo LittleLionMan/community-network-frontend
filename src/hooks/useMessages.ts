@@ -1,4 +1,3 @@
-// src/hooks/useMessages.ts
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -11,31 +10,66 @@ import type {
   CreateConversationData,
   CreateMessageData,
   UpdateMessageData,
-  ConversationSettings,
   MessagePrivacySettings,
   UnreadCount,
   WebSocketMessage,
-  TypingStatus,
   MessageUser,
 } from '@/types/message';
+
+interface RetryOptions {
+  maxAttempts?: number;
+  delay?: number;
+  backoff?: boolean;
+}
+
+interface ErrorState {
+  [key: string]: string;
+}
 
 export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<ErrorState>({});
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
+
+  const clearError = useCallback((key: string) => {
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[key];
+      return newErrors;
+    });
+  }, []);
+
+  const retry = useCallback(
+    async <T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> => {
+      const { maxAttempts = 3, delay = 1000, backoff = true } = options;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          return await fn();
+        } catch (error) {
+          if (attempt === maxAttempts) {
+            throw error;
+          }
+          const waitTime = backoff ? delay * Math.pow(2, attempt - 1) : delay;
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+      }
+      throw new Error('Max retry attempts reached');
+    },
+    []
+  );
 
   const loadConversations = useCallback(
     async (refresh = false) => {
       try {
         setIsLoading(true);
-        setError(null);
+        clearError('load');
 
         const currentPage = refresh ? 1 : page;
-        const response = await apiClient.messages.getConversations(
-          currentPage,
-          20
+        const response = await retry(() =>
+          apiClient.messages.getConversations(currentPage, 20)
         );
 
         if (refresh) {
@@ -48,58 +82,29 @@ export function useConversations() {
         setHasMore(response.has_more);
         if (!refresh) setPage((prev) => prev + 1);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to load conversations'
-        );
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load conversations';
+        setErrors((prev) => ({ ...prev, load: errorMessage }));
       } finally {
         setIsLoading(false);
       }
     },
-    [page]
+    [page, retry, clearError]
   );
 
   const createConversation = async (data: CreateConversationData) => {
     try {
-      const newConversation = await apiClient.messages.createConversation(data);
+      clearError('create');
+      const newConversation = await retry(() =>
+        apiClient.messages.createConversation(data)
+      );
       setConversations((prev) => [newConversation, ...prev]);
       return newConversation;
     } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : 'Failed to create conversation'
-      );
-    }
-  };
-
-  const updateConversationSettings = async (
-    conversationId: number,
-    settings: ConversationSettings
-  ) => {
-    try {
-      await apiClient.messages.updateConversationSettings(
-        conversationId,
-        settings
-      );
-
-      // Update local state
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === conversationId
-            ? {
-                ...conv,
-                participants: conv.participants.map((p) => ({
-                  ...p,
-                  ...settings,
-                })),
-              }
-            : conv
-        )
-      );
-    } catch (err) {
-      throw new Error(
-        err instanceof Error
-          ? err.message
-          : 'Failed to update conversation settings'
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to create conversation';
+      setErrors((prev) => ({ ...prev, create: errorMessage }));
+      throw new Error(errorMessage);
     }
   };
 
@@ -110,11 +115,11 @@ export function useConversations() {
   return {
     conversations,
     isLoading,
-    error,
+    errors,
     hasMore,
     loadConversations,
     createConversation,
-    updateConversationSettings,
+    clearError,
     refreshConversations: () => loadConversations(true),
   };
 }
@@ -125,90 +130,110 @@ export function useConversation(conversationId: number | null) {
   );
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<ErrorState>({});
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [offlineQueue, setOfflineQueue] = useState<CreateMessageData[]>([]);
+
+  const clearError = useCallback((key: string) => {
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[key];
+      return newErrors;
+    });
+  }, []);
+
+  const retry = useCallback(
+    async <T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> => {
+      const { maxAttempts = 3, delay = 1000, backoff = true } = options;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          return await fn();
+        } catch (error) {
+          if (attempt === maxAttempts) {
+            throw error;
+          }
+          const waitTime = backoff ? delay * Math.pow(2, attempt - 1) : delay;
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+      }
+      throw new Error('Max retry attempts reached');
+    },
+    []
+  );
 
   const loadConversation = useCallback(async () => {
     if (!conversationId) return;
 
     try {
       setIsLoading(true);
-      setError(null);
+      clearError('load');
 
-      const response = await apiClient.messages.getConversation(conversationId);
+      const response = await retry(() =>
+        apiClient.messages.getConversation(conversationId)
+      );
       setConversation(response);
       setMessages(response.messages);
       setHasMoreMessages(response.has_more);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load conversation'
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to load conversation';
+      setErrors((prev) => ({ ...prev, load: errorMessage }));
     } finally {
       setIsLoading(false);
     }
-  }, [conversationId]);
-
-  const loadMoreMessages = async () => {
-    if (!conversationId || isLoadingMore || !hasMoreMessages) return;
-
-    try {
-      setIsLoadingMore(true);
-      const oldestMessageId = messages.length > 0 ? messages[0].id : undefined;
-
-      const response = await apiClient.messages.getMessages(
-        conversationId,
-        1,
-        50,
-        oldestMessageId
-      );
-
-      setMessages((prev) => [...response.messages, ...prev]);
-      setHasMoreMessages(response.has_more);
-    } catch (err) {
-      console.error('Failed to load more messages:', err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
+  }, [conversationId, retry, clearError]);
 
   const sendMessage = async (data: CreateMessageData) => {
     if (!conversationId) throw new Error('No conversation selected');
 
     try {
-      const newMessage = await apiClient.messages.sendMessage(
-        conversationId,
-        data
+      clearError('send');
+      const newMessage = await retry(() =>
+        apiClient.messages.sendMessage(conversationId, data)
       );
       setMessages((prev) => [...prev, newMessage]);
       return newMessage;
     } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : 'Failed to send message'
-      );
+      if (err instanceof Error && err.message.includes('fetch')) {
+        setOfflineQueue((prev) => [...prev, data]);
+        setErrors((prev) => ({
+          ...prev,
+          send: 'Nachricht wird gesendet, sobald die Verbindung wiederhergestellt ist.',
+        }));
+        return null;
+      }
+
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to send message';
+      setErrors((prev) => ({ ...prev, send: errorMessage }));
+      throw new Error(errorMessage);
     }
   };
 
   const editMessage = async (messageId: number, data: UpdateMessageData) => {
     try {
-      const updatedMessage = await apiClient.messages.editMessage(
-        messageId,
-        data
+      clearError('edit');
+      const updatedMessage = await retry(() =>
+        apiClient.messages.editMessage(messageId, data)
       );
       setMessages((prev) =>
         prev.map((msg) => (msg.id === messageId ? updatedMessage : msg))
       );
       return updatedMessage;
     } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : 'Failed to edit message'
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to edit message';
+      setErrors((prev) => ({ ...prev, edit: errorMessage }));
+      throw new Error(errorMessage);
     }
   };
 
   const deleteMessage = async (messageId: number) => {
     try {
-      await apiClient.messages.deleteMessage(messageId);
+      clearError('delete');
+      await retry(() => apiClient.messages.deleteMessage(messageId));
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === messageId
@@ -217,9 +242,10 @@ export function useConversation(conversationId: number | null) {
         )
       );
     } catch (err) {
-      throw new Error(
-        err instanceof Error ? err.message : 'Failed to delete message'
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to delete message';
+      setErrors((prev) => ({ ...prev, delete: errorMessage }));
+      throw new Error(errorMessage);
     }
   };
 
@@ -231,8 +257,6 @@ export function useConversation(conversationId: number | null) {
         conversationId,
         upToMessageId
       );
-
-      // Update local state
       setMessages((prev) =>
         prev.map((msg) =>
           !upToMessageId || msg.id <= upToMessageId
@@ -244,6 +268,55 @@ export function useConversation(conversationId: number | null) {
       console.error('Failed to mark messages as read:', err);
     }
   };
+
+  const loadMoreMessages = async () => {
+    if (!conversationId || isLoadingMore || !hasMoreMessages) return;
+
+    try {
+      setIsLoadingMore(true);
+      const oldestMessageId = messages.length > 0 ? messages[0].id : undefined;
+
+      const response = await retry(() =>
+        apiClient.messages.getMessages(conversationId, 1, 50, oldestMessageId)
+      );
+
+      setMessages((prev) => [...response.messages, ...prev]);
+      setHasMoreMessages(response.has_more);
+    } catch (err) {
+      console.error('Failed to load more messages:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const processOfflineQueue = useCallback(async () => {
+    if (!conversationId || offlineQueue.length === 0) return;
+
+    const failedMessages: CreateMessageData[] = [];
+
+    for (const messageData of offlineQueue) {
+      try {
+        await apiClient.messages.sendMessage(conversationId, messageData);
+      } catch (error) {
+        failedMessages.push(messageData);
+      }
+    }
+
+    setOfflineQueue(failedMessages);
+
+    if (failedMessages.length === 0) {
+      clearError('send');
+    }
+  }, [conversationId, offlineQueue, clearError]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      processOfflineQueue();
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [processOfflineQueue]);
 
   useEffect(() => {
     if (conversationId) {
@@ -258,14 +331,17 @@ export function useConversation(conversationId: number | null) {
     conversation,
     messages,
     isLoading,
-    error,
+    errors,
     hasMoreMessages,
     isLoadingMore,
+    offlineQueueLength: offlineQueue.length,
     loadMoreMessages,
     sendMessage,
     editMessage,
     deleteMessage,
     markAsRead,
+    clearError,
+    processOfflineQueue,
     refreshConversation: loadConversation,
   };
 }
@@ -364,14 +440,13 @@ export function useMessageWebSocket(conversationId: number | null) {
         if (message.typing_users) {
           const typingUserObjects = message.typing_users
             .filter((id) => id !== user?.id)
-            .map((id) => ({ id, display_name: `User ${id}` })); // Fallback name
+            .map((id) => ({ id, display_name: `User ${id}` }));
           setTypingUsers(typingUserObjects);
         }
         break;
       case 'new_message':
       case 'message_edited':
       case 'message_deleted':
-        // These will be handled by parent components through custom events
         window.dispatchEvent(
           new CustomEvent('websocket-message', { detail: message })
         );
@@ -393,12 +468,10 @@ export function useMessageWebSocket(conversationId: number | null) {
   const startTyping = useCallback(() => {
     sendTyping(true);
 
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Stop typing after 3 seconds of inactivity
     typingTimeoutRef.current = setTimeout(() => {
       sendTyping(false);
     }, 3000);

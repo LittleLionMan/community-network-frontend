@@ -3,15 +3,28 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
-import { Menu, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import {
+  Menu,
+  User,
+  LogOut,
+  Settings,
+  ChevronDown,
+  MessageCircle,
+  Bell,
+} from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
+import { useUnreadCount } from '@/hooks/useMessages';
 
 export function Header() {
   const { user, isAuthenticated, isLoading, logout, validateToken } =
     useAuthStore();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  const { unreadCount } = useUnreadCount();
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -36,7 +49,7 @@ export function Header() {
         clearInterval(interval);
       }
     };
-  }, []);
+  }, [isAuthenticated, isLoading, validateToken]);
 
   useEffect(() => {
     let focusTimeout: NodeJS.Timeout | null = null;
@@ -68,6 +81,12 @@ export function Header() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setShowDropdown(false);
+      }
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target as Node)
+      ) {
+        setShowNotifications(false);
       }
     }
 
@@ -132,6 +151,43 @@ export function Header() {
             </div>
           ) : isAuthenticated && user ? (
             <div className="flex items-center gap-2">
+              <Link href="/messages" className="relative">
+                <button className="flex items-center justify-center rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadCount.total_unread > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
+                      {unreadCount.total_unread > 9
+                        ? '9+'
+                        : unreadCount.total_unread}
+                    </span>
+                  )}
+                </button>
+              </Link>
+
+              <div className="relative" ref={notificationRef}>
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="flex items-center justify-center rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <Bell className="h-5 w-5" />
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 z-50 mt-2 w-80 rounded-md border bg-white py-2 shadow-lg">
+                    <div className="border-b px-4 py-2">
+                      <h3 className="font-medium text-gray-900">
+                        Benachrichtigungen
+                      </h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      <div className="p-4 text-center text-sm text-gray-500">
+                        Keine neuen Benachrichtigungen
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
@@ -164,6 +220,22 @@ export function Header() {
                     >
                       <User className="mr-3 h-4 w-4" />
                       Mein Profil
+                    </Link>
+
+                    <Link
+                      href="/messages"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <MessageCircle className="mr-3 h-4 w-4" />
+                      Nachrichten
+                      {unreadCount.total_unread > 0 && (
+                        <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
+                          {unreadCount.total_unread > 99
+                            ? '99+'
+                            : unreadCount.total_unread}
+                        </span>
+                      )}
                     </Link>
 
                     <Link

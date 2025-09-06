@@ -4,12 +4,17 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Settings, X } from 'lucide-react';
 import MessagesInterface from '@/components/messages/MessagesInterface';
+import { SecurityBanner } from '@/components/messages/SecurityBanner';
+import { MessageError } from '@/components/messages/MessageError';
+import { NotificationPermissionBanner } from '@/components/notifications/NotificationPermissionBanner';
 import {
   useConversations,
   useConversation,
   useMessageWebSocket,
   useUnreadCount,
 } from '@/hooks/useMessages';
+import { useMessageSecurity } from '@/hooks/useMessageSecurity';
+import { useMessageNotifications } from '@/hooks/useMessageNotifications';
 import { useAuthStore } from '@/store/auth';
 import type { Conversation, CreateConversationData } from '@/types/message';
 
@@ -37,24 +42,28 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
+  const { validateAndSendMessage, isBlocked, blockReason, clearBlock } =
+    useMessageSecurity();
+
   const handleSubmit = async () => {
     if (!selectedUserId || !message.trim()) return;
 
-    setIsLoading(true);
-    try {
-      await onCreateConversation({
-        participant_id: selectedUserId,
-        initial_message: message.trim(),
-      });
+    const success = await validateAndSendMessage(
+      message.trim(),
+      async (sanitizedContent) => {
+        await onCreateConversation({
+          participant_id: selectedUserId,
+          initial_message: sanitizedContent,
+        });
+      }
+    );
+
+    if (success) {
       onClose();
       setSelectedUserId(null);
       setMessage('');
       setSearchQuery('');
       setSearchResults([]);
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -101,6 +110,13 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
           <h2 className="mb-4 text-xl font-semibold text-gray-900">
             Neue Conversation starten
           </h2>
+
+          <SecurityBanner
+            isBlocked={isBlocked}
+            blockReason={blockReason}
+            onClear={clearBlock}
+            type="error"
+          />
 
           <div className="space-y-4">
             <div>
@@ -171,6 +187,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                 placeholder="Schreibe eine Nachricht..."
                 rows={3}
                 className="w-full rounded-lg border border-gray-300 p-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                disabled={isBlocked}
               />
             </div>
 
@@ -183,7 +200,9 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={!selectedUserId || !message.trim() || isLoading}
+                disabled={
+                  !selectedUserId || !message.trim() || isLoading || isBlocked
+                }
                 className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 {isLoading ? 'Sende...' : 'Conversation starten'}
@@ -206,30 +225,47 @@ export default function MessagesPage() {
     useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
+  // Hooks
   const {
     conversations,
     isLoading: conversationsLoading,
-    error: conversationsError,
+    errors: conversationErrors,
     createConversation,
     refreshConversations,
+    clearError: clearConversationError,
   } = useConversations();
 
   const {
     conversation: selectedConversation,
     messages,
     isLoading: messagesLoading,
+    errors: messageErrors,
+    offlineQueueLength,
     sendMessage,
     editMessage,
     deleteMessage,
     markAsRead,
     loadMoreMessages,
     hasMoreMessages,
+    clearError: clearMessageError,
   } = useConversation(selectedConversationId);
 
   const { unreadCount, updateUnreadCount } = useUnreadCount();
 
   const { isConnected, typingUsers, startTyping, stopTyping } =
     useMessageWebSocket(selectedConversationId);
+
+  const {
+    validateAndSendMessage,
+    isBlocked: isMainBlocked,
+    blockReason: mainBlockReason,
+    clearBlock: clearMainBlock,
+  } = useMessageSecurity();
+
+  const {
+    isEnabled: notificationsEnabled,
+    isSupported: notificationsSupported,
+  } = useMessageNotifications();
 
   useEffect(() => {
     if (!user) {
@@ -298,19 +334,15 @@ export default function MessagesPage() {
   };
 
   const handleSendMessage = async (content: string, replyToId?: number) => {
-    try {
-      await sendMessage({ content, reply_to_id: replyToId });
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    }
+    await validateAndSendMessage(content, async (sanitizedContent) => {
+      await sendMessage({ content: sanitizedContent, reply_to_id: replyToId });
+    });
   };
 
   const handleEditMessage = async (messageId: number, content: string) => {
-    try {
-      await editMessage(messageId, { content });
-    } catch (error) {
-      console.error('Failed to edit message:', error);
-    }
+    await validateAndSendMessage(content, async (sanitizedContent) => {
+      await editMessage(messageId, { content: sanitizedContent });
+    });
   };
 
   const handleDeleteMessage = async (messageId: number) => {
@@ -338,12 +370,14 @@ export default function MessagesPage() {
     );
   }
 
-  if (conversationsError) {
+  if (Object.keys(conversationErrors).length > 0) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-red-600">Fehler</h2>
-          <p className="text-gray-600">{conversationsError}</p>
+          <p className="text-gray-600">
+            {Object.values(conversationErrors)[0]}
+          </p>
           <button
             onClick={() => window.location.reload()}
             className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
@@ -357,6 +391,10 @@ export default function MessagesPage() {
 
   return (
     <div className="flex h-screen flex-col">
+      {notificationsSupported && !notificationsEnabled && (
+        <NotificationPermissionBanner />
+      )}
+
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
         <div className="flex items-center space-x-4">
           <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
@@ -379,6 +417,25 @@ export default function MessagesPage() {
             />
             <span>{isConnected ? 'Online' : 'Offline'}</span>
           </div>
+
+          {notificationsSupported && (
+            <div
+              className={`flex items-center space-x-1 text-xs ${
+                notificationsEnabled ? 'text-blue-600' : 'text-gray-400'
+              }`}
+            >
+              <div
+                className={`h-2 w-2 rounded-full ${
+                  notificationsEnabled ? 'bg-blue-500' : 'bg-gray-400'
+                }`}
+              />
+              <span>
+                {notificationsEnabled
+                  ? 'Benachrichtigungen an'
+                  : 'Benachrichtigungen aus'}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
@@ -397,6 +454,32 @@ export default function MessagesPage() {
             <Settings className="h-5 w-5" />
           </button>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <SecurityBanner
+          isBlocked={isMainBlocked}
+          blockReason={mainBlockReason}
+          onClear={clearMainBlock}
+          type="error"
+        />
+
+        {Object.entries(messageErrors).map(([key, error]) => (
+          <MessageError
+            key={key}
+            error={error}
+            onDismiss={() => clearMessageError(key)}
+            type={
+              key === 'send' && offlineQueueLength > 0 ? 'warning' : 'error'
+            }
+          />
+        ))}
+
+        {offlineQueueLength > 0 && (
+          <div className="border-b border-yellow-200 bg-yellow-50 px-4 py-2 text-sm text-yellow-800">
+            {offlineQueueLength} Nachricht(en) warten auf Übertragung
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-hidden">
@@ -421,7 +504,7 @@ export default function MessagesPage() {
             onLoadMoreMessages={loadMoreMessages}
             onTyping={startTyping}
             onStopTyping={stopTyping}
-            isLoading={messagesLoading}
+            isLoading={messagesLoading || isMainBlocked}
             hasMoreMessages={hasMoreMessages}
           />
         )}
@@ -475,13 +558,25 @@ export default function MessagesPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-medium text-gray-900">
-                      Benachrichtigungen
+                      Browser-Benachrichtigungen
                     </div>
                     <div className="text-sm text-gray-500">
-                      Push-Benachrichtigungen für neue Nachrichten
+                      Desktop-Benachrichtigungen bei neuen Nachrichten
                     </div>
                   </div>
-                  <input type="checkbox" defaultChecked className="rounded" />
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={notificationsEnabled}
+                      disabled
+                      className="rounded"
+                    />
+                    <span
+                      className={`text-xs ${notificationsEnabled ? 'text-green-600' : 'text-gray-400'}`}
+                    >
+                      {notificationsEnabled ? 'Aktiviert' : 'Deaktiviert'}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="border-t pt-4">

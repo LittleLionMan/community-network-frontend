@@ -7,7 +7,6 @@ import {
   Reply,
   Check,
   CheckCheck,
-  User,
   MessageCircle,
   X,
   Archive,
@@ -16,6 +15,7 @@ import {
   Phone,
   Video,
   Info,
+  ArrowLeft,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -56,6 +56,23 @@ interface Conversation {
   unread_count: number;
   created_at: string;
   updated_at: string;
+}
+
+interface MessagesInterfaceProps {
+  conversations: Conversation[];
+  selectedConversation: Conversation | null;
+  messages: Message[];
+  currentUserId: number;
+  typingUsers?: MessageUser[];
+  onSelectConversation: (conversation: Conversation) => void;
+  onSendMessage: (content: string, replyToId?: number) => void;
+  onEditMessage: (messageId: number, content: string) => void;
+  onDeleteMessage: (messageId: number) => void;
+  onLoadMoreMessages?: () => void;
+  onTyping?: () => void;
+  onStopTyping?: () => void;
+  isLoading?: boolean;
+  hasMoreMessages?: boolean;
 }
 
 interface MessageItemProps {
@@ -109,7 +126,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
       onMouseLeave={() => setShowActions(false)}
     >
       <div
-        className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} max-w-[70%] items-end`}
+        className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} max-w-[70%] items-end sm:max-w-[80%]`}
       >
         {!isConsecutive && (
           <div
@@ -161,7 +178,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
               />
             ) : (
               <div className="whitespace-pre-wrap break-words">
-                {message.content}
+                {message.is_deleted ? '[Nachricht gelöscht]' : message.content}
               </div>
             )}
 
@@ -190,8 +207,7 @@ const MessageItem: React.FC<MessageItemProps> = ({
             </div>
           </div>
 
-          {/* Message actions */}
-          {showActions && !isEditing && (
+          {showActions && !isEditing && !message.is_deleted && (
             <div
               className={`absolute top-0 ${isOwnMessage ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} flex items-center space-x-1 rounded-lg border bg-white p-1 shadow-lg`}
             >
@@ -504,6 +520,8 @@ interface ConversationHeaderProps {
   onToggleMute?: () => void;
   onToggleArchive?: () => void;
   onClose?: () => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
 const ConversationHeader: React.FC<ConversationHeaderProps> = ({
@@ -512,6 +530,8 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   onToggleMute,
   onToggleArchive,
   onClose,
+  showBackButton = false,
+  onBack,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const otherParticipant = conversation.participants.find(
@@ -522,6 +542,15 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   return (
     <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
       <div className="flex items-center space-x-3">
+        {showBackButton && onBack && (
+          <button
+            onClick={onBack}
+            className="mr-2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 lg:hidden"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        )}
+
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 font-medium text-white">
           {participantName.charAt(0).toUpperCase()}
         </div>
@@ -607,23 +636,6 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   );
 };
 
-interface MessagesInterfaceProps {
-  conversations: Conversation[];
-  selectedConversation: Conversation | null;
-  messages: Message[];
-  currentUserId: number;
-  typingUsers?: MessageUser[];
-  onSelectConversation: (conversation: Conversation) => void;
-  onSendMessage: (content: string, replyToId?: number) => void;
-  onEditMessage: (messageId: number, content: string) => void;
-  onDeleteMessage: (messageId: number) => void;
-  onLoadMoreMessages?: () => void;
-  onTyping?: () => void;
-  onStopTyping?: () => void;
-  isLoading?: boolean;
-  hasMoreMessages?: boolean;
-}
-
 const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
   conversations,
   selectedConversation,
@@ -641,15 +653,30 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
   hasMoreMessages = false,
 }) => {
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [showMobileConversationList, setShowMobileConversationList] =
+    useState(!selectedConversation);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    setShowMobileConversationList(!selectedConversation);
+  }, [selectedConversation]);
+
   const handleSendMessage = (content: string, replyToId?: number) => {
     onSendMessage(content, replyToId);
     setReplyToMessage(null);
+  };
+
+  const handleSelectConversation = (conversation: Conversation) => {
+    onSelectConversation(conversation);
+    setShowMobileConversationList(false);
+  };
+
+  const handleBackToList = () => {
+    setShowMobileConversationList(true);
   };
 
   const isConsecutiveMessage = (message: Message, index: number) => {
@@ -665,7 +692,7 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
 
   return (
     <div className="flex h-full bg-gray-50">
-      <div className="flex w-80 flex-col border-r border-gray-200 bg-white">
+      <div className="hidden w-80 flex-col border-r border-gray-200 bg-white md:flex">
         <div className="border-b border-gray-200 p-4">
           <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
         </div>
@@ -683,19 +710,56 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
                 conversation={conversation}
                 currentUserId={currentUserId}
                 isSelected={selectedConversation?.id === conversation.id}
-                onClick={() => onSelectConversation(conversation)}
+                onClick={() => handleSelectConversation(conversation)}
               />
             ))
           )}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col">
+      <div
+        className={`w-full transition-transform duration-300 md:hidden ${
+          showMobileConversationList ? 'translate-x-0' : '-translate-x-full'
+        } absolute inset-0 bg-white`}
+      >
+        <div className="border-b border-gray-200 p-4">
+          <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {conversations.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              <MessageCircle className="mx-auto mb-2 h-12 w-12 text-gray-300" />
+              <p>Keine Conversations gefunden</p>
+            </div>
+          ) : (
+            conversations.map((conversation) => (
+              <ConversationListItem
+                key={conversation.id}
+                conversation={conversation}
+                currentUserId={currentUserId}
+                isSelected={selectedConversation?.id === conversation.id}
+                onClick={() => handleSelectConversation(conversation)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      <div
+        className={`flex flex-1 flex-col transition-transform duration-300 md:translate-x-0 ${
+          !showMobileConversationList
+            ? 'translate-x-0'
+            : 'translate-x-full md:translate-x-0'
+        } ${showMobileConversationList ? 'absolute inset-0 md:relative' : ''}`}
+      >
         {selectedConversation ? (
           <>
             <ConversationHeader
               conversation={selectedConversation}
               currentUserId={currentUserId}
+              showBackButton={true}
+              onBack={handleBackToList}
             />
 
             <div className="flex-1 space-y-1 overflow-y-auto p-4">
