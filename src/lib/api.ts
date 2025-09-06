@@ -1,3 +1,17 @@
+import type {
+  Conversation,
+  ConversationDetail,
+  ConversationListResponse,
+  CreateConversationData,
+  CreateMessageData,
+  UpdateMessageData,
+  Message,
+  MessageListResponse,
+  ConversationSettings,
+  MessagePrivacySettings,
+  UnreadCount,
+} from '@/types/message';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface LoginCredentials {
@@ -236,6 +250,115 @@ class ApiClient {
   discussions = {
     list: (params?: URLSearchParams) =>
       this.request(`/api/discussions/${params ? '?' + params.toString() : ''}`),
+  };
+  messages = {
+    createConversation: (data: CreateConversationData) =>
+      this.request<Conversation>('/api/messages/conversations', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    getConversations: (page?: number, size?: number) => {
+      const params = new URLSearchParams();
+      if (page) params.append('page', page.toString());
+      if (size) params.append('size', size.toString());
+      return this.request<ConversationListResponse>(
+        `/api/messages/conversations${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    getConversation: (conversationId: number) =>
+      this.request<ConversationDetail>(
+        `/api/messages/conversations/${conversationId}`
+      ),
+
+    updateConversationSettings: (
+      conversationId: number,
+      settings: ConversationSettings
+    ) =>
+      this.request(`/api/messages/conversations/${conversationId}/settings`, {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      }),
+
+    sendMessage: (conversationId: number, data: CreateMessageData) =>
+      this.request<Message>(
+        `/api/messages/conversations/${conversationId}/messages`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    getMessages: (
+      conversationId: number,
+      page?: number,
+      size?: number,
+      beforeMessageId?: number
+    ) => {
+      const params = new URLSearchParams();
+      if (page) params.append('page', page.toString());
+      if (size) params.append('size', size.toString());
+      if (beforeMessageId)
+        params.append('before_message_id', beforeMessageId.toString());
+
+      return this.request<MessageListResponse>(
+        `/api/messages/conversations/${conversationId}/messages${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    editMessage: (messageId: number, data: UpdateMessageData) =>
+      this.request<Message>(`/api/messages/messages/${messageId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deleteMessage: (messageId: number) =>
+      this.request(`/api/messages/messages/${messageId}`, {
+        method: 'DELETE',
+      }),
+
+    markMessagesAsRead: (conversationId: number, upToMessageId?: number) => {
+      const params = new URLSearchParams();
+      if (upToMessageId)
+        params.append('up_to_message_id', upToMessageId.toString());
+
+      return this.request(
+        `/api/messages/conversations/${conversationId}/read`,
+        {
+          method: 'POST',
+          body: params.toString()
+            ? JSON.stringify({ up_to_message_id: upToMessageId })
+            : '{}',
+        }
+      );
+    },
+
+    getUnreadCount: () =>
+      this.request<UnreadCount>('/api/messages/unread-count'),
+
+    checkCanMessageUser: (userId: number) =>
+      this.request<{ can_message: boolean; reason?: string }>(
+        `/api/messages/check-can-message/${userId}`
+      ),
+
+    getPrivacySettings: () =>
+      this.request<MessagePrivacySettings>('/api/messages/privacy-settings'),
+
+    updatePrivacySettings: (settings: MessagePrivacySettings) =>
+      this.request('/api/messages/privacy-settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      }),
+  };
+
+  createWebSocket = (endpoint: string, token?: string): WebSocket => {
+    const wsUrl = this.baseURL.replace('http', 'ws');
+    const url = token
+      ? `${wsUrl}${endpoint}?token=${encodeURIComponent(token)}`
+      : `${wsUrl}${endpoint}`;
+
+    return new WebSocket(url);
   };
 }
 
