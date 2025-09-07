@@ -1,4 +1,3 @@
-// src/types/message.ts
 export interface User {
   id: number;
   display_name: string;

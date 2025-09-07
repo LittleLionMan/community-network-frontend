@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { User, Settings, Shield, Activity, Edit, Check, X } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
@@ -11,9 +11,12 @@ import { PublicProfileView } from '@/components/profile/PublicProfileView';
 import { EmailUpdateForm } from '@/components/profile/EmailUpdateForm';
 import { PasswordUpdateForm } from '@/components/profile/PasswordUpdateForm';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
+import { AccountDeletionModal } from '@/components/profile/AccountDeletionModal';
+import { apiClient } from '@/lib/api';
 
 export default function ProfilePage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialTab = searchParams.get('tab') || 'profile';
 
   const { user, isLoading, updateProfile, updatePrivacy, updateProfileImage } =
@@ -23,6 +26,8 @@ export default function ProfilePage() {
   const [showPreview, setShowPreview] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -121,9 +126,54 @@ export default function ProfilePage() {
     });
   };
 
+  const handleAccountDeletion = async () => {
+    setIsDeleting(true);
+    try {
+      await apiClient.auth.deleteAccount();
+
+      localStorage.removeItem('auth_token');
+      apiClient.setToken(null);
+
+      setToastMessage({
+        type: 'success',
+        message: 'Account wurde erfolgreich deaktiviert',
+      });
+
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
+    } catch (error) {
+      console.error('Account deletion failed:', error);
+      setToastMessage({
+        type: 'error',
+        message: 'Account-Deaktivierung fehlgeschlagen',
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
+  const handleNotificationChange = async (field: string, value: boolean) => {
+    try {
+      await updateProfile({ [field]: value });
+      setToastMessage({
+        type: 'success',
+        message: 'E-Mail-Benachrichtigungen aktualisiert',
+      });
+    } catch (error) {
+      console.error('Notification update failed:', error);
+      setToastMessage({
+        type: 'error',
+        message: 'Benachrichtigungs-Update fehlgeschlagen',
+      });
+    }
+  };
+
   const getVisibleData = () => {
     const visibleData: Partial<typeof user> = {
       display_name: user.display_name,
+      id: user.id,
     };
 
     if (!user.email_private) visibleData.email = user.email;
@@ -246,6 +296,7 @@ export default function ProfilePage() {
                   <PublicProfileView
                     user={user}
                     stats={{ events_attended: 0, services_offered: 0 }}
+                    isOwnProfile={true}
                   />
                 )}
               </div>
@@ -350,21 +401,52 @@ export default function ProfilePage() {
 
                 <div className="rounded-lg border p-4">
                   <h3 className="mb-2 font-medium text-gray-900">
-                    Benachrichtigungen
+                    E-Mail-Benachrichtigungen
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    <label className="flex items-center">
-                      <input type="checkbox" className="mr-2" defaultChecked />
-                      Event-Einladungen
+                  <div className="space-y-3 text-sm">
+                    <label className="flex cursor-not-allowed items-center opacity-50">
+                      <input
+                        type="checkbox"
+                        className="mr-2"
+                        checked={user.email_notifications_events || false}
+                        disabled={true}
+                      />
+                      <span className="text-gray-500">
+                        Event-Einladungen (to do)
+                      </span>
                     </label>
                     <label className="flex items-center">
-                      <input type="checkbox" className="mr-2" defaultChecked />
-                      Neue Nachrichten
+                      <input
+                        type="checkbox"
+                        className="mr-2"
+                        checked={user.email_notifications_messages || false}
+                        onChange={(e) =>
+                          handleNotificationChange(
+                            'email_notifications_messages',
+                            e.target.checked
+                          )
+                        }
+                        disabled={isLoading}
+                      />
+                      <span className={isLoading ? 'opacity-50' : ''}>
+                        Neue Nachrichten
+                      </span>
                     </label>
-                    <label className="flex items-center">
-                      <input type="checkbox" className="mr-2" />
-                      Newsletter
+                    <label className="flex cursor-not-allowed items-center opacity-50">
+                      <input
+                        type="checkbox"
+                        className="mr-2"
+                        checked={user.email_notifications_newsletter || false}
+                        disabled={true}
+                      />
+                      <span className="text-gray-500">
+                        Newsletter (möglicherweise zukünftig)
+                      </span>
                     </label>
+                  </div>
+                  <div className="mt-3 text-xs text-gray-600">
+                    Du erhältst nur E-Mails wenn du gerade nicht in der App
+                    aktiv bist.
                   </div>
                 </div>
 
@@ -373,11 +455,18 @@ export default function ProfilePage() {
                     Gefahrenzone
                   </h3>
                   <div className="mb-3 text-sm text-red-700">
-                    Das Löschen Ihres Accounts kann nicht rückgängig gemacht
-                    werden.
+                    Das Deaktivieren Ihres Accounts kann nicht direkt rückgängig
+                    gemacht werden. Kontaktieren Sie den Support für eine
+                    Reaktivierung.
                   </div>
-                  <button className="text-sm font-medium text-red-600 hover:text-red-800">
-                    Account löschen
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    disabled={isDeleting}
+                    className="text-sm font-medium text-red-600 hover:text-red-800"
+                  >
+                    {isDeleting
+                      ? 'Wird deaktiviert...'
+                      : 'Account deaktivieren'}
                   </button>
                 </div>
               </div>
@@ -441,6 +530,13 @@ export default function ProfilePage() {
           onCancel={() => setShowPasswordForm(false)}
         />
       )}
+
+      <AccountDeletionModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleAccountDeletion}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

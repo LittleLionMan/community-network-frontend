@@ -19,6 +19,10 @@ export interface User {
   bio_private: boolean;
   location_private: boolean;
   created_at_private: boolean;
+
+  email_notifications_events: boolean;
+  email_notifications_messages: boolean;
+  email_notifications_newsletter: boolean;
 }
 
 export interface Event {

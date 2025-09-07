@@ -112,35 +112,35 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
           </label>
         </div>
 
-        <div
-          className={`flex items-center justify-between rounded-lg p-4 transition-opacity ${
-            settings.messages_enabled ? 'bg-gray-50' : 'bg-gray-100 opacity-50'
+        {/* ToDo: integration at later point */}
+        {/*<div
+          className={`flex items-center justify-between rounded-lg p-4 transition-opacity ${settings.messages_enabled ? 'bg-gray-50' : 'bg-gray-100 opacity-50'
           }`}
         >
-          <div className="flex items-start space-x-3">
-            <Bell className="mt-0.5 h-5 w-5 text-gray-400" />
-            <div>
-              <div className="font-medium text-gray-900">
-                Nachrichten-Benachrichtigungen
-              </div>
-              <div className="text-sm text-gray-600">
-                Erhalte Benachrichtigungen bei neuen Nachrichten
-              </div>
+        <div className="flex items-start space-x-3">
+          <Bell className="mt-0.5 h-5 w-5 text-gray-400" />
+          <div>
+            <div className="font-medium text-gray-900">
+              Nachrichten-Benachrichtigungen
+            </div>
+            <div className="text-sm text-gray-600">
+              Erhalte Benachrichtigungen bei neuen Nachrichten
             </div>
           </div>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <input
-              type="checkbox"
-              checked={settings.messages_notifications ?? true}
-              onChange={(e) =>
-                handleToggle('messages_notifications', e.target.checked)
-              }
-              disabled={!settings.messages_enabled}
-              className="peer sr-only"
-            />
-            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] disabled:cursor-not-allowed disabled:opacity-50 peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300"></div>
-          </label>
         </div>
+        <label className="relative inline-flex cursor-pointer items-center">
+          <input
+            type="checkbox"
+            checked={settings.messages_notifications ?? true}
+            onChange={(e) =>
+              handleToggle('messages_notifications', e.target.checked)
+            }
+            disabled={!settings.messages_enabled}
+            className="peer sr-only"
+          />
+          <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] disabled:cursor-not-allowed disabled:opacity-50 peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300"></div>
+        </label>
+        </div>*/}
       </div>
 
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">

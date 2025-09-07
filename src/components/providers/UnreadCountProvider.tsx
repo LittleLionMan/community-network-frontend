@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
 import type { UnreadCount, WebSocketMessage } from '@/types/message';
 import { useMessageWebSocket } from '@/hooks/useMessageWebSocket';
+import { useMessagePrivacy } from '@/hooks/useMessages';
 
 interface UnreadCountContextType {
   unreadCount: UnreadCount;
@@ -55,15 +56,25 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
     setUnreadCount(count);
   };
 
+  const { settings: privacySettings, isLoading: privacyLoading } =
+    useMessagePrivacy();
+
   useEffect(() => {
     const handleGlobalWebSocketMessage = (event: CustomEvent) => {
       const message: WebSocketMessage = event.detail;
 
       switch (message.type) {
         case 'new_message':
+          console.log('New message event received:', message);
+          console.log('Privacy settings:', privacySettings);
+          console.log(
+            'Should update unread?',
+            privacySettings.messages_notifications !== false
+          );
           if (
             message.conversation_id &&
-            message.message?.sender.id !== user?.id
+            message.message?.sender.id !== user?.id &&
+            privacySettings.messages_notifications !== false
           ) {
             refreshUnreadCount();
           }

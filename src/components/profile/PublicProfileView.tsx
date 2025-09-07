@@ -3,6 +3,7 @@
 import { User, MapPin, Calendar, Check } from 'lucide-react';
 import { MessageCircle } from 'lucide-react';
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import type { User as UserType } from '@/types';
@@ -14,6 +15,7 @@ interface PublicProfileViewProps {
     services_offered: number;
   };
   isPreview?: boolean;
+  isOwnProfile?: boolean;
 }
 
 interface SendMessageModalProps {
@@ -129,6 +131,7 @@ export function PublicProfileView({
   user,
   stats,
   isPreview = false,
+  isOwnProfile = false,
 }: PublicProfileViewProps) {
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showMessageSuccess, setShowMessageSuccess] = useState(false);
@@ -145,8 +148,16 @@ export function PublicProfileView({
     <>
       <div className={`bg-white ${!isPreview ? 'border' : ''} rounded-lg p-6`}>
         <div className="mb-6 flex items-start space-x-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600">
-            <User className="h-8 w-8 text-white" />
+          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600">
+            {user.profile_image_url ? (
+              <img
+                src={user.profile_image_url}
+                alt={user.display_name || 'Profilbild'}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <User className="h-8 w-8 text-white" />
+            )}
           </div>
 
           <div className="flex-1">
@@ -211,7 +222,7 @@ export function PublicProfileView({
           </div>
         )}
 
-        {!isPreview && user.id && (
+        {!isPreview && user.id && !isOwnProfile && (
           <div className="space-y-3 border-t pt-6">
             <button
               onClick={() => setShowMessageModal(true)}
@@ -219,10 +230,6 @@ export function PublicProfileView({
             >
               <MessageCircle className="h-4 w-4" />
               <span>Nachricht senden</span>
-            </button>
-
-            <button className="w-full rounded-md border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50">
-              Profil teilen
             </button>
           </div>
         )}

@@ -8,11 +8,13 @@ import { SecurityBanner } from '@/components/messages/SecurityBanner';
 import { UnifiedErrorBoundary } from '@/components/errors/UnifiedErrorBoundary';
 import { ErrorList } from '@/components/errors/UnifiedErrorComponents';
 import { MessageSearch } from '@/components/messages/MessageSearch';
+import SettingsModal from '@/components/messages/SettingsModal';
 import { NotificationPermissionBanner } from '@/components/notifications/NotificationPermissionBanner';
 import {
   useConversations,
   useConversation,
   useUnreadCount,
+  useMessagePrivacy,
 } from '@/hooks/useMessages';
 import { useMessageWebSocket } from '@/hooks/useMessageWebSocket';
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
@@ -25,6 +27,7 @@ import type {
   CreateConversationData,
   WebSocketMessage,
   UnreadCount,
+  MessagePrivacySettings,
 } from '@/types/message';
 
 interface SearchUser {
@@ -101,6 +104,7 @@ const NewConversationModal = React.memo<{
       params.append('search', query);
       params.append('page', '1');
       params.append('size', '10');
+      params.append('messages_enabled_only', 'true');
 
       const response = (await apiClient.users.list(
         params
@@ -259,123 +263,6 @@ const NewConversationModal = React.memo<{
 
 NewConversationModal.displayName = 'NewConversationModal';
 
-const SettingsModal = React.memo<{
-  isOpen: boolean;
-  onClose: () => void;
-  notificationsEnabled: boolean;
-  isConnected: boolean;
-  isReconnecting: boolean;
-}>(({ isOpen, onClose, notificationsEnabled, isConnected, isReconnecting }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
-        <div className="p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Nachrichten-Einstellungen
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">
-                  Nachrichten aktiviert
-                </div>
-                <div className="text-sm text-gray-500">
-                  Erlaube anderen dir zu schreiben
-                </div>
-              </div>
-              <input type="checkbox" defaultChecked className="rounded" />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">Von Fremden</div>
-                <div className="text-sm text-gray-500">
-                  Nachrichten von unbekannten Personen
-                </div>
-              </div>
-              <input type="checkbox" defaultChecked className="rounded" />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium text-gray-900">
-                  Browser-Benachrichtigungen
-                </div>
-                <div className="text-sm text-gray-500">
-                  Desktop-Benachrichtigungen bei neuen Nachrichten
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={notificationsEnabled}
-                  disabled
-                  className="rounded"
-                />
-                <span
-                  className={`text-xs ${
-                    notificationsEnabled ? 'text-green-600' : 'text-gray-400'
-                  }`}
-                >
-                  {notificationsEnabled ? 'Aktiviert' : 'Deaktiviert'}
-                </span>
-              </div>
-            </div>
-
-            <div className="border-t pt-4">
-              <button className="w-full rounded p-2 text-left text-red-600 hover:bg-red-50">
-                Alle Conversations löschen
-              </button>
-            </div>
-
-            <div className="border-t pt-4">
-              <div className="text-sm text-gray-500">
-                <div className="flex items-center justify-between">
-                  <span>WebSocket Status:</span>
-                  <span
-                    className={isConnected ? 'text-green-600' : 'text-red-600'}
-                  >
-                    {isConnected ? 'Verbunden' : 'Getrennt'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Reconnecting:</span>
-                  <span>{isReconnecting ? 'Ja' : 'Nein'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-6">
-            <button
-              onClick={onClose}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
-            >
-              Abbrechen
-            </button>
-            <button className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
-              Speichern
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-SettingsModal.displayName = 'SettingsModal';
-
 export default function MessagesPage() {
   const router = useRouter();
   const { user, isLoading } = useAuthStore();
@@ -442,6 +329,9 @@ export default function MessagesPage() {
     blockReason: mainBlockReason,
     clearBlock: clearMainBlock,
   } = useMessageSecurity();
+
+  const { settings: privacySettings, isLoading: privacyLoading } =
+    useMessagePrivacy();
 
   const {
     isEnabled: notificationsEnabled,
@@ -817,24 +707,47 @@ export default function MessagesPage() {
               </div>
             )}
           </div>
-
+          {/* To Do */}
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowSearch(true)}
+              disabled={true}
               className="flex items-center space-x-2 rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
-              title="Nachrichten durchsuchen"
+              title="Nachrichten durchsuchen (TODO: Implementierung)"
             >
               <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Suchen</span>
+              <span className="hidden sm:inline">
+                Suchen (TODO: Implementierung)
+              </span>
             </button>
 
-            <button
-              onClick={() => setShowNewConversationModal(true)}
-              className="flex items-center space-x-2 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Neue Nachricht</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowNewConversationModal(true)}
+                disabled={privacyLoading || !privacySettings.messages_enabled}
+                className={`flex items-center space-x-2 rounded-lg px-4 py-2 transition-colors ${
+                  privacySettings.messages_enabled && !privacyLoading
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    : 'cursor-not-allowed bg-gray-300 text-gray-500'
+                }`}
+                title={
+                  !privacySettings.messages_enabled
+                    ? 'Du hast Nachrichten in deinen Einstellungen deaktiviert'
+                    : undefined
+                }
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">Neue Nachricht</span>
+              </button>
+
+              {!privacySettings.messages_enabled && (
+                <div className="absolute bottom-full left-1/2 mb-2 hidden w-48 -translate-x-1/2 transform rounded-lg bg-gray-900 px-3 py-2 text-xs text-white group-hover:block">
+                  Du musst Nachrichten in deinen Privacy-Einstellungen
+                  aktivieren
+                  <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-4 border-transparent border-t-gray-900"></div>
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => setShowSettings(true)}

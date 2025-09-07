@@ -1,4 +1,3 @@
-// src/components/messages/MessagesInterface.tsx - Fixed Race Conditions
 import React, {
   useState,
   useRef,
@@ -26,6 +25,8 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { useMessagePrivacy } from '@/hooks/useMessages';
+import { apiClient } from '@/lib/api';
 
 interface MessageUser {
   id: number;
@@ -92,6 +93,41 @@ interface MessageItemProps {
   isConsecutive?: boolean;
 }
 
+const useTargetUserPrivacy = (userId: number | null) => {
+  const [targetUserSettings, setTargetUserSettings] = useState<{
+    messages_enabled: boolean;
+    loading: boolean;
+  }>({
+    messages_enabled: true,
+    loading: false,
+  });
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const checkTargetUserSettings = async () => {
+      setTargetUserSettings((prev) => ({ ...prev, loading: true }));
+      try {
+        const response = await apiClient.messages.checkCanMessageUser(userId);
+        setTargetUserSettings({
+          messages_enabled: response.can_message,
+          loading: false,
+        });
+      } catch (error) {
+        console.error('Failed to check target user settings:', error);
+        setTargetUserSettings({
+          messages_enabled: false,
+          loading: false,
+        });
+      }
+    };
+
+    checkTargetUserSettings();
+  }, [userId]);
+
+  return targetUserSettings;
+};
+
 const MessageItem: React.FC<MessageItemProps> = React.memo(
   ({
     message,
@@ -110,7 +146,6 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
     const canEdit = isOwnMessage && !message.is_deleted;
     const canDelete = isOwnMessage && !message.is_deleted;
 
-    // Update edit content when message content changes
     useEffect(() => {
       if (!isEditing) {
         setEditContent(message.content);
@@ -681,16 +716,25 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
         </div>
 
         <div className="flex items-center space-x-2">
-          <button className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+          <button
+            disabled={true}
+            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Anruf (TODO: Implementierung)"
+          >
             <Phone className="h-5 w-5" />
           </button>
 
-          <button className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+          <button
+            disabled={true}
+            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
+            title="Video-Anruf (TODO: Implementierung)"
+          >
             <Video className="h-5 w-5" />
           </button>
 
           <div className="relative">
             <button
+              disabled={true}
               onClick={() => setShowActions(!showActions)}
               className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             >
@@ -779,7 +823,6 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Memoize consecutive message calculations to prevent unnecessary re-renders
   const messagesWithConsecutiveFlag = useMemo(() => {
     return messages.map((message, index) => {
       let isConsecutive = false;
@@ -797,11 +840,17 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]); // Only scroll when message count changes
+  }, [messages.length]);
 
   useEffect(() => {
     setShowMobileConversationList(!selectedConversation);
   }, [selectedConversation]);
+
+  const targetUserId =
+    selectedConversation?.participants.find((p) => p.user.id !== currentUserId)
+      ?.user.id || null;
+
+  const targetUserPrivacy = useTargetUserPrivacy(targetUserId);
 
   const handleSendMessage = useCallback(
     async (content: string, replyToId?: number) => {
@@ -810,7 +859,6 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
         setReplyToMessage(null);
       } catch (error) {
         console.error('Failed to send message:', error);
-        // Don't clear reply on error so user can retry
       }
     },
     [onSendMessage]
@@ -975,14 +1023,40 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
               <div ref={messagesEndRef} />
             </div>
 
-            <MessageInput
-              onSend={handleSendMessage}
-              onTyping={onTyping}
-              onStopTyping={onStopTyping}
-              replyToMessage={replyToMessage}
-              onCancelReply={() => setReplyToMessage(null)}
-              disabled={isLoading}
-            />
+            {!targetUserPrivacy.messages_enabled &&
+            !targetUserPrivacy.loading ? (
+              <div className="border-t bg-gray-50 p-4">
+                <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6">
+                  <div className="text-center">
+                    <MessageCircle className="mx-auto h-8 w-8 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      Nachrichten deaktiviert
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Dieser Nutzer hat private Nachrichten deaktiviert.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : targetUserPrivacy.loading ? (
+              <div className="border-t bg-gray-50 p-4">
+                <div className="flex items-center justify-center">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600"></div>
+                  <span className="ml-2 text-sm text-gray-600">
+                    Prüfe Verfügbarkeit...
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <MessageInput
+                onSend={handleSendMessage}
+                onTyping={onTyping}
+                onStopTyping={onStopTyping}
+                replyToMessage={replyToMessage}
+                onCancelReply={() => setReplyToMessage(null)}
+                disabled={isLoading}
+              />
+            )}
           </>
         ) : (
           <div className="flex flex-1 items-center justify-center text-gray-500">

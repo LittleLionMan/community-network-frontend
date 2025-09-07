@@ -47,6 +47,10 @@ interface ProfileUpdateData {
   bio_private?: boolean;
   location_private?: boolean;
   created_at_private?: boolean;
+
+  email_notifications_events?: boolean;
+  email_notifications_messages?: boolean;
+  email_notifications_newsletter?: boolean;
 }
 
 interface PasswordUpdateData {
@@ -203,6 +207,10 @@ class ApiClient {
       this.request<{ message: string }>('/api/auth/password', {
         method: 'PUT',
         body: JSON.stringify(data),
+      }),
+    deleteAccount: () =>
+      this.request('/api/auth/account', {
+        method: 'DELETE',
       }),
   };
 
