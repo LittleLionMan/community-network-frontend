@@ -1,4 +1,3 @@
-// src/app/messages/page.tsx - Complete with Unified Error Handling
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -45,7 +44,6 @@ interface UserApiResponse {
   profile_image_url: string;
 }
 
-// Memoized NewConversationModal
 const NewConversationModal = React.memo<{
   isOpen: boolean;
   onClose: () => void;
@@ -261,7 +259,6 @@ const NewConversationModal = React.memo<{
 
 NewConversationModal.displayName = 'NewConversationModal';
 
-// Settings Modal
 const SettingsModal = React.memo<{
   isOpen: boolean;
   onClose: () => void;
@@ -381,9 +378,8 @@ SettingsModal.displayName = 'SettingsModal';
 
 export default function MessagesPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isLoading } = useAuthStore();
 
-  // UI State
   const [selectedConversationId, setSelectedConversationId] = useState<
     number | null
   >(null);
@@ -392,11 +388,9 @@ export default function MessagesPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
-  // Unified Error Handling
   const { errors, removeError, handleError, retryOperation } =
     useErrorHandler();
 
-  // Hooks
   const {
     isConnected,
     isReconnecting,
@@ -454,14 +448,6 @@ export default function MessagesPage() {
     isSupported: notificationsSupported,
   } = useMessageNotifications();
 
-  // Auth check
-  useEffect(() => {
-    if (!user) {
-      router.push('/auth/login');
-    }
-  }, [user, router]);
-
-  // Handlers
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     setSelectedConversationId(conversation.id);
   }, []);
@@ -470,12 +456,6 @@ export default function MessagesPage() {
     (conversationId: number, messageId: number) => {
       setSelectedConversationId(conversationId);
       setShowSearch(false);
-      console.log(
-        'Navigate to conversation:',
-        conversationId,
-        'message:',
-        messageId
-      );
     },
     []
   );
@@ -581,7 +561,6 @@ export default function MessagesPage() {
     [errors, retryOperation, refreshConversations, removeError]
   );
 
-  // WebSocket message handler
   useEffect(() => {
     const handleGlobalWebSocketMessage = (event: CustomEvent) => {
       const message: WebSocketMessage = event.detail;
@@ -593,6 +572,7 @@ export default function MessagesPage() {
 
             if (message.conversation_id === selectedConversationId) {
               addMessage(message.message);
+
               if (message.message.sender.id !== user?.id) {
                 markAsRead(message.message.id);
               }
@@ -635,6 +615,8 @@ export default function MessagesPage() {
             }
           }
           break;
+
+        default:
       }
     };
 
@@ -660,19 +642,6 @@ export default function MessagesPage() {
     updateUnreadCount,
   ]);
 
-  // Fallback polling when WebSocket is disconnected
-  useEffect(() => {
-    if (!isConnected && !isReconnecting) {
-      const interval = setInterval(() => {
-        refreshUnreadCount();
-        refreshConversations();
-      }, 30000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isConnected, isReconnecting, refreshUnreadCount, refreshConversations]);
-
-  // Auto-mark messages as read
   useEffect(() => {
     if (selectedConversationId && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
@@ -682,7 +651,6 @@ export default function MessagesPage() {
     }
   }, [selectedConversationId, messages.length, user?.id, markAsRead, messages]);
 
-  // Handle marked read events
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {
       const { conversationId } = event.detail;
@@ -701,10 +669,9 @@ export default function MessagesPage() {
       );
   }, [updateUnreadForConversation, updateConversationUnreadCount]);
 
-  // Refresh data when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
+      if (!document.hidden && !isConnected) {
         refreshConversations();
         refreshUnreadCount();
       }
@@ -713,13 +680,11 @@ export default function MessagesPage() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () =>
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [refreshConversations, refreshUnreadCount]);
+  }, [refreshConversations, refreshUnreadCount, isConnected]);
 
-  // Convert legacy errors to unified format
   const allErrors = useMemo(() => {
     const unifiedErrors = Object.values(errors);
 
-    // Add conversation errors
     Object.entries(conversationErrors).forEach(([key, error]) => {
       unifiedErrors.push({
         id: `conversation-${key}`,
@@ -733,7 +698,6 @@ export default function MessagesPage() {
       });
     });
 
-    // Add message errors
     Object.entries(messageErrors).forEach(([key, error]) => {
       unifiedErrors.push({
         id: `message-${key}`,
@@ -764,8 +728,17 @@ export default function MessagesPage() {
     },
     [clearConversationError, clearMessageError, removeError]
   );
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+          <p className="text-gray-600">Lade...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Early returns
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -776,6 +749,12 @@ export default function MessagesPage() {
           <p className="text-gray-600">
             Bitte melde dich an um Nachrichten zu sehen.
           </p>
+          <button
+            onClick={() => router.push('/auth/login')}
+            className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+          >
+            Zur Anmeldung
+          </button>
         </div>
       </div>
     );

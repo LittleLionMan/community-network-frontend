@@ -1,4 +1,3 @@
-// src/hooks/useMessages.ts - Fixed Race Conditions
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -270,7 +269,6 @@ export function useConversation(conversationId: number | null) {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [offlineQueue, setOfflineQueue] = useState<CreateMessageData[]>([]);
 
-  // Refs to prevent race conditions
   const currentConversationIdRef = useRef<number | null>(null);
   const isLoadingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -286,7 +284,6 @@ export function useConversation(conversationId: number | null) {
 
   const loadConversation = useCallback(
     async (targetConversationId: number, signal?: AbortSignal) => {
-      // Prevent concurrent loads for same conversation
       if (
         isLoadingRef.current &&
         currentConversationIdRef.current === targetConversationId
@@ -308,7 +305,6 @@ export function useConversation(conversationId: number | null) {
           return apiClient.messages.getConversation(targetConversationId);
         });
 
-        // Check if request was aborted or conversation changed
         if (
           signal?.aborted ||
           currentConversationIdRef.current !== targetConversationId
@@ -319,6 +315,8 @@ export function useConversation(conversationId: number | null) {
         setConversation(response);
         setMessages(response.messages);
         setHasMoreMessages(response.has_more);
+
+        currentConversationIdRef.current = targetConversationId;
       } catch (err) {
         if (
           signal?.aborted ||
@@ -504,20 +502,20 @@ export function useConversation(conversationId: number | null) {
   }, [messages.length, hasMoreMessages, loadingStates.loadingMore, retry]);
 
   const addMessage = useCallback((message: Message) => {
-    // Only add if it's for the current conversation
     if (currentConversationIdRef.current === message.conversation_id) {
       setMessages((prev) => {
-        // Prevent duplicates
         if (prev.some((msg) => msg.id === message.id)) {
           return prev;
         }
-        return [...prev, message];
+
+        const newMessages = [...prev, message];
+
+        return newMessages;
       });
     }
   }, []);
 
   const updateMessage = useCallback((updatedMessage: Message) => {
-    // Only update if it's for the current conversation
     if (currentConversationIdRef.current === updatedMessage.conversation_id) {
       setMessages((prev) =>
         prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
@@ -525,7 +523,6 @@ export function useConversation(conversationId: number | null) {
     }
   }, []);
 
-  // Process offline queue when connection is restored
   const processOfflineQueue = useCallback(async () => {
     const targetConversationId = currentConversationIdRef.current;
     if (!targetConversationId || offlineQueue.length === 0) return;

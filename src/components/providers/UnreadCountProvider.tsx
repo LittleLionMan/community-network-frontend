@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
 import type { UnreadCount, WebSocketMessage } from '@/types/message';
+import { useMessageWebSocket } from '@/hooks/useMessageWebSocket';
 
 interface UnreadCountContextType {
   unreadCount: UnreadCount;
@@ -35,6 +36,7 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthStore();
+  const { isConnected } = useMessageWebSocket();
 
   const refreshUnreadCount = async () => {
     if (!user) return;

@@ -17,18 +17,19 @@ function LoginFormSkeleton() {
   );
 }
 
-function LoginPageContent({
+async function LoginPageContent({
   searchParams,
 }: {
-  searchParams: { redirect?: string };
+  searchParams: Promise<{ redirect?: string }>;
 }) {
-  return <LoginForm redirectTo={searchParams.redirect} className="w-full" />;
+  const params = await searchParams;
+  return <LoginForm redirectTo={params.redirect} className="w-full" />;
 }
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { redirect?: string };
+  searchParams: Promise<{ redirect?: string }>;
 }) {
   return (
     <div className="container mx-auto px-4 py-16">
