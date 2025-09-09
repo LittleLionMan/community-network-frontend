@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { apiClient } from '@/lib/api';
+import { AuthenticatedWebSocket } from '@/lib/websocket/AuthenticatedWebSocket';
 import type { WebSocketMessage, MessageUser } from '@/types/message';
+import type {
+  WebSocketConnectionState,
+  WebSocketAuthError,
+} from '@/types/websocket';
 
-interface WebSocketState {
-  isConnected: boolean;
-  isReconnecting: boolean;
-  reconnectAttempts: number;
+interface WebSocketState extends WebSocketConnectionState {
+  typingState: TypingState;
+  authError?: WebSocketAuthError;
 }
 
 interface TypingState {
@@ -18,6 +21,8 @@ interface TypingState {
 interface WebSocketManagerReturn {
   isConnected: boolean;
   isReconnecting: boolean;
+  tokenExpiring: boolean;
+  authError?: WebSocketAuthError;
 
   typingUsers: MessageUser[];
   startTyping: (conversationId: number) => void;
@@ -25,42 +30,40 @@ interface WebSocketManagerReturn {
 
   reconnect: () => void;
   disconnect: () => void;
+  clearAuthError: () => void;
+  retryAuth: () => Promise<void>;
 }
 
-class MessageWebSocketManager {
-  private static instance: MessageWebSocketManager | null = null;
-  private userWs: WebSocket | null = null;
-  private conversationWs: WebSocket | null = null;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+class EnhancedMessageWebSocketManager {
+  private static instance: EnhancedMessageWebSocketManager | null = null;
+  private userWs: AuthenticatedWebSocket | null = null;
+  private conversationWs: AuthenticatedWebSocket | null = null;
   private typingTimeouts: Map<number, NodeJS.Timeout> = new Map();
 
   private currentConversationId: number | null = null;
   private currentUserId: number | null = null;
-  private isConnecting: boolean = false;
 
   private state: WebSocketState = {
     isConnected: false,
     isReconnecting: false,
     reconnectAttempts: 0,
+    tokenExpiring: false,
+    typingState: {},
   };
 
-  private typingState: TypingState = {};
-  private subscribers: Set<
-    (state: WebSocketState & { typingState: TypingState }) => void
-  > = new Set();
+  private subscribers: Set<(state: WebSocketState) => void> = new Set();
 
-  static getInstance(): MessageWebSocketManager {
-    if (!MessageWebSocketManager.instance) {
-      MessageWebSocketManager.instance = new MessageWebSocketManager();
+  static getInstance(): EnhancedMessageWebSocketManager {
+    if (!EnhancedMessageWebSocketManager.instance) {
+      EnhancedMessageWebSocketManager.instance =
+        new EnhancedMessageWebSocketManager();
     }
-    return MessageWebSocketManager.instance;
+    return EnhancedMessageWebSocketManager.instance;
   }
 
-  subscribe(
-    callback: (state: WebSocketState & { typingState: TypingState }) => void
-  ) {
+  subscribe(callback: (state: WebSocketState) => void) {
     this.subscribers.add(callback);
-    callback({ ...this.state, typingState: this.typingState });
+    callback(this.state);
 
     return () => {
       this.subscribers.delete(callback);
@@ -68,21 +71,15 @@ class MessageWebSocketManager {
   }
 
   private notifySubscribers() {
-    const currentState = {
-      ...this.state,
-      typingState: { ...this.typingState },
-    };
+    const currentState = { ...this.state };
     this.subscribers.forEach((callback) => callback(currentState));
   }
 
   connect(token: string, userId: number) {
-    if (this.isConnecting) {
-      return;
-    }
-
     if (
       this.currentUserId === userId &&
-      this.userWs?.readyState === WebSocket.OPEN
+      this.userWs &&
+      this.state.isConnected
     ) {
       return;
     }
@@ -92,150 +89,122 @@ class MessageWebSocketManager {
     }
 
     this.currentUserId = userId;
-
-    this.isConnecting = true;
-
     this.connectUserWebSocket(token, userId);
   }
 
   private connectUserWebSocket(token: string, userId: number) {
     if (this.userWs) {
-      this.userWs.close(1000, 'Reconnecting');
+      this.userWs.disconnect();
       this.userWs = null;
     }
 
     try {
-      this.userWs = apiClient.createWebSocket('/api/messages/ws/user', token);
+      const wsUrl =
+        process.env.NEXT_PUBLIC_API_URL?.replace('http', 'ws') ||
+        'ws://localhost:8000';
+      this.userWs = new AuthenticatedWebSocket(`${wsUrl}/api/messages/ws/user`);
 
-      this.userWs.onopen = () => {
-        this.isConnecting = false;
-        this.state = {
+      // Listen to auth websocket events
+      this.userWs.addEventListener('connected', () => {
+        this.updateState({
           isConnected: true,
           isReconnecting: false,
           reconnectAttempts: 0,
-        };
-        this.notifySubscribers();
-      };
+          authError: undefined,
+        });
+      });
 
-      this.userWs.onclose = (event) => {
-        this.state.isConnected = false;
-        this.notifySubscribers();
+      this.userWs.addEventListener('disconnected', () => {
+        this.updateState({ isConnected: false });
+      });
 
-        if (event.code !== 1000 && this.state.reconnectAttempts < 5) {
-          this.scheduleReconnect(token, userId);
-        } else {
-          this.isConnecting = false;
-          this.state.isReconnecting = false;
-          this.notifySubscribers();
+      this.userWs.addEventListener('state-change', (event: Event) => {
+        const customEvent = event as CustomEvent<WebSocketConnectionState>;
+        const authState = customEvent.detail;
+        this.updateState({
+          isConnected: authState.isConnected,
+          isReconnecting: authState.isReconnecting,
+          reconnectAttempts: authState.reconnectAttempts,
+          tokenExpiring: authState.tokenExpiring,
+        });
+      });
 
-          if (
-            event.code !== 1000 &&
-            this.state.reconnectAttempts < 5 &&
-            this.currentUserId === userId
-          ) {
-            this.scheduleReconnect(token, userId);
-          } else {
-            this.state.isReconnecting = false;
-            this.notifySubscribers();
-          }
-        }
-      };
+      this.userWs.addEventListener('auth-error', (event: Event) => {
+        const customEvent = event as CustomEvent<WebSocketAuthError>;
+        const authError = customEvent.detail;
+        this.updateState({ authError });
+      });
 
-      this.userWs.onerror = () => {
-        this.isConnecting = false;
-        this.state.isConnected = false;
-        this.notifySubscribers();
-      };
+      this.userWs.addEventListener('message', (event: Event) => {
+        const customEvent = event as CustomEvent<WebSocketMessage>;
+        const message = customEvent.detail;
+        this.handleMessage(message, userId);
+      });
 
-      this.userWs.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          this.handleMessage(message, userId);
-        } catch (err) {
-          console.error('💥 Failed to parse user WebSocket message:', err);
-        }
-      };
+      this.userWs.connect(token);
     } catch (err) {
       console.error('💥 Failed to create user WebSocket:', err);
-      this.isConnecting = false;
-      this.state.isConnected = false;
-      this.notifySubscribers();
+      this.updateState({
+        isConnected: false,
+        authError: {
+          type: 'connection_lost',
+          message: 'Failed to create WebSocket connection',
+          canRetry: true,
+          severity: 'medium',
+        },
+      });
     }
   }
 
   connectToConversation(conversationId: number, token: string, userId: number) {
     if (
       this.currentConversationId === conversationId &&
-      this.conversationWs?.readyState === WebSocket.OPEN
+      this.conversationWs &&
+      this.conversationWs.getState().isConnected
     ) {
       return;
     }
 
     if (this.conversationWs) {
-      this.conversationWs.close();
+      this.conversationWs.disconnect();
       this.conversationWs = null;
     }
 
     this.currentConversationId = conversationId;
 
     try {
-      this.conversationWs = apiClient.createWebSocket(
-        `/api/messages/ws/conversations/${conversationId}`,
-        token
+      const wsUrl =
+        process.env.NEXT_PUBLIC_API_URL?.replace('http', 'ws') ||
+        'ws://localhost:8000';
+      this.conversationWs = new AuthenticatedWebSocket(
+        `${wsUrl}/api/messages/ws/conversations/${conversationId}`
       );
 
-      this.conversationWs.onopen = () => {};
+      this.conversationWs.addEventListener('message', (event: Event) => {
+        const customEvent = event as CustomEvent<WebSocketMessage>;
+        const message = customEvent.detail;
+        this.handleMessage(message, userId);
+      });
 
-      this.conversationWs.onclose = () => {
+      this.conversationWs.addEventListener('disconnected', () => {
         if (this.currentConversationId === conversationId) {
           this.currentConversationId = null;
         }
-      };
+      });
 
-      this.conversationWs.onerror = (error) => {
-        console.error('💥 Conversation WebSocket error:', error);
-      };
-
-      this.conversationWs.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          this.handleMessage(message, userId);
-        } catch (err) {
-          console.error(
-            '💥 Failed to parse conversation WebSocket message:',
-            err
-          );
-        }
-      };
+      this.conversationWs.connect(token);
     } catch (err) {
       console.error('💥 Failed to create conversation WebSocket:', err);
     }
   }
 
-  private scheduleReconnect(token: string, userId: number) {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-    }
-
-    this.state.isReconnecting = true;
-    this.state.reconnectAttempts++;
-    this.notifySubscribers();
-
-    const delay = Math.min(
-      1000 * Math.pow(2, this.state.reconnectAttempts - 1),
-      30000
-    );
-
-    this.reconnectTimeout = setTimeout(() => {
-      this.connect(token, userId);
-    }, delay);
-  }
-
   private handleMessage(message: WebSocketMessage, currentUserId: number) {
+    // Forward to global event system (for backward compatibility)
     window.dispatchEvent(
       new CustomEvent('global-websocket-message', { detail: message })
     );
 
+    // Handle typing status
     if (
       message.type === 'typing_status' &&
       message.conversation_id &&
@@ -246,22 +215,24 @@ class MessageWebSocketManager {
         .filter((id) => id !== currentUserId)
         .map((id) => ({ id, display_name: `User ${id}` }));
 
-      this.typingState[conversationId] = typingUserObjects;
-      this.notifySubscribers();
+      this.updateTypingState(conversationId, typingUserObjects);
     }
   }
 
+  private updateTypingState(
+    conversationId: number,
+    typingUsers: MessageUser[]
+  ) {
+    this.state.typingState[conversationId] = typingUsers;
+    this.notifySubscribers();
+  }
+
   sendTyping(conversationId: number, isTyping: boolean) {
-    if (
-      this.conversationWs?.readyState === WebSocket.OPEN &&
-      this.currentConversationId === conversationId
-    ) {
-      this.conversationWs.send(
-        JSON.stringify({
-          type: 'typing',
-          is_typing: isTyping,
-        })
-      );
+    if (this.conversationWs && this.currentConversationId === conversationId) {
+      this.conversationWs.send({
+        type: 'typing',
+        is_typing: isTyping,
+      });
     }
   }
 
@@ -291,36 +262,70 @@ class MessageWebSocketManager {
     }
   }
 
+  reconnect() {
+    const token = localStorage.getItem('auth_token');
+    if (token && this.currentUserId) {
+      this.connect(token, this.currentUserId);
+    }
+  }
+
   disconnect() {
     this.cleanup();
     this.currentUserId = null;
-    this.state = {
+    this.updateState({
       isConnected: false,
       isReconnecting: false,
       reconnectAttempts: 0,
-    };
-    this.typingState = {};
+      tokenExpiring: false,
+      typingState: {},
+      authError: undefined,
+    });
+  }
+
+  clearAuthError() {
+    this.updateState({ authError: undefined });
+  }
+
+  async retryAuth(): Promise<void> {
+    try {
+      const authStore = useAuthStore.getState();
+      const refreshResult = await authStore.refreshToken();
+
+      if (refreshResult.success && refreshResult.token) {
+        // Refresh tokens in both connections
+        if (this.userWs) {
+          this.userWs.refreshToken(refreshResult.token);
+        }
+        if (this.conversationWs) {
+          this.conversationWs.refreshToken(refreshResult.token);
+        }
+
+        this.clearAuthError();
+      } else {
+        throw new Error(refreshResult.error || 'Token refresh failed');
+      }
+    } catch (error) {
+      console.error('Auth retry failed:', error);
+      // Error will be handled by the auth store (logout)
+    }
+  }
+
+  private updateState(updates: Partial<WebSocketState>) {
+    this.state = { ...this.state, ...updates };
     this.notifySubscribers();
   }
 
   private cleanup() {
-    this.isConnecting = false;
-
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
-    }
-
     this.typingTimeouts.forEach((timeout) => clearTimeout(timeout));
     this.typingTimeouts.clear();
 
     if (this.userWs) {
-      this.userWs.close(1000, 'Manual disconnect');
+      this.userWs.destroy();
       this.userWs = null;
     }
 
     if (this.conversationWs) {
-      this.conversationWs.close(1000, 'Manual disconnect');
+      this.conversationWs.destroy();
       this.conversationWs = null;
     }
 
@@ -328,16 +333,17 @@ class MessageWebSocketManager {
   }
 
   static cleanup() {
-    if (MessageWebSocketManager.instance) {
-      MessageWebSocketManager.instance.cleanup();
-      MessageWebSocketManager.instance = null;
+    if (EnhancedMessageWebSocketManager.instance) {
+      EnhancedMessageWebSocketManager.instance.cleanup();
+      EnhancedMessageWebSocketManager.instance = null;
     }
   }
 }
 
+// Cleanup on page unload
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
-    MessageWebSocketManager.cleanup();
+    EnhancedMessageWebSocketManager.cleanup();
   });
 }
 
@@ -345,21 +351,20 @@ export function useMessageWebSocket(
   activeConversationId?: number | null
 ): WebSocketManagerReturn {
   const { user } = useAuthStore();
-  const [wsState, setWsState] = useState<
-    WebSocketState & { typingState: TypingState }
-  >({
+  const [wsState, setWsState] = useState<WebSocketState>({
     isConnected: false,
     isReconnecting: false,
     reconnectAttempts: 0,
+    tokenExpiring: false,
     typingState: {},
   });
 
-  const managerRef = useRef<MessageWebSocketManager | null>(null);
+  const managerRef = useRef<EnhancedMessageWebSocketManager | null>(null);
   const previousConversationIdRef = useRef<number | null>(null);
   const previousUserIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    managerRef.current = MessageWebSocketManager.getInstance();
+    managerRef.current = EnhancedMessageWebSocketManager.getInstance();
     const unsubscribe = managerRef.current.subscribe(setWsState);
     return unsubscribe;
   }, []);
@@ -369,12 +374,20 @@ export function useMessageWebSocket(
     if (!manager) return;
 
     if (user && user.id !== previousUserIdRef.current) {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        manager.connect(token, user.id);
-      }
-    } else {
+      const connectWithDelay = () => {
+        const token = localStorage.getItem('auth_token');
+        if (token && token !== 'undefined') {
+          manager.connect(token, user.id);
+          previousUserIdRef.current = user.id;
+        } else {
+          setTimeout(connectWithDelay, 100);
+        }
+      };
+
+      connectWithDelay();
+    } else if (!user) {
       manager.disconnect();
+      previousUserIdRef.current = null;
     }
   }, [user?.id]);
 
@@ -407,17 +420,19 @@ export function useMessageWebSocket(
   }, []);
 
   const reconnect = useCallback(() => {
-    const manager = managerRef.current;
-    if (!manager || !user) return;
-
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      manager.connect(token, user.id);
-    }
-  }, [user?.id]);
+    managerRef.current?.reconnect();
+  }, []);
 
   const disconnect = useCallback(() => {
     managerRef.current?.disconnect();
+  }, []);
+
+  const clearAuthError = useCallback(() => {
+    managerRef.current?.clearAuthError();
+  }, []);
+
+  const retryAuth = useCallback(async () => {
+    await managerRef.current?.retryAuth();
   }, []);
 
   const typingUsers = activeConversationId
@@ -427,10 +442,14 @@ export function useMessageWebSocket(
   return {
     isConnected: wsState.isConnected,
     isReconnecting: wsState.isReconnecting,
+    tokenExpiring: wsState.tokenExpiring,
+    authError: wsState.authError,
     typingUsers,
     startTyping,
     stopTyping,
     reconnect,
     disconnect,
+    clearAuthError,
+    retryAuth,
   };
 }

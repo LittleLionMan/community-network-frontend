@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import type {
   Conversation,
   ConversationDetail,
@@ -692,12 +693,16 @@ export function useMessagePrivacy() {
     messages_from_strangers: true,
     messages_notifications: true,
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const isLoadingRef = useRef(false);
   const { retry } = useRetry();
+  const { user, isAuthenticated } = useAuthStore();
 
   const loadSettings = useCallback(async () => {
-    if (isLoadingRef.current) return;
+    if (!user || !isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
 
     isLoadingRef.current = true;
     try {
@@ -711,7 +716,7 @@ export function useMessagePrivacy() {
       setIsLoading(false);
       isLoadingRef.current = false;
     }
-  }, [retry]);
+  }, [retry, user, isAuthenticated]);
 
   const updateSettings = useCallback(
     async (newSettings: Partial<MessagePrivacySettings>) => {
@@ -733,8 +738,17 @@ export function useMessagePrivacy() {
 
   // Initial load
   useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
+    if (isAuthenticated && user) {
+      loadSettings();
+    } else {
+      setSettings({
+        messages_enabled: true,
+        messages_from_strangers: true,
+        messages_notifications: true,
+      });
+      setIsLoading(false);
+    }
+  }, [loadSettings, isAuthenticated, user]);
 
   return {
     settings,

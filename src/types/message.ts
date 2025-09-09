@@ -84,6 +84,9 @@ export interface WebSocketMessageData {
   unread_count?: UnreadCount;
   read_up_to?: number;
   action?: string;
+  token_expires_in?: number;
+  auth_error?: string;
+  reconnect_required?: boolean;
   [key: string]: unknown;
 }
 
@@ -94,7 +97,15 @@ export interface WebSocketMessage {
     | 'message_deleted'
     | 'messages_read'
     | 'typing_status'
-    | 'unread_count_update';
+    | 'unread_count_update'
+    | 'heartbeat'
+    | 'heartbeat_ack'
+    | 'refresh_token'
+    | 'token_refreshed'
+    | 'token_refresh_failed'
+    | 'token_expiring'
+    | 'ping'
+    | 'pong';
   conversation_id?: number;
   message?: Message;
   user_id?: number;
@@ -102,6 +113,10 @@ export interface WebSocketMessage {
   typing_users?: number[];
   total_unread?: number;
   message_id?: number;
+  token?: string;
+  success?: boolean;
+  expires_in?: number;
+  timestamp?: number;
 }
 
 export interface TypingStatus {

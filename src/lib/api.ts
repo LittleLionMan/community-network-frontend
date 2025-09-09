@@ -212,6 +212,11 @@ class ApiClient {
       this.request('/api/auth/account', {
         method: 'DELETE',
       }),
+    refresh: (data: { refresh_token: string }) =>
+      this.request<TokenResponse>('/api/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   };
 
   users = {

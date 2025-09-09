@@ -36,17 +36,30 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
     conversations: [],
   });
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { isConnected } = useMessageWebSocket();
 
   const refreshUnreadCount = async () => {
-    if (!user) return;
+    if (!user || !isAuthenticated) {
+      setIsLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'undefined') {
+      console.log('No valid token available for unread count');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await apiClient.messages.getUnreadCount();
       setUnreadCount(response);
     } catch (err) {
       console.error('Failed to load unread count:', err);
+      if (err instanceof Error && err.message.includes('403')) {
+        console.log('Authentication error - skipping unread count');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +69,12 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
     setUnreadCount(count);
   };
 
-  const { settings: privacySettings, isLoading: privacyLoading } =
-    useMessagePrivacy();
+  const privacyHookResult = useMessagePrivacy();
+
+  const privacySettings =
+    isAuthenticated && user
+      ? privacyHookResult.settings
+      : { messages_notifications: true };
 
   useEffect(() => {
     const handleGlobalWebSocketMessage = (event: CustomEvent) => {
@@ -151,17 +168,24 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
     };
   }, []);
 
-  // Initial load
   useEffect(() => {
-    if (user) {
-      refreshUnreadCount();
+    if (user && isAuthenticated) {
+      const loadWithDelay = () => {
+        const token = localStorage.getItem('auth_token');
+        if (token && token !== 'undefined') {
+          refreshUnreadCount();
+        } else {
+          setTimeout(loadWithDelay, 200);
+        }
+      };
+
+      loadWithDelay();
     } else {
       setUnreadCount({ total_unread: 0, conversations: [] });
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, isAuthenticated]);
 
-  // Auto-refresh für offline Situationen
   useEffect(() => {
     if (!user) return;
 

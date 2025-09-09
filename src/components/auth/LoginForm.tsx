@@ -69,16 +69,20 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
         email: data.email,
         password: data.password,
       });
-
       apiClient.setToken(response.access_token);
       const userResponse = (await apiClient.auth.me()) as User;
-      login(userResponse);
+      login(userResponse, response.access_token, response.refresh_token);
       toast.success('Login erfolgreich');
 
       const destination = redirectTo || '/';
       router.push(destination);
     } catch (error: unknown) {
-      console.error('Login error:', error);
+      console.error('💥 Login error:', error);
+
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
 
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -103,7 +107,8 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
       } else if (errorMessage.includes('403')) {
         setError('root', {
           type: 'manual',
-          message: 'Account deaktiviert - kontaktieren Sie den Support',
+          message:
+            'Account deaktiviert oder Token ungültig - kontaktieren Sie den Support',
         });
       } else {
         toast.error('Network error');

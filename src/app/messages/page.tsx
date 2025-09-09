@@ -9,6 +9,7 @@ import { UnifiedErrorBoundary } from '@/components/errors/UnifiedErrorBoundary';
 import { ErrorList } from '@/components/errors/UnifiedErrorComponents';
 import { MessageSearch } from '@/components/messages/MessageSearch';
 import SettingsModal from '@/components/messages/SettingsModal';
+import { AuthErrorBanner } from '@/components/messages/AuthErrorBanner';
 import { NotificationPermissionBanner } from '@/components/notifications/NotificationPermissionBanner';
 import {
   useConversations,
@@ -19,6 +20,7 @@ import {
 import { useMessageWebSocket } from '@/hooks/useMessageWebSocket';
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
 import { useMessageNotifications } from '@/hooks/useMessageNotifications';
+import { useAuthErrorHandler } from '@/hooks/useAuthErrorHandler';
 import { useErrorHandler } from '@/lib/error-handling';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
@@ -281,10 +283,14 @@ export default function MessagesPage() {
   const {
     isConnected,
     isReconnecting,
+    tokenExpiring,
+    authError,
     typingUsers,
     startTyping,
     stopTyping,
     reconnect,
+    clearAuthError,
+    retryAuth,
   } = useMessageWebSocket(selectedConversationId);
 
   const {
@@ -338,12 +344,15 @@ export default function MessagesPage() {
     isSupported: notificationsSupported,
   } = useMessageNotifications();
 
+  const { handleAuthError, dismissError, isErrorDismissed, getErrorId } =
+    useAuthErrorHandler();
+
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     setSelectedConversationId(conversation.id);
   }, []);
 
   const handleSelectMessageFromSearch = useCallback(
-    (conversationId: number, messageId: number) => {
+    (conversationId: number) => {
       setSelectedConversationId(conversationId);
       setShowSearch(false);
     },
@@ -572,6 +581,22 @@ export default function MessagesPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [refreshConversations, refreshUnreadCount, isConnected]);
 
+  useEffect(() => {
+    if (authError && !isErrorDismissed(getErrorId(authError))) {
+      handleAuthError(authError).then((handled) => {
+        if (handled) {
+          clearAuthError();
+        }
+      });
+    }
+  }, [
+    authError,
+    handleAuthError,
+    isErrorDismissed,
+    getErrorId,
+    clearAuthError,
+  ]);
+
   const allErrors = useMemo(() => {
     const unifiedErrors = Object.values(errors);
 
@@ -657,6 +682,19 @@ export default function MessagesPage() {
           <NotificationPermissionBanner />
         )}
 
+        {authError && !isErrorDismissed(getErrorId(authError)) && (
+          <AuthErrorBanner
+            error={authError}
+            tokenExpiring={tokenExpiring}
+            expiresIn={tokenExpiring ? 300 : undefined}
+            onRetry={retryAuth}
+            onDismiss={() => {
+              dismissError(getErrorId(authError));
+              clearAuthError();
+            }}
+          />
+        )}
+
         <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
@@ -677,16 +715,25 @@ export default function MessagesPage() {
               <div
                 className={`h-2 w-2 rounded-full ${
                   isConnected ? 'bg-green-500' : 'bg-gray-400'
-                }`}
+                } ${isReconnecting ? 'animate-pulse' : ''}`}
               />
               <span>
                 {isConnected
-                  ? 'Online'
+                  ? tokenExpiring
+                    ? 'Sitzung läuft ab'
+                    : 'Online'
                   : isReconnecting
                     ? 'Verbinde...'
                     : 'Offline'}
               </span>
             </div>
+
+            {tokenExpiring && (
+              <div className="flex items-center space-x-1 text-xs text-orange-600">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />
+                <span>Token läuft ab</span>
+              </div>
+            )}
 
             {notificationsSupported && (
               <div
@@ -759,10 +806,10 @@ export default function MessagesPage() {
             {!isConnected && (
               <button
                 onClick={reconnect}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
-                title="Verbindung wiederherstellen"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                disabled={isReconnecting}
               >
-                Reconnect
+                {isReconnecting ? 'Verbinde...' : 'Reconnect'}
               </button>
             )}
           </div>
