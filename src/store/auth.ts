@@ -16,6 +16,7 @@ interface AuthState {
   isLoading: boolean;
   lastValidationTime: number;
   storedRefreshToken: string | null;
+  refreshInProgress: boolean;
 
   login: (user: User, accessToken: string, refreshToken: string) => void;
   logout: () => void;
@@ -32,6 +33,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       lastValidationTime: 0,
       storedRefreshToken: null,
+      refreshInProgress: false,
 
       login: (user, accessToken, refreshToken) => {
         apiClient.setToken(accessToken);
@@ -43,6 +45,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           lastValidationTime: Date.now(),
           storedRefreshToken: refreshToken,
+          refreshInProgress: false,
         });
       },
 
@@ -57,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
           lastValidationTime: 0,
           storedRefreshToken: null,
+          refreshInProgress: false,
         });
       },
 
@@ -68,6 +72,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           storedRefreshToken: refreshToken,
           lastValidationTime: Date.now(),
+          refreshInProgress: false,
         });
       },
 
@@ -96,8 +101,6 @@ export const useAuthStore = create<AuthState>()(
           });
           return true;
         } catch (error) {
-          console.log('Token validation failed:', error);
-
           const refreshResult = await get().refreshToken();
           if (refreshResult.success) {
             try {
@@ -110,7 +113,7 @@ export const useAuthStore = create<AuthState>()(
               });
               return true;
             } catch (retryError) {
-              console.error('Validation retry failed:', retryError);
+              console.error('❌ Validation retry failed:', retryError);
             }
           }
 
@@ -123,8 +126,34 @@ export const useAuthStore = create<AuthState>()(
 
       refreshToken: async (): Promise<TokenRefreshResult> => {
         const state = get();
+
+        if (state.refreshInProgress) {
+          return new Promise((resolve) => {
+            const checkInterval = setInterval(() => {
+              const currentState = get();
+              if (!currentState.refreshInProgress) {
+                clearInterval(checkInterval);
+                resolve({
+                  success: currentState.isAuthenticated,
+                  error: currentState.isAuthenticated
+                    ? undefined
+                    : 'Refresh completed but failed',
+                });
+              }
+            }, 100);
+
+            setTimeout(() => {
+              clearInterval(checkInterval);
+              resolve({
+                success: false,
+                error: 'Refresh timeout',
+              });
+            }, 10000);
+          });
+        }
+
         const refreshTokenToUse =
-          state.storedRefreshToken || localStorage.getItem('refresh_token'); // UMBENANNT
+          state.storedRefreshToken || localStorage.getItem('refresh_token');
 
         if (!refreshTokenToUse) {
           return {
@@ -133,16 +162,14 @@ export const useAuthStore = create<AuthState>()(
           };
         }
 
-        try {
-          console.log('🔄 Refreshing authentication token...');
+        set({ refreshInProgress: true });
 
+        try {
           const response = await apiClient.auth.refresh({
             refresh_token: refreshTokenToUse,
           });
 
           get().setTokens(response.access_token, response.refresh_token);
-
-          console.log('✅ Token refreshed successfully');
 
           return {
             success: true,
@@ -159,6 +186,8 @@ export const useAuthStore = create<AuthState>()(
             error:
               error instanceof Error ? error.message : 'Token refresh failed',
           };
+        } finally {
+          set({ refreshInProgress: false });
         }
       },
     }),
@@ -169,6 +198,17 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         storedRefreshToken: state.storedRefreshToken,
       }),
+      version: 1,
+      migrate: (persistedState: unknown, version: number) => {
+        if (version === 0) {
+          const state = persistedState as Partial<AuthState>;
+          return {
+            ...state,
+            refreshInProgress: false,
+          };
+        }
+        return persistedState;
+      },
     }
   )
 );

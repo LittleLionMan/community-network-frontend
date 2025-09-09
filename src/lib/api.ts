@@ -11,6 +11,7 @@ import type {
   MessagePrivacySettings,
   UnreadCount,
 } from '@/types/message';
+import { useAuthStore } from '@/store/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -40,14 +41,12 @@ interface ProfileUpdateData {
   last_name?: string;
   bio?: string;
   location?: string;
-
   email_private?: boolean;
   first_name_private?: boolean;
   last_name_private?: boolean;
   bio_private?: boolean;
   location_private?: boolean;
   created_at_private?: boolean;
-
   email_notifications_events?: boolean;
   email_notifications_messages?: boolean;
   email_notifications_newsletter?: boolean;
@@ -63,9 +62,21 @@ interface ProfileImageResponse {
   message: string;
 }
 
+interface QueuedRequest {
+  resolve: (value: unknown) => void;
+  reject: (error: unknown) => void;
+  config: {
+    url: string;
+    options: RequestInit;
+    skipAuth?: boolean;
+  };
+}
+
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
+  private refreshInProgress = false;
+  private requestQueue: QueuedRequest[] = [];
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -87,7 +98,8 @@ class ApiClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    skipAuth = false
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     const headers: Record<string, string> = {
@@ -98,23 +110,96 @@ class ApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    if (this.token) {
+    if (this.token && !skipAuth) {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(url, { ...options, headers });
+    const config = { ...options, headers };
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    try {
+      const response = await fetch(url, config);
+
+      if (
+        response.status === 401 &&
+        !skipAuth &&
+        !endpoint.includes('/auth/')
+      ) {
+        return this.handleUnauthorized<T>(endpoint, options);
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      const data = await response.json();
+      return this.transformRelativeUrls(data);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('401') ||
+          error.message.includes('Unauthorized')) &&
+        !skipAuth &&
+        !endpoint.includes('/auth/')
+      ) {
+        return this.handleUnauthorized<T>(endpoint, options);
+      }
+      throw error;
+    }
+  }
+
+  private async handleUnauthorized<T>(
+    endpoint: string,
+    options: RequestInit
+  ): Promise<T> {
+    if (this.refreshInProgress) {
+      return new Promise<T>((resolve, reject) => {
+        this.requestQueue.push({
+          resolve: resolve as (value: unknown) => void,
+          reject,
+          config: {
+            url: endpoint,
+            options,
+          },
+        });
+      });
     }
 
-    if (response.status === 204) {
-      return undefined as T;
+    this.refreshInProgress = true;
+
+    try {
+      const authStore = useAuthStore.getState();
+      const refreshResult = await authStore.refreshToken();
+
+      if (refreshResult.success) {
+        this.processQueue();
+
+        return await this.request<T>(endpoint, options);
+      } else {
+        this.processQueue(new Error('Token refresh failed'));
+        throw new Error('Authentication failed');
+      }
+    } catch (error) {
+      this.processQueue(error);
+      throw error;
+    } finally {
+      this.refreshInProgress = false;
     }
+  }
 
-    const data = await response.json();
+  private processQueue(error?: unknown) {
+    const queue = this.requestQueue.splice(0);
 
-    return this.transformRelativeUrls(data);
+    queue.forEach(({ resolve, reject, config }) => {
+      if (error) {
+        reject(error);
+      } else {
+        this.request(config.url, config.options).then(resolve).catch(reject);
+      }
+    });
   }
 
   private transformRelativeUrls<T>(data: T): T {
@@ -128,10 +213,7 @@ class ApiClient {
 
     const transformed = { ...data } as Record<string, unknown>;
 
-    const urlFields = [
-      'profile_image_url',
-      // Add more URL fields as needed
-    ];
+    const urlFields = ['profile_image_url'];
 
     for (const field of urlFields) {
       if (field in transformed && typeof transformed[field] === 'string') {
@@ -164,16 +246,24 @@ class ApiClient {
 
   auth = {
     login: (data: LoginCredentials) =>
-      this.request<TokenResponse>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      this.request<TokenResponse>(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        true
+      ),
 
     register: (data: RegisterData) =>
-      this.request('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      this.request(
+        '/api/auth/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        true
+      ),
 
     me: () => this.request('/api/auth/me'),
 
@@ -183,40 +273,56 @@ class ApiClient {
         {
           method: 'POST',
           body: JSON.stringify(data),
-        }
+        },
+        true
       ),
 
     resendVerification: (data: { email: string }) =>
-      this.request<{ message: string }>('/api/auth/resend-verification', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      this.request<{ message: string }>(
+        '/api/auth/resend-verification',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        true
+      ),
 
     verifyEmail: (token: string) =>
-      this.request('/api/auth/verify-email', {
-        method: 'POST',
-        body: JSON.stringify({ token }),
-      }),
+      this.request(
+        '/api/auth/verify-email',
+        {
+          method: 'POST',
+          body: JSON.stringify({ token }),
+        },
+        true
+      ),
 
     updateEmail: (data: { new_email: string; password: string }) =>
       this.request('/api/auth/email', {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
+
     updatePassword: (data: PasswordUpdateData) =>
       this.request<{ message: string }>('/api/auth/password', {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
+
     deleteAccount: () =>
       this.request('/api/auth/account', {
         method: 'DELETE',
       }),
+
     refresh: (data: { refresh_token: string }) =>
-      this.request<TokenResponse>('/api/auth/refresh', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      this.request<TokenResponse>(
+        '/api/auth/refresh',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        true
+      ),
   };
 
   users = {
@@ -275,6 +381,7 @@ class ApiClient {
     list: (params?: URLSearchParams) =>
       this.request(`/api/discussions/${params ? '?' + params.toString() : ''}`),
   };
+
   messages = {
     createConversation: (data: CreateConversationData) =>
       this.request<Conversation>('/api/messages/conversations', {
