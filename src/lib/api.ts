@@ -12,6 +12,7 @@ import type {
   UnreadCount,
 } from '@/types/message';
 import { useAuthStore } from '@/store/auth';
+import { extendApiClientWithAdmin } from './admin-api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -96,7 +97,7 @@ class ApiClient {
     }
   }
 
-  private async request<T>(
+  public async request<T>(
     endpoint: string,
     options: RequestInit = {},
     skipAuth = false
@@ -495,4 +496,4 @@ class ApiClient {
   };
 }
 
-export const apiClient = new ApiClient(API_BASE_URL);
+export const apiClient = extendApiClientWithAdmin(new ApiClient(API_BASE_URL));

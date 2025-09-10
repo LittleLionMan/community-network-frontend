@@ -8,7 +8,6 @@ import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { PrivacyControls } from '@/components/profile/PrivacyControls';
 import { EditProfileForm } from '@/components/profile/EditProfileForm';
 import { PublicProfileView } from '@/components/profile/PublicProfileView';
-import { EmailUpdateForm } from '@/components/profile/EmailUpdateForm';
 import { PasswordUpdateForm } from '@/components/profile/PasswordUpdateForm';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { AccountDeletionModal } from '@/components/profile/AccountDeletionModal';
@@ -24,7 +23,6 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditing, setIsEditing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [showEmailForm, setShowEmailForm] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -106,16 +104,6 @@ export default function ProfilePage() {
         ? 'Profilbild erfolgreich aktualisiert'
         : 'Profilbild entfernt',
     });
-  };
-
-  const handleEmailUpdate = () => {
-    setShowEmailForm(false);
-    setToastMessage({
-      type: 'success',
-      message:
-        'Email-Änderung erfolgreich. Bitte bestätigen Sie Ihre neue Email-Adresse.',
-    });
-    window.location.reload();
   };
 
   const handlePasswordUpdate = () => {
@@ -376,12 +364,10 @@ export default function ProfilePage() {
                         {user.email_verified ? 'Bestätigt' : 'Nicht bestätigt'}
                       </div>
                     </div>
-                    <button
-                      onClick={() => setShowEmailForm(true)}
-                      className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                    >
-                      Ändern
-                    </button>
+                  </div>
+                  <div className="mt-3 text-xs text-gray-600">
+                    Wenn Sie ihre Mail-Adresse ändern wollen, wenden Sie sich
+                    bitte an einen Administrator
                   </div>
                 </div>
 
@@ -514,14 +500,6 @@ export default function ProfilePage() {
             />
           </div>
         </div>
-      )}
-
-      {showEmailForm && (
-        <EmailUpdateForm
-          currentEmail={user.email}
-          onSuccess={handleEmailUpdate}
-          onCancel={() => setShowEmailForm(false)}
-        />
       )}
 
       {showPasswordForm && (

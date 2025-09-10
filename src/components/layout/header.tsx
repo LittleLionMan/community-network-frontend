@@ -11,6 +11,7 @@ import {
   ChevronDown,
   MessageCircle,
   Bell,
+  Shield,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
@@ -134,6 +135,15 @@ export function Header() {
             >
               Meta
             </Link>
+            {isAuthenticated && user?.is_admin && (
+              <Link
+                href="/admin"
+                className="hover:text-foreground/80 flex items-center transition-colors"
+              >
+                <Shield className="mr-1 h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </nav>
         </div>
 
