@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { Calendar, MapPin, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
+import { JoinButton } from '@/components/events/JoinButton';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -100,13 +100,15 @@ export function EventCard({
 
           {showJoinButton && (
             <div className="flex-shrink-0">
-              <Button
+              <JoinButton
+                eventId={event.id}
+                eventTitle={event.title}
+                startDateTime={event.start_datetime}
+                isFull={event.is_full}
+                maxParticipants={event.max_participants}
+                currentParticipants={event.participant_count}
                 size="sm"
-                variant={event.is_full ? 'outline' : 'default'}
-                disabled={event.is_full}
-              >
-                {event.is_full ? 'Ausgebucht' : 'Teilnehmen'}
-              </Button>
+              />
             </div>
           )}
         </div>
@@ -163,13 +165,15 @@ export function EventCard({
           </div>
 
           {showJoinButton && (
-            <Button
+            <JoinButton
+              eventId={event.id}
+              eventTitle={event.title}
+              startDateTime={event.start_datetime}
+              isFull={event.is_full}
+              maxParticipants={event.max_participants}
+              currentParticipants={event.participant_count}
               size="sm"
-              variant={event.is_full ? 'outline' : 'default'}
-              disabled={event.is_full}
-            >
-              {event.is_full ? 'Ausgebucht' : 'Teilnehmen'}
-            </Button>
+            />
           )}
         </div>
       </div>

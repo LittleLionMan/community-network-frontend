@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Users,
   UserCheck,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +17,7 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/components/ui/toast';
 import { isPast, parseISO } from 'date-fns';
+import { isRegistrationDeadlinePassed } from '@/lib/utils';
 
 interface JoinButtonProps {
   eventId: number;
@@ -46,6 +48,7 @@ export function JoinButton({
     useParticipationStatus(eventId, user?.id || null);
 
   const isPastEvent = isPast(parseISO(startDateTime));
+  const isDeadlinePassed = isRegistrationDeadlinePassed(startDateTime);
   const isJoining = joinMutation.isPending;
   const isLeaving = leaveMutation.isPending;
   const isProcessing = isJoining || isLeaving;
@@ -69,9 +72,19 @@ export function JoinButton({
         `Du nimmst jetzt an "${eventTitle}" teil.`
       );
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unbekannter Fehler';
-      toast.error('Fehler beim Beitreten', errorMessage);
+      console.error('Join error details:', error);
+
+      if (error instanceof Error && error.message.includes('400')) {
+        toast.error(
+          'Anmeldung nicht möglich',
+          'Das Event könnte voll sein, die Anmeldefrist abgelaufen sein oder du bist bereits angemeldet.'
+        );
+      } else {
+        toast.error(
+          'Fehler beim Beitreten',
+          'Bitte versuche es später erneut.'
+        );
+      }
     }
   };
 
@@ -121,6 +134,15 @@ export function JoinButton({
       <Button variant="outline" disabled size={size} className={className}>
         <XCircle className="mr-2 h-4 w-4" />
         <span className="sr-only sm:not-sr-only">Beendet</span>
+      </Button>
+    );
+  }
+
+  if (isDeadlinePassed && !isPastEvent) {
+    return (
+      <Button variant="outline" disabled size={size} className={className}>
+        <Clock className="mr-2 h-4 w-4" />
+        <span className="sr-only sm:not-sr-only">Anmeldefrist abgelaufen</span>
       </Button>
     );
   }

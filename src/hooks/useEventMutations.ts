@@ -46,10 +46,7 @@ export function useUpdateEvent() {
       eventId: number;
       eventData: EventUpdateData;
     }) => {
-      return await apiClient.request(`/api/events/${eventId}`, {
-        method: 'PUT',
-        body: JSON.stringify(eventData),
-      });
+      return await apiClient.events.update(eventId, eventData);
     },
     onSuccess: (_, { eventId }) => {
       queryClient.invalidateQueries({ queryKey: ['events'] });

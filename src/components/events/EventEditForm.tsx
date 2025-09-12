@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCreateEvent } from '@/hooks/useEventMutations';
+import { useUpdateEvent } from '@/hooks/useEventMutations';
 import { useEventCategories } from '@/hooks/useEvents';
 import {
   eventCreateSchema,
@@ -23,38 +23,57 @@ import {
   Clock,
   Save,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 
-interface EventCreateFormProps {
-  onSuccess?: (eventId: number) => void;
+interface EventDetail {
+  id: number;
+  title: string;
+  description: string;
+  start_datetime: string;
+  end_datetime?: string;
+  location?: string;
+  max_participants?: number;
+  category_id: number;
+  is_active: boolean;
+  participant_count: number;
+}
+
+interface EventEditFormProps {
+  event: EventDetail;
+  onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
+export function EventEditForm({
+  event,
+  onSuccess,
+  onCancel,
+}: EventEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createEventMutation = useCreateEvent();
+  const updateEventMutation = useUpdateEvent();
   const { data: categories, isLoading: categoriesLoading } =
     useEventCategories();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
     watch,
     reset,
   } = useForm<EventFormData>({
     resolver: zodResolver(eventCreateSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      start_datetime: formatDateTimeForInput(
-        new Date(Date.now() + 24 * 60 * 60 * 1000)
-      ),
-      end_datetime: '',
-      location: '',
-      max_participants: undefined,
-      category_id: undefined,
+      title: event.title,
+      description: event.description,
+      start_datetime: formatDateTimeForInput(new Date(event.start_datetime)),
+      end_datetime: event.end_datetime
+        ? formatDateTimeForInput(new Date(event.end_datetime))
+        : '',
+      location: event.location || '',
+      max_participants: event.max_participants || undefined,
+      category_id: event.category_id,
     },
   });
 
@@ -64,62 +83,56 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
     setIsSubmitting(true);
 
     try {
-      const cleanedData = {
-        title: data.title.trim(),
-        description: data.description.trim(),
+      const eventData = {
+        title: data.title,
+        description: data.description,
         start_datetime: parseDateTimeFromInput(data.start_datetime),
-        end_datetime:
-          data.end_datetime && data.end_datetime.trim() !== ''
-            ? parseDateTimeFromInput(data.end_datetime)
-            : undefined,
-        location:
-          data.location && data.location.trim() !== ''
-            ? data.location.trim()
-            : undefined,
-        max_participants:
-          data.max_participants &&
-          !isNaN(data.max_participants) &&
-          data.max_participants > 0
-            ? Number(data.max_participants)
-            : undefined,
-        category_id: Number(data.category_id),
+        end_datetime: data.end_datetime
+          ? parseDateTimeFromInput(data.end_datetime)
+          : undefined,
+        location: data.location || undefined,
+        max_participants: data.max_participants || undefined,
+        category_id: data.category_id,
       };
 
-      const result = (await createEventMutation.mutateAsync(cleanedData)) as {
-        id: number;
-      };
+      await updateEventMutation.mutateAsync({
+        eventId: event.id,
+        eventData,
+      });
 
       toast.success(
-        'Event erstellt!',
-        'Dein Event wurde erfolgreich erstellt.'
+        'Event aktualisiert!',
+        'Die Änderungen wurden erfolgreich gespeichert.'
       );
-      reset();
 
-      if (onSuccess && result?.id) {
-        onSuccess(result.id);
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
-      console.error('Create event error:', error);
+      console.error('Update event error:', error);
 
       if (error instanceof Error) {
-        console.log('Error message:', error.message);
-
         if (error.message.includes('400')) {
           toast.error('Ungültige Daten', 'Bitte überprüfe deine Eingaben.');
         } else if (error.message.includes('401')) {
           toast.error(
-            'Nicht angemeldet',
-            'Du musst angemeldet sein, um Events zu erstellen.'
+            'Nicht berechtigt',
+            'Du bist nicht berechtigt, dieses Event zu bearbeiten.'
+          );
+        } else if (error.message.includes('403')) {
+          toast.error(
+            'Aktion nicht erlaubt',
+            'Das Event kann nicht mehr bearbeitet werden.'
           );
         } else {
           toast.error(
-            'Fehler beim Erstellen',
+            'Fehler beim Speichern',
             'Bitte versuche es später erneut.'
           );
         }
       } else {
         toast.error(
-          'Fehler beim Erstellen',
+          'Fehler beim Speichern',
           'Bitte versuche es später erneut.'
         );
       }
@@ -127,6 +140,13 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
       setIsSubmitting(false);
     }
   };
+
+  const handleReset = () => {
+    reset();
+    toast.success('Zurückgesetzt', 'Alle Änderungen wurden verworfen.');
+  };
+
+  const hasParticipants = event.participant_count > 0;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -184,6 +204,12 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
               {errors.start_datetime.message}
             </p>
           )}
+          {hasParticipants && (
+            <p className="mt-1 text-xs text-yellow-600">
+              ⚠️ Bei bereits angemeldeten Teilnehmern solltest du das Datum nur
+              in Notfällen ändern.
+            </p>
+          )}
         </div>
 
         <div>
@@ -230,7 +256,7 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
           </label>
           <Input
             type="number"
-            min="1"
+            min={event.participant_count || 1}
             max="1000"
             {...register('max_participants', {
               setValueAs: (value) => {
@@ -241,11 +267,17 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
                 return isNaN(num) ? undefined : num;
               },
             })}
+            placeholder="Unbegrenzt"
             error={!!errors.max_participants}
           />
           {errors.max_participants && (
             <p className="mt-1 text-sm text-red-600">
               {errors.max_participants.message}
+            </p>
+          )}
+          {hasParticipants && (
+            <p className="mt-1 text-xs text-gray-500">
+              Minimum: {event.participant_count} (bereits angemeldet)
             </p>
           )}
         </div>
@@ -272,29 +304,44 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row">
-        <Button
-          type="submit"
-          disabled={isSubmitting || categoriesLoading}
-          className="flex items-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Event erstellen...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              Event erstellen
-            </>
+      <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            disabled={isSubmitting || categoriesLoading || !isDirty}
+            className="flex items-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Speichern...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Änderungen speichern
+              </>
+            )}
+          </Button>
+
+          {isDirty && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Zurücksetzen
+            </Button>
           )}
-        </Button>
+        </div>
 
         {onCancel && (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}
           >
@@ -302,6 +349,15 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
           </Button>
         )}
       </div>
+
+      {!isDirty && (
+        <div className="rounded-lg bg-blue-50 p-4">
+          <p className="text-sm text-blue-700">
+            ✓ Alle Änderungen wurden gespeichert. Du kannst weitere Anpassungen
+            vornehmen oder zur Event-Ansicht zurückkehren.
+          </p>
+        </div>
+      )}
     </form>
   );
 }

@@ -16,11 +16,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { JoinButton } from '@/components/events/JoinButton';
+import { EventDeleteButton } from '@/components/events/EventDeleteButton';
 import { useEvent } from '@/hooks/useEvents';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/components/ui/toast';
 import { format, parseISO, isToday, isTomorrow, isPast } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
+import {
+  getRegistrationDeadlineText,
+  isRegistrationDeadlinePassed,
+} from '@/lib/utils';
 
 interface EventDetailPageProps {
   params: Promise<{ id: string }>;
@@ -29,6 +35,7 @@ interface EventDetailPageProps {
 export default function EventDetailPage({ params }: EventDetailPageProps) {
   const resolvedParams = use(params);
   const eventId = parseInt(resolvedParams.id);
+  const router = useRouter();
 
   const { user, isAuthenticated } = useAuthStore();
   const { data: event, isLoading, error, refetch } = useEvent(eventId);
@@ -138,10 +145,11 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
     event.start_datetime,
     event.end_datetime
   );
+  const isDeadlinePassed = isRegistrationDeadlinePassed(event.start_datetime);
+  const deadlineText = getRegistrationDeadlineText(event.start_datetime);
 
-  const isCreator = user?.id === event.creator_id;
+  const isCreator = user?.id === event.creator.id;
   const canEdit = isAuthenticated && (isCreator || user?.is_admin);
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
@@ -158,11 +166,27 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
           </Button>
 
           {canEdit && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/events/${eventId}/edit`}>
-                <Edit className="h-4 w-4" />
-              </Link>
-            </Button>
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/events/${eventId}/edit`}>
+                  <Edit className="h-4 w-4" />
+                </Link>
+              </Button>
+
+              <EventDeleteButton
+                event={{
+                  id: event.id,
+                  title: event.title,
+                  creator: {
+                    id: event.creator.id,
+                  },
+                  participant_count: event.participant_count,
+                }}
+                onSuccess={() => router.push('/events')}
+                variant="button"
+                size="sm"
+              />
+            </>
           )}
         </div>
       </div>
@@ -216,6 +240,23 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
                 </div>
               </div>
             )}
+
+            <div className="flex items-start gap-3">
+              <Clock className="mt-1 h-5 w-5 flex-shrink-0 text-gray-400" />
+              <div>
+                <div className="font-medium text-gray-900">Anmeldung</div>
+                <div
+                  className={`text-sm ${isDeadlinePassed ? 'text-red-600' : 'text-gray-600'}`}
+                >
+                  {deadlineText}
+                  {isDeadlinePassed && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                      Abgelaufen
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <div className="flex items-start gap-3">
               <Users className="mt-1 h-5 w-5 flex-shrink-0 text-gray-400" />
