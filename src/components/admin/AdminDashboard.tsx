@@ -363,6 +363,13 @@ export function AdminDashboard() {
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Link
+            href="/admin/events"
+            className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Calendar className="mr-2 h-5 w-5 text-green-600" />
+            Event Categories
+          </Link>
+          <Link
             href="/admin/security"
             className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >

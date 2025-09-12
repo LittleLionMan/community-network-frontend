@@ -73,6 +73,27 @@ interface QueuedRequest {
   };
 }
 
+interface EventCreateData {
+  title: string;
+  description: string;
+  start_datetime: string;
+  end_datetime?: string;
+  location?: string;
+  max_participants?: number;
+  category_id: number;
+}
+
+interface EventUpdateData {
+  title?: string;
+  description?: string;
+  start_datetime?: string;
+  end_datetime?: string;
+  location?: string;
+  max_participants?: number;
+  category_id?: number;
+  is_active?: boolean;
+}
+
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
@@ -368,9 +389,59 @@ class ApiClient {
   events = {
     list: (params?: URLSearchParams) =>
       this.request(`/api/events/${params ? '?' + params.toString() : ''}`),
+
     get: (id: number) => this.request(`/api/events/${id}`),
+
+    create: (data: EventCreateData) =>
+      this.request('/api/events/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: number, data: EventUpdateData) =>
+      this.request(`/api/events/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: number) =>
+      this.request(`/api/events/${id}`, {
+        method: 'DELETE',
+      }),
+
     join: (id: number) =>
-      this.request(`/api/events/${id}/join`, { method: 'POST' }),
+      this.request(`/api/events/${id}/join`, {
+        method: 'POST',
+      }),
+
+    leave: (id: number) =>
+      this.request(`/api/events/${id}/join`, {
+        method: 'DELETE',
+      }),
+
+    getParticipants: (id: number) =>
+      this.request(`/api/events/${id}/participants`),
+
+    getMyCreated: (params?: URLSearchParams) =>
+      this.request(
+        `/api/events/my/created${params ? '?' + params.toString() : ''}`
+      ),
+
+    getMyJoined: (params?: URLSearchParams) =>
+      this.request(
+        `/api/events/my/joined${params ? '?' + params.toString() : ''}`
+      ),
+
+    getMyStats: () => this.request('/api/events/my/stats'),
+  };
+
+  eventCategories = {
+    list: (params?: URLSearchParams) =>
+      this.request(
+        `/api/event-categories/${params ? '?' + params.toString() : ''}`
+      ),
+
+    get: (id: number) => this.request(`/api/event-categories/${id}`),
   };
 
   services = {

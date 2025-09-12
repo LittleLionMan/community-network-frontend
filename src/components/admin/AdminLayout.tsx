@@ -8,6 +8,7 @@ import {
   Shield,
   Users,
   MessageSquare,
+  Calendar,
   ChevronLeft,
   Menu,
   X,
@@ -24,6 +25,12 @@ const navigation = [
     href: '/admin',
     icon: LayoutDashboard,
     description: 'Platform Übersicht & Statistiken',
+  },
+  {
+    name: 'Events',
+    href: '/admin/events',
+    icon: Calendar,
+    description: 'Event Categories & Management',
   },
   {
     name: 'Security',

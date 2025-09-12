@@ -1,6 +1,3 @@
-// src/lib/admin-api.ts
-// Extension to the existing apiClient for admin functionality
-
 import type {
   AdminDashboardStats,
   RateLimitHealth,
@@ -12,6 +9,20 @@ import type {
   ModerationQueueResponse,
   SecuritySummary,
 } from '@/types/admin';
+
+interface EventCategoryCreateData {
+  name: string;
+  description?: string;
+}
+
+interface EventCategoryWithStats {
+  id: number;
+  name: string;
+  description?: string;
+  event_count: number;
+  created_at: string;
+  can_delete: boolean;
+}
 
 interface AdminMethods {
   admin: {
@@ -111,6 +122,23 @@ interface AdminMethods {
       old_messages_removed: number;
       empty_conversations_removed: number;
     }>;
+
+    eventCategories: {
+      list: () => Promise<EventCategoryWithStats[]>;
+      create: (
+        data: EventCategoryCreateData
+      ) => Promise<EventCategoryWithStats>;
+      update: (
+        id: number,
+        data: EventCategoryCreateData
+      ) => Promise<EventCategoryWithStats>;
+      delete: (id: number) => Promise<{ message: string }>;
+      createDefaults: () => Promise<{
+        message: string;
+        categories_created: number;
+        categories: EventCategoryWithStats[];
+      }>;
+    };
 
     triggerCleanup: () => Promise<{
       message: string;
@@ -243,6 +271,44 @@ export function extendApiClientWithAdmin<
 
     getSecurityOverview: () =>
       apiClient.request('/api/admin/security-overview'),
+
+    eventCategories: {
+      list: () =>
+        apiClient.request<EventCategoryWithStats[]>(
+          '/api/event-categories/admin'
+        ),
+
+      create: (data: EventCategoryCreateData) =>
+        apiClient.request<EventCategoryWithStats>(
+          '/api/event-categories/admin',
+          {
+            method: 'POST',
+            body: JSON.stringify(data),
+          }
+        ),
+
+      update: (id: number, data: EventCategoryCreateData) =>
+        apiClient.request<EventCategoryWithStats>(
+          `/api/event-categories/admin/${id}`,
+          {
+            method: 'PUT',
+            body: JSON.stringify(data),
+          }
+        ),
+
+      delete: (id: number) =>
+        apiClient.request<{ message: string }>(
+          `/api/event-categories/admin/${id}`,
+          {
+            method: 'DELETE',
+          }
+        ),
+
+      createDefaults: () =>
+        apiClient.request('/api/event-categories/admin/create-defaults', {
+          method: 'POST',
+        }),
+    },
   };
 
   return extendedClient;
