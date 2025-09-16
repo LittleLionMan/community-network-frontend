@@ -11,6 +11,15 @@ import type {
   MessagePrivacySettings,
   UnreadCount,
 } from '@/types/message';
+import type {
+  ServiceCreateData,
+  ServiceUpdateData,
+  ServiceInterestData,
+  ServiceCompletionData,
+  ServiceInterestResponseData,
+  ServiceRatingData,
+  ServiceSearchFilters,
+} from '@/types/service';
 import { useAuthStore } from '@/store/auth';
 import { extendApiClientWithAdmin } from './admin-api';
 
@@ -447,6 +456,142 @@ class ApiClient {
   services = {
     list: (params?: URLSearchParams) =>
       this.request(`/api/services/${params ? '?' + params.toString() : ''}`),
+
+    get: (id: number) => this.request(`/api/services/${id}`),
+
+    create: (data: ServiceCreateData) =>
+      this.request('/api/services/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    createWithImage: (formData: FormData) =>
+      this.request('/api/services/', {
+        method: 'POST',
+        body: formData,
+        headers: {},
+      }),
+
+    update: (id: number, data: ServiceUpdateData) =>
+      this.request(`/api/services/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    updateWithImage: (id: number, formData: FormData) =>
+      this.request(`/api/services/${id}`, {
+        method: 'PUT',
+        body: formData,
+        headers: {},
+      }),
+
+    delete: (id: number) =>
+      this.request(`/api/services/${id}`, {
+        method: 'DELETE',
+      }),
+
+    deleteImage: (id: number) =>
+      this.request(`/api/services/${id}/image`, {
+        method: 'DELETE',
+      }),
+
+    getMyServices: (params?: URLSearchParams) =>
+      this.request(`/api/services/my/${params ? '?' + params.toString() : ''}`),
+
+    getMyStats: () => this.request('/api/services/my/stats'),
+
+    getStats: () => this.request('/api/services/stats'),
+
+    getDetailedStats: () => this.request('/api/services/stats/detailed'),
+
+    getRecommendations: (params?: URLSearchParams) =>
+      this.request(
+        `/api/services/recommendations${params ? '?' + params.toString() : ''}`
+      ),
+
+    expressInterest: (serviceId: number, message?: string) =>
+      this.request(`/api/services/${serviceId}/interest`, {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      }),
+
+    expressInterestWithMessage: (
+      serviceId: number,
+      data: ServiceInterestData
+    ) => {
+      const formData = new FormData();
+      formData.append('message', data.message);
+      if (data.proposed_meeting_location) {
+        formData.append(
+          'proposed_meeting_location',
+          data.proposed_meeting_location
+        );
+      }
+      if (data.proposed_meeting_time) {
+        formData.append(
+          'proposed_meeting_time',
+          data.proposed_meeting_time.toISOString()
+        );
+      }
+
+      return this.request(`/api/services/${serviceId}/interest/message`, {
+        method: 'POST',
+        body: formData,
+        headers: {},
+      });
+    },
+
+    getServiceInterests: (serviceId: number) =>
+      this.request(`/api/services/${serviceId}/interests`),
+
+    getMyInterests: (params?: URLSearchParams) =>
+      this.request(
+        `/api/services/interests/my${params ? '?' + params.toString() : ''}`
+      ),
+
+    respondToInterest: (
+      interestId: number,
+      data: ServiceInterestResponseData
+    ) =>
+      this.request(`/api/services/interests/${interestId}/respond`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    completeService: (serviceId: number, data: ServiceCompletionData) =>
+      this.request(`/api/services/${serviceId}/complete`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    rateService: (serviceId: number, data: ServiceRatingData) =>
+      this.request(`/api/services/${serviceId}/rate`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    getServiceRatings: (serviceId: number) =>
+      this.request(`/api/services/${serviceId}/ratings`),
+
+    search: (filters: ServiceSearchFilters) => {
+      const params = new URLSearchParams();
+
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, value.toString());
+        }
+      });
+
+      return this.request(`/api/services/search?${params.toString()}`);
+    },
+
+    getServiceAnalytics: (serviceId: number) =>
+      this.request(`/api/services/${serviceId}/analytics`),
+
+    incrementViewCount: (serviceId: number) =>
+      this.request(`/api/services/${serviceId}/view`, {
+        method: 'POST',
+      }),
   };
 
   discussions = {

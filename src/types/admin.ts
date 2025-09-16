@@ -1,5 +1,3 @@
-// src/types/admin.ts
-
 export interface AdminDashboardStats {
   platform_stats: {
     total_users: number;

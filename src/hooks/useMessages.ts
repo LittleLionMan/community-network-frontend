@@ -30,7 +30,6 @@ interface PaginationState {
   hasMore: boolean;
 }
 
-// Retry utility hook
 function useRetry() {
   const retry = useCallback(
     async <T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> => {
@@ -64,7 +63,6 @@ export function useConversations() {
     hasMore: false,
   });
 
-  // Use refs to prevent race conditions
   const loadingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const { retry } = useRetry();
@@ -79,7 +77,6 @@ export function useConversations() {
 
   const loadConversations = useCallback(
     async (refresh = false, signal?: AbortSignal) => {
-      // Prevent multiple concurrent requests
       if (loadingRef.current && !refresh) {
         return;
       }
@@ -103,7 +100,6 @@ export function useConversations() {
           return apiClient.messages.getConversations(targetPage, 20);
         });
 
-        // Check if request was aborted
         if (signal?.aborted) {
           return;
         }
@@ -112,7 +108,6 @@ export function useConversations() {
           if (refresh) {
             return response.conversations;
           }
-          // Prevent duplicates when concatenating
           const existingIds = new Set(prev.map((conv) => conv.id));
           const newConversations = response.conversations.filter(
             (conv) => !existingIds.has(conv.id)
@@ -127,7 +122,7 @@ export function useConversations() {
         }));
       } catch (err) {
         if (signal?.aborted) {
-          return; // Don't set errors for aborted requests
+          return;
         }
 
         const errorMessage =
@@ -154,7 +149,6 @@ export function useConversations() {
         );
 
         setConversations((prev) => {
-          // Check if conversation already exists (prevent duplicates)
           const exists = prev.some((conv) => conv.id === newConversation.id);
           if (exists) {
             return prev;
@@ -198,15 +192,12 @@ export function useConversations() {
   );
 
   const refreshConversations = useCallback(() => {
-    // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
-    // Create new abort controller
     abortControllerRef.current = new AbortController();
 
-    // Reset pagination state
     setPagination({
       currentPage: 1,
       isLoading: true,
@@ -222,7 +213,6 @@ export function useConversations() {
     }
   }, [loadConversations, pagination.isLoading, pagination.hasMore]);
 
-  // Initial load with proper cleanup
   useEffect(() => {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
@@ -232,9 +222,8 @@ export function useConversations() {
     return () => {
       abortController.abort();
     };
-  }, []); // Only run once on mount
+  }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -348,10 +337,8 @@ export function useConversation(conversationId: number | null) {
           apiClient.messages.sendMessage(targetConversationId, data)
         );
 
-        // Only add message if we're still on the same conversation
         if (currentConversationIdRef.current === targetConversationId) {
           setMessages((prev) => {
-            // Prevent duplicates
             if (prev.some((msg) => msg.id === newMessage.id)) {
               return prev;
             }
@@ -361,7 +348,6 @@ export function useConversation(conversationId: number | null) {
 
         return newMessage;
       } catch (err) {
-        // Handle offline scenario
         if (err instanceof Error && err.message.includes('fetch')) {
           setOfflineQueue((prev) => [...prev, data]);
           setErrors((prev) => ({
@@ -436,14 +422,12 @@ export function useConversation(conversationId: number | null) {
         upToMessageId
       );
 
-      // Dispatch event for other components
       window.dispatchEvent(
         new CustomEvent('messages-marked-read', {
           detail: { conversationId: targetConversationId, upToMessageId },
         })
       );
 
-      // Only update if we're still on the same conversation
       if (currentConversationIdRef.current === targetConversationId) {
         setMessages((prev) =>
           prev.map((msg) =>
@@ -482,10 +466,8 @@ export function useConversation(conversationId: number | null) {
         )
       );
 
-      // Only update if we're still on the same conversation
       if (currentConversationIdRef.current === targetConversationId) {
         setMessages((prev) => {
-          // Prevent duplicates when prepending
           const existingIds = new Set(prev.map((msg) => msg.id));
           const newMessages = response.messages.filter(
             (msg) => !existingIds.has(msg.id)
@@ -545,7 +527,6 @@ export function useConversation(conversationId: number | null) {
     }
   }, [offlineQueue, clearError]);
 
-  // Handle online event for offline queue processing
   useEffect(() => {
     const handleOnline = () => {
       processOfflineQueue();
@@ -555,9 +536,7 @@ export function useConversation(conversationId: number | null) {
     return () => window.removeEventListener('online', handleOnline);
   }, [processOfflineQueue]);
 
-  // Load conversation when ID changes
   useEffect(() => {
-    // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -568,7 +547,6 @@ export function useConversation(conversationId: number | null) {
 
       loadConversation(conversationId, abortController.signal);
     } else {
-      // Clear state when no conversation selected
       currentConversationIdRef.current = null;
       setConversation(null);
       setMessages([]);
@@ -610,7 +588,6 @@ export function useConversation(conversationId: number | null) {
   };
 }
 
-// Rest of the hooks remain the same but with better state management
 export function useUnreadCount() {
   const [unreadCount, setUnreadCount] = useState<UnreadCount>({
     total_unread: 0,
@@ -621,7 +598,7 @@ export function useUnreadCount() {
   const { retry } = useRetry();
 
   const loadUnreadCount = useCallback(async () => {
-    if (isLoadingRef.current) return; // Prevent concurrent loads
+    if (isLoadingRef.current) return;
 
     isLoadingRef.current = true;
     try {
@@ -673,7 +650,6 @@ export function useUnreadCount() {
     []
   );
 
-  // Initial load
   useEffect(() => {
     loadUnreadCount();
   }, [loadUnreadCount]);
@@ -736,7 +712,6 @@ export function useMessagePrivacy() {
     [retry]
   );
 
-  // Initial load
   useEffect(() => {
     if (isAuthenticated && user) {
       loadSettings();
