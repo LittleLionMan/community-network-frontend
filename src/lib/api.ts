@@ -103,6 +103,18 @@ interface EventUpdateData {
   is_active?: boolean;
 }
 
+class ApiError extends Error {
+  public status: number;
+  public detail: unknown;
+
+  constructor(message: string, status: number, detail: unknown) {
+    super(message);
+    this.status = status;
+    this.detail = detail;
+    this.name = 'ApiError';
+  }
+}
+
 class ApiClient {
   private baseURL: string;
   private token: string | null = null;
@@ -159,7 +171,25 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        let errorDetail: unknown;
+        try {
+          errorDetail = await response.json();
+        } catch {
+          errorDetail = { message: `HTTP ${response.status}` };
+        }
+
+        const message =
+          typeof errorDetail === 'object' &&
+          errorDetail !== null &&
+          'user_message' in errorDetail
+            ? String(errorDetail.user_message)
+            : typeof errorDetail === 'object' &&
+                errorDetail !== null &&
+                'message' in errorDetail
+              ? String(errorDetail.message)
+              : `HTTP ${response.status}`;
+
+        throw new ApiError(message, response.status, errorDetail);
       }
 
       if (response.status === 204) {
@@ -244,7 +274,7 @@ class ApiClient {
 
     const transformed = { ...data } as Record<string, unknown>;
 
-    const urlFields = ['profile_image_url'];
+    const urlFields = ['profile_image_url', 'service_image_url'];
 
     for (const field of urlFields) {
       if (field in transformed && typeof transformed[field] === 'string') {
@@ -466,7 +496,7 @@ class ApiClient {
       }),
 
     createWithImage: (formData: FormData) =>
-      this.request('/api/services/', {
+      this.request('/api/services/with-image', {
         method: 'POST',
         body: formData,
         headers: {},
@@ -479,10 +509,9 @@ class ApiClient {
       }),
 
     updateWithImage: (id: number, formData: FormData) =>
-      this.request(`/api/services/${id}`, {
+      this.request(`/api/services/${id}/with-image`, {
         method: 'PUT',
         body: formData,
-        headers: {},
       }),
 
     delete: (id: number) =>
@@ -509,7 +538,13 @@ class ApiClient {
         `/api/services/recommendations${params ? '?' + params.toString() : ''}`
       ),
 
-    expressInterest: (serviceId: number, message?: string) =>
+    expressInterest: (
+      serviceId: number,
+      message?: string
+    ): Promise<{
+      message: string;
+      new_interest_count: number;
+    }> =>
       this.request(`/api/services/${serviceId}/interest`, {
         method: 'POST',
         body: JSON.stringify({ message }),

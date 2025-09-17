@@ -15,7 +15,6 @@ import { ServiceCard } from '@/components/services/ServiceCard';
 import { ServiceFilters } from '@/components/services/ServiceFilters';
 import { useServices, useServiceStats } from '@/hooks/useServices';
 import { useAuthStore } from '@/store/auth';
-import { toast } from '@/components/ui/toast';
 
 export default function ServicesPage() {
   const { isAuthenticated, user } = useAuthStore();
@@ -54,24 +53,8 @@ export default function ServicesPage() {
     return filtered;
   }, [services]);
 
-  const handleExpressInterest = async (serviceId: number) => {
-    if (!isAuthenticated) {
-      toast.error(
-        'Anmeldung erforderlich',
-        'Du musst angemeldet sein, um Interesse zu bekunden.'
-      );
-      return;
-    }
-
-    try {
-      // This will be implemented with the service mutations
-      toast.success(
-        'Interesse bekundet',
-        'Eine Nachricht wurde an den Anbieter gesendet.'
-      );
-    } catch (error) {
-      toast.error('Fehler', 'Das Interesse konnte nicht bekundet werden.');
-    }
+  const handleInterestExpressed = (serviceId: number) => {
+    console.log('Interest expressed for service:', serviceId);
   };
 
   if (isLoading) {
@@ -273,7 +256,7 @@ export default function ServicesPage() {
               variant={viewMode === 'grid' ? 'card' : 'list'}
               showInterestButton={isAuthenticated}
               currentUserId={user?.id}
-              onExpressInterest={handleExpressInterest}
+              onExpressInterest={handleInterestExpressed}
             />
           ))}
         </div>

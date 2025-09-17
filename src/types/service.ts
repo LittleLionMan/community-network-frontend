@@ -8,6 +8,7 @@ export interface ServiceCreateData {
   estimated_duration_hours?: number;
   contact_method?: 'message' | 'phone' | 'email';
   response_time_hours?: number;
+  service_image?: File;
 }
 
 export interface ServiceUpdateData {
@@ -15,6 +16,7 @@ export interface ServiceUpdateData {
   description?: string;
   is_offering?: boolean;
   is_active?: boolean;
+  service_image?: File | null;
   meeting_locations?: string[];
   price_type?: 'free' | 'paid' | 'negotiable' | 'exchange';
   price_amount?: number;

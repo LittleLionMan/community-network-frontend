@@ -3,7 +3,6 @@
 import { User, MapPin, Calendar, Check } from 'lucide-react';
 import { MessageCircle } from 'lucide-react';
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import type { User as UserType } from '@/types';

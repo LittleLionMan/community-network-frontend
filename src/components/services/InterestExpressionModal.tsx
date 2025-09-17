@@ -15,6 +15,11 @@ import { Input } from '@/components/ui/input';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { toast } from '@/components/ui/toast';
 import { apiClient } from '@/lib/api';
+import type {
+  CreateConversationData,
+  CreateMessageData,
+  Conversation,
+} from '@/types/message';
 
 interface InterestFormData {
   message: string;
@@ -26,6 +31,7 @@ interface ServiceInfo {
   id: number;
   title: string;
   is_offering: boolean;
+  interest_count: number;
   user: {
     id: number;
     display_name: string;
@@ -38,7 +44,7 @@ interface InterestExpressionModalProps {
   isOpen: boolean;
   onClose: () => void;
   service: ServiceInfo;
-  onSuccess?: () => void;
+  onSuccess?: (newInterestCount?: number) => void;
 }
 
 export function InterestExpressionModal({
@@ -72,49 +78,136 @@ export function InterestExpressionModal({
     onClose();
   };
 
+  const handleConversationLogic = async (
+    targetUserId: number,
+    serviceTitle: string,
+    initialMessage: string
+  ) => {
+    try {
+      const conversationsResponse = await apiClient.messages.getConversations();
+
+      const existingConversation = conversationsResponse.conversations.find(
+        (conv) => {
+          if (conv.participants.length !== 2) return false;
+
+          return conv.participants.some((p) => p.user.id === targetUserId);
+        }
+      );
+
+      if (existingConversation) {
+        const messageData: CreateMessageData = {
+          content: `Interesse an weiterem Service: "${serviceTitle}"
+
+  ${initialMessage}
+
+  Link: /services/${service.id}`,
+        };
+
+        await apiClient.messages.sendMessage(
+          existingConversation.id,
+          messageData
+        );
+
+        return {
+          conversation: existingConversation,
+          isNew: false,
+          message: `Nachricht in existierendem Gespräch mit ${existingConversation.participants.find((p) => p.user.id === targetUserId)?.user.display_name} gesendet`,
+        };
+      }
+
+      try {
+        const canMessageCheck =
+          await apiClient.messages.checkCanMessageUser(targetUserId);
+
+        if (!canMessageCheck.can_message) {
+          throw new Error(
+            `Cannot message user: ${canMessageCheck.reason || 'User has disabled messages'}`
+          );
+        }
+      } catch (error) {
+        console.warn('checkCanMessageUser not available or failed:', error);
+      }
+
+      const conversationData: CreateConversationData = {
+        participant_id: targetUserId,
+        initial_message: `Interesse an Service: "${serviceTitle}"
+
+  ${initialMessage}
+
+  Link: ${window.location.origin}/services/${service.id}`,
+      };
+
+      const newConversation =
+        await apiClient.messages.createConversation(conversationData);
+
+      return {
+        conversation: newConversation,
+        isNew: true,
+        message: `Neues Gespräch erstellt`,
+      };
+    } catch (error) {
+      console.error('Conversation logic error:', error);
+      throw error;
+    }
+  };
+
   const onSubmit = async (data: InterestFormData) => {
     setIsSubmitting(true);
 
     try {
-      const requestData = {
-        message: data.message.trim(),
-        proposed_meeting_location:
-          data.proposed_meeting_location?.trim() || undefined,
-        proposed_meeting_time: data.proposed_meeting_time
-          ? new Date(data.proposed_meeting_time)
-          : undefined,
-      };
+      const initialMessage = `Hallo ${service.user.display_name},
 
-      await apiClient.services.expressInterestWithMessage(
-        service.id,
-        requestData
+  ${data.message.trim()}
+
+  ${data.proposed_meeting_location ? `\nVorgeschlagener Treffpunkt: ${data.proposed_meeting_location}` : ''}
+  ${data.proposed_meeting_time ? `\nVorgeschlagener Termin: ${new Date(data.proposed_meeting_time).toLocaleString('de-DE')}` : ''}
+
+  Viele Grüße!`;
+
+      const { isNew } = await handleConversationLogic(
+        service.user.id,
+        service.title,
+        initialMessage
       );
 
+      const interestResponse = await apiClient.services.expressInterest(
+        service.id,
+        data.message.trim()
+      );
+
+      if (onSuccess) {
+        onSuccess(interestResponse.new_interest_count);
+      }
+
       toast.success(
-        'Interesse bekundet!',
-        `Deine Nachricht wurde an ${service.user.display_name} gesendet.`
+        'Nachricht gesendet!',
+        isNew
+          ? `Neues Gespräch mit ${service.user.display_name} erstellt.`
+          : `Nachricht in existierendem Gespräch gesendet.`
       );
 
       reset();
       setStep('message');
       onClose();
-
-      if (onSuccess) {
-        onSuccess();
-      }
     } catch (error) {
       console.error('Express interest error:', error);
 
       if (error instanceof Error) {
-        if (error.message.includes('400')) {
-          toast.error('Ungültige Daten', 'Bitte überprüfe deine Eingaben.');
-        } else if (error.message.includes('401')) {
-          toast.error('Nicht angemeldet', 'Du musst angemeldet sein.');
+        if (error.message.includes('Cannot message user')) {
+          toast.error(
+            'Nachrichten deaktiviert',
+            `${service.user.display_name} hat Nachrichten deaktiviert oder nimmt keine Nachrichten von unbekannten Personen an.`
+          );
+        } else if (error.message.includes('400')) {
+          toast.error('Fehler', 'Gespräch konnte nicht erstellt werden.');
+        } else if (error.message.includes('403')) {
+          toast.error(
+            'Nicht erlaubt',
+            'Du kannst keine Nachricht an diesen Nutzer senden.'
+          );
         } else {
-          toast.error('Fehler', 'Interesse konnte nicht bekundet werden.');
+          toast.error('Fehler', 'Nachricht konnte nicht gesendet werden.');
         }
-      } else {
-        toast.error('Fehler', 'Interesse konnte nicht bekundet werden.');
       }
     } finally {
       setIsSubmitting(false);

@@ -1,7 +1,5 @@
 'use client';
 
-import { User } from 'lucide-react';
-
 interface ProfileAvatarProps {
   user: {
     display_name: string;

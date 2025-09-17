@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ServiceCard } from '@/components/services/ServiceCard';
+import { ServiceDeleteButton } from '@/components/services/ServiceDeleteButton';
 import { useMyServices, useServiceMutations } from '@/hooks/useServices';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/components/ui/toast';
@@ -277,7 +278,6 @@ export default function MyServicesPage() {
                 showInterestButton={false}
                 currentUserId={user?.id}
               />
-
               <div className="absolute right-2 top-2 flex gap-1">
                 <Button
                   size="sm"
@@ -307,16 +307,18 @@ export default function MyServicesPage() {
                   </Link>
                 </Button>
 
-                <Button
+                <ServiceDeleteButton
+                  service={{
+                    id: service.id,
+                    title: service.title,
+                    user: {
+                      id: service.user.id,
+                    },
+                    interest_count: service.interest_count,
+                  }}
+                  onSuccess={() => refetch()}
                   size="sm"
-                  variant="outline"
-                  onClick={() => handleDelete(service.id, service.title)}
-                  disabled={isDeleting}
-                  className="h-8 w-8 bg-white bg-opacity-90 p-0 text-red-600 hover:bg-opacity-100 hover:text-red-700"
-                  title="Service löschen"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                />
               </div>
             </div>
           ))}

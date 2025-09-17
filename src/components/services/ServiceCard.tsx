@@ -6,8 +6,13 @@ import {
   CheckCircle,
   Calendar,
 } from 'lucide-react';
+import { useState } from 'react';
+import { apiClient } from '@/lib/api';
+import { InterestExpressionModal } from './InterestExpressionModal';
+import { useAuthStore } from '@/store/auth';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/toast';
 
 interface ServiceCardProps {
   service: {
@@ -30,7 +35,7 @@ interface ServiceCardProps {
   variant?: 'card' | 'list';
   showInterestButton?: boolean;
   currentUserId?: number;
-  onExpressInterest?: (serviceId: number) => void;
+  onExpressInterest?: (serviceId: number, newInterestCount?: number) => void;
 }
 
 export function ServiceCard({
@@ -40,6 +45,8 @@ export function ServiceCard({
   currentUserId,
   onExpressInterest,
 }: ServiceCardProps) {
+  const { isAuthenticated, user } = useAuthStore();
+  const [showInterestModal, setShowInterestModal] = useState(false);
   const isOwnService = currentUserId === service.user.id;
 
   const formatMemberSince = (dateString: string) => {
@@ -70,13 +77,57 @@ export function ServiceCard({
   };
 
   const truncateDescription = (text: string, maxLength: number = 120) => {
+    if (!text) return '';
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength) + '...';
   };
 
-  const handleExpressInterest = () => {
-    if (onExpressInterest && !isOwnService) {
-      onExpressInterest(service.id);
+  const handleExpressInterest = async () => {
+    if (!isAuthenticated) {
+      toast.error(
+        'Anmeldung erforderlich',
+        'Du musst angemeldet sein, um Interesse zu bekunden.'
+      );
+      return;
+    }
+
+    if (service.user.id === user?.id) {
+      toast.error(
+        'Eigener Service',
+        'Du kannst nicht an deinem eigenen Service interessiert sein.'
+      );
+      return;
+    }
+
+    try {
+      const canMessageCheck = await apiClient.messages.checkCanMessageUser(
+        service.user.id
+      );
+
+      if (!canMessageCheck.can_message) {
+        toast.error(
+          'Nachrichten nicht möglich',
+          canMessageCheck.reason ||
+            `${service.user.display_name} kann keine Nachrichten empfangen.`
+        );
+        return;
+      }
+
+      setShowInterestModal(true);
+    } catch (error) {
+      console.error('Can message check failed:', error);
+      setShowInterestModal(true);
+    }
+  };
+
+  const handleInterestSuccess = (newInterestCount?: number) => {
+    toast.success(
+      'Nachricht gesendet!',
+      `Deine Nachricht wurde an ${service.user.display_name} gesendet.`
+    );
+
+    if (onExpressInterest && newInterestCount !== undefined) {
+      onExpressInterest(service.id, newInterestCount);
     }
   };
 
@@ -153,17 +204,14 @@ export function ServiceCard({
               </div>
 
               {showInterestButton && !isOwnService && (
-                <div className="flex-shrink-0">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExpressInterest}
-                    className="flex items-center gap-1"
-                  >
-                    <MessageCircle className="h-3 w-3" />
-                    Interesse
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  onClick={handleExpressInterest}
+                  className="flex items-center gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Interesse
+                </Button>
               )}
             </div>
           </div>
@@ -260,6 +308,21 @@ export function ServiceCard({
           )}
         </div>
       </div>
+      {showInterestModal && (
+        <InterestExpressionModal
+          isOpen={showInterestModal}
+          onClose={() => setShowInterestModal(false)}
+          service={{
+            id: service.id,
+            title: service.title,
+            is_offering: service.is_offering,
+            interest_count: 0,
+            user: service.user,
+            meeting_locations: undefined,
+          }}
+          onSuccess={handleInterestSuccess}
+        />
+      )}
     </div>
   );
 }
