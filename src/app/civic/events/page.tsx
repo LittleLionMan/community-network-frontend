@@ -2,14 +2,21 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, AlertCircle, RefreshCw, Calendar, Search } from 'lucide-react';
+import {
+  Plus,
+  AlertCircle,
+  RefreshCw,
+  Calendar,
+  Search,
+  Megaphone,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EventCard } from '@/components/events/EventCard';
-import { EventFilters } from '@/components/events/EventFilters';
-import { useRegularEvents } from '@/hooks/useEvents';
+import { CivicEventFilters } from '@/components/civic/CivicEventFilters';
+import { useCivicEvents } from '@/hooks/useEvents';
 import { useAuthStore } from '@/store/auth';
 
-export default function EventsPage() {
+export default function CivicEventsPage() {
   const { isAuthenticated } = useAuthStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,7 +32,7 @@ export default function EventsPage() {
     error,
     refetch,
     isRefetching,
-  } = useRegularEvents({
+  } = useCivicEvents({
     limit: 50,
     category_id: selectedCategory || undefined,
     upcoming_only: true,
@@ -80,7 +87,12 @@ export default function EventsPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Community Events</h1>
+          <div>
+            <h1 className="text-3xl font-bold">Politische Events</h1>
+            <p className="mt-1 text-gray-600">
+              Organisiere und besuche politische Veranstaltungen
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -107,7 +119,12 @@ export default function EventsPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Community Events</h1>
+          <div>
+            <h1 className="text-3xl font-bold">Politische Events</h1>
+            <p className="mt-1 text-gray-600">
+              Organisiere und besuche politische Veranstaltungen
+            </p>
+          </div>
         </div>
 
         <div className="py-12 text-center">
@@ -131,24 +148,48 @@ export default function EventsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Community Events</h1>
-          <p className="mt-1 text-gray-600">
-            Entdecke Events in deiner Community
+          <div className="mb-2 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+              <Megaphone className="h-5 w-5 text-blue-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Politische Events
+            </h1>
+          </div>
+          <p className="text-gray-600">
+            Organisiere und besuche politische Veranstaltungen in deiner
+            Community
           </p>
         </div>
 
         {isAuthenticated && (
           <Button asChild className="flex items-center gap-2">
-            <Link href="/events/create">
+            <Link href="/civic/events/create">
               <Plus className="h-4 w-4" />
-              Event erstellen
+              Politisches Event erstellen
             </Link>
           </Button>
         )}
       </div>
 
+      <div className="mb-8 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="flex items-start gap-3">
+          <Megaphone className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+          <div>
+            <h3 className="font-medium text-blue-900">
+              Willkommen im Civic Event-Bereich
+            </h3>
+            <p className="mt-1 text-sm text-blue-800">
+              Hier findest du Events mit politischem oder gesellschaftlichem
+              Fokus: Diskussionsrunden, Aufklärungsveranstaltungen, Demos und
+              Community-Initiativen.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="mb-8">
-        <EventFilters
+        <CivicEventFilters
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           selectedCategory={selectedCategory}
@@ -184,14 +225,17 @@ export default function EventsPage() {
             <>
               <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
               <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                Noch keine Events
+                Noch keine politischen Events
               </h3>
               <p className="mb-4 text-gray-600">
-                Es wurden noch keine Events erstellt. Sei der Erste!
+                Es wurden noch keine politischen Events erstellt. Sei der Erste
+                und organisiere ein Event für deine Community!
               </p>
               {isAuthenticated && (
                 <Button asChild>
-                  <Link href="/events/create">Erstes Event erstellen</Link>
+                  <Link href="/civic/events/create">
+                    Erstes politisches Event erstellen
+                  </Link>
                 </Button>
               )}
             </>

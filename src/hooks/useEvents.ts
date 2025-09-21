@@ -48,24 +48,103 @@ interface EventsParams {
   upcoming_only?: boolean;
 }
 
-export function useEvents(params: EventsParams = {}) {
+interface EventCreateData {
+  title: string;
+  description: string;
+  start_datetime: string;
+  end_datetime?: string;
+  location?: string;
+  max_participants?: number;
+  category_id: number;
+}
+
+interface CivicEventCreateData {
+  title: string;
+  description: string;
+  start_datetime: string;
+  end_datetime?: string;
+  location?: string;
+  max_participants?: number;
+}
+
+export function useEvents(
+  params: EventsParams & {
+    political_only?: boolean;
+    exclude_political?: boolean;
+  } = {}
+) {
   return useQuery({
     queryKey: ['events', params],
     queryFn: async () => {
       const searchParams = new URLSearchParams();
 
-      if (params.skip !== undefined)
-        searchParams.append('skip', params.skip.toString());
-      if (params.limit !== undefined)
-        searchParams.append('limit', params.limit.toString());
-      if (params.category_id !== undefined)
-        searchParams.append('category_id', params.category_id.toString());
-      if (params.upcoming_only !== undefined)
-        searchParams.append('upcoming_only', params.upcoming_only.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
 
       return (await apiClient.events.list(searchParams)) as EventSummary[];
     },
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useCivicEvents(
+  params: Omit<EventsParams, 'political_only' | 'exclude_political'> = {}
+) {
+  return useQuery({
+    queryKey: ['events', 'civic', params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+
+      return (await apiClient.events.getCivicEvents(
+        searchParams
+      )) as EventSummary[];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useRegularEvents(
+  params: Omit<EventsParams, 'political_only' | 'exclude_political'> = {}
+) {
+  return useQuery({
+    queryKey: ['events', 'regular', params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+
+      return (await apiClient.events.getRegularEvents(
+        searchParams
+      )) as EventSummary[];
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useCreateCivicEvent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (eventData: CivicEventCreateData) => {
+      return apiClient.events.createCivic(eventData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events', 'civic'] });
+    },
   });
 }
 

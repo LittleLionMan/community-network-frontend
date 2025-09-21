@@ -92,6 +92,15 @@ interface EventCreateData {
   category_id: number;
 }
 
+interface CivicEventCreateData {
+  title: string;
+  description: string;
+  start_datetime: string;
+  end_datetime?: string;
+  location?: string;
+  max_participants?: number;
+}
+
 interface EventUpdateData {
   title?: string;
   description?: string;
@@ -101,6 +110,93 @@ interface EventUpdateData {
   max_participants?: number;
   category_id?: number;
   is_active?: boolean;
+}
+
+export interface PollOption {
+  id: number;
+  text: string;
+  order_index: number;
+  vote_count: number;
+}
+
+export interface Poll {
+  id: number;
+  question: string;
+  poll_type: 'thread' | 'admin';
+  is_active: boolean;
+  ends_at?: string;
+  created_at: string;
+  creator: {
+    id: number;
+    display_name: string;
+    profile_image_url?: string;
+  };
+  thread?: {
+    id: number;
+    title: string;
+  };
+  options: PollOption[];
+  total_votes: number;
+  user_vote?: number;
+}
+
+export interface PollCreateData {
+  question: string;
+  poll_type: 'thread' | 'admin';
+  ends_at?: string;
+  thread_id?: number;
+  options: Array<{
+    text: string;
+    order_index: number;
+  }>;
+}
+
+export interface PollUpdateData {
+  question?: string;
+  is_active?: boolean;
+  ends_at?: string;
+}
+
+export interface VoteData {
+  option_id: number;
+}
+
+export interface VoteResponse {
+  id: number;
+  created_at: string;
+  user: {
+    id: number;
+    display_name: string;
+    profile_image_url?: string;
+  };
+  poll_id: number;
+  option_id: number;
+}
+
+export interface PollResults {
+  poll_id: number;
+  question: string;
+  total_votes: number;
+  options: Array<{
+    option_id: number;
+    text: string;
+    votes: number;
+    percentage: number;
+  }>;
+  winners: Array<{
+    option_id: number;
+    text: string;
+  }>;
+  result_type: 'no_votes' | 'clear_winner' | 'tie' | 'unclear';
+  is_concluded: boolean;
+  participation_rate: 'no_participation' | 'low' | 'moderate' | 'high';
+}
+
+export interface UserVotingStats {
+  user_id: number;
+  polls_created: number;
+  votes_cast: number;
+  engagement_level: 'inactive' | 'low' | 'moderate' | 'high';
 }
 
 class ApiError extends Error {
@@ -437,6 +533,32 @@ class ApiClient {
         body: JSON.stringify(data),
       }),
 
+    createCivic: (data: CivicEventCreateData) =>
+      this.request('/api/events/?is_civic=true', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    listCivic: (params?: URLSearchParams) => {
+      const civicParams = new URLSearchParams(params);
+      civicParams.append('political_only', 'true');
+      return this.request(`/api/events?${civicParams.toString()}`);
+    },
+
+    listRegular: (params?: URLSearchParams) => {
+      const regularParams = new URLSearchParams(params);
+      regularParams.append('exclude_political', 'true');
+      return this.request(`/api/events?${regularParams.toString()}`);
+    },
+
+    getCivicEvents: (params?: URLSearchParams) =>
+      this.request(`/api/events/civic${params ? '?' + params.toString() : ''}`),
+
+    getRegularEvents: (params?: URLSearchParams) =>
+      this.request(
+        `/api/events/regular${params ? '?' + params.toString() : ''}`
+      ),
+
     update: (id: number, data: EventUpdateData) =>
       this.request(`/api/events/${id}`, {
         method: 'PUT',
@@ -632,6 +754,75 @@ class ApiClient {
   discussions = {
     list: (params?: URLSearchParams) =>
       this.request(`/api/discussions/${params ? '?' + params.toString() : ''}`),
+  };
+
+  polls = {
+    list: (params?: URLSearchParams) =>
+      this.request<Poll[]>(
+        `/api/polls${params ? '?' + params.toString() : ''}`
+      ),
+
+    get: (id: number, include_analysis = false) => {
+      const params = new URLSearchParams();
+      if (include_analysis) params.append('include_analysis', 'true');
+      return this.request<Poll>(
+        `/api/polls/${id}${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    create: (data: PollCreateData, auto_suggest_duration = false) => {
+      const params = new URLSearchParams();
+      if (auto_suggest_duration) params.append('auto_suggest_duration', 'true');
+      return this.request<Poll>(
+        `/api/polls${params.toString() ? '?' + params.toString() : ''}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      );
+    },
+
+    update: (id: number, data: PollUpdateData) =>
+      this.request<Poll>(`/api/polls/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: number) =>
+      this.request(`/api/polls/${id}`, {
+        method: 'DELETE',
+      }),
+
+    vote: (id: number, data: VoteData) =>
+      this.request<VoteResponse>(`/api/polls/${id}/vote`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    removeVote: (id: number) =>
+      this.request(`/api/polls/${id}/vote`, {
+        method: 'DELETE',
+      }),
+
+    getMyPolls: (params?: URLSearchParams) =>
+      this.request<Poll[]>(
+        `/api/polls/my/created${params ? '?' + params.toString() : ''}`
+      ),
+
+    getMyVotes: (params?: URLSearchParams) =>
+      this.request<VoteResponse[]>(
+        `/api/polls/my/votes${params ? '?' + params.toString() : ''}`
+      ),
+
+    getMyStats: () => this.request<UserVotingStats>('/api/polls/my/stats'),
+
+    getResults: (id: number, detailed = false) => {
+      const params = new URLSearchParams();
+      if (detailed) params.append('detailed', 'true');
+      return this.request<PollResults>(
+        `/api/polls/${id}/results${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
   };
 
   messages = {
