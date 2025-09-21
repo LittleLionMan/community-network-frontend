@@ -18,6 +18,8 @@ import {
   HelpCircle,
   AlertCircle,
 } from 'lucide-react';
+import { Controller } from 'react-hook-form';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
 const pollOptionSchema = z.object({
   text: z
@@ -186,19 +188,6 @@ export function PollCreateForm({
     }
   };
 
-  const formatDateTimeForInput = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
-
-  const getMinDateTime = () => {
-    return formatDateTimeForInput(new Date());
-  };
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {!threadId && (
@@ -345,12 +334,19 @@ export function PollCreateForm({
           </label>
         </div>
 
-        <Input
-          type="datetime-local"
-          {...register('ends_at')}
-          min={getMinDateTime()}
-          error={!!errors.ends_at}
-          disabled={autoSuggestDuration}
+        <Controller
+          name="ends_at"
+          control={control}
+          render={({ field }) => (
+            <DateTimePicker
+              value={field.value ? new Date(field.value) : undefined}
+              onChange={(date) => field.onChange(date?.toISOString())}
+              placeholder="TT.MM.JJJJ HH:MM (optional)"
+              error={!!errors.ends_at}
+              minDate={new Date()}
+              disabled={autoSuggestDuration}
+            />
+          )}
         />
 
         {autoSuggestDuration && (

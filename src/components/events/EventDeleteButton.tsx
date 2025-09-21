@@ -19,12 +19,15 @@ interface EventDeleteButtonProps {
   onSuccess?: () => void;
   variant?: 'button' | 'danger';
   size?: 'sm' | 'default' | 'lg';
+  eventType?: 'regular' | 'civic';
+  customSuccessRedirect?: string;
 }
 
 export function EventDeleteButton({
   event,
   onSuccess,
   size = 'default',
+  eventType = 'regular',
 }: EventDeleteButtonProps) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -37,6 +40,16 @@ export function EventDeleteButton({
   const isDeleting = deleteEventMutation.isPending;
   const hasParticipants = event.participant_count > 0;
 
+  const getEventTypeLabel = () => {
+    return eventType === 'civic' ? 'politisches Event' : 'Event';
+  };
+
+  const getSuccessMessage = () => {
+    return eventType === 'civic'
+      ? 'Politisches Event gelöscht'
+      : 'Event gelöscht';
+  };
+
   const handleDeleteClick = () => {
     setShowConfirmation(true);
   };
@@ -45,7 +58,7 @@ export function EventDeleteButton({
     if (confirmText !== event.title) {
       toast.error(
         'Bestätigung fehlgeschlagen',
-        'Der Event-Titel stimmt nicht überein.'
+        `Der ${getEventTypeLabel()}-Titel stimmt nicht überein.`
       );
       return;
     }
@@ -54,7 +67,7 @@ export function EventDeleteButton({
       await deleteEventMutation.mutateAsync(event.id);
 
       toast.success(
-        'Event gelöscht',
+        getSuccessMessage(),
         `"${event.title}" wurde erfolgreich gelöscht.`
       );
 
@@ -68,17 +81,17 @@ export function EventDeleteButton({
         if (error.message.includes('403')) {
           toast.error(
             'Nicht berechtigt',
-            'Du bist nicht berechtigt, dieses Event zu löschen.'
+            `Du bist nicht berechtigt, dieses ${getEventTypeLabel()} zu löschen.`
           );
         } else if (error.message.includes('404')) {
           toast.error(
-            'Event nicht gefunden',
-            'Das Event existiert nicht mehr.'
+            `${getEventTypeLabel().charAt(0).toUpperCase() + getEventTypeLabel().slice(1)} nicht gefunden`,
+            `Das ${getEventTypeLabel()} existiert nicht mehr.`
           );
         } else {
           toast.error(
             'Fehler beim Löschen',
-            'Das Event konnte nicht gelöscht werden. Bitte versuche es später erneut.'
+            `Das ${getEventTypeLabel()} konnte nicht gelöscht werden. Bitte versuche es später erneut.`
           );
         }
       } else {
@@ -109,7 +122,7 @@ export function EventDeleteButton({
         className="flex items-center gap-2"
       >
         <Trash2 className="h-4 w-4" />
-        Event löschen
+        {eventType === 'civic' ? 'Politisches Event löschen' : 'Event löschen'}
       </Button>
     );
   }
@@ -119,10 +132,14 @@ export function EventDeleteButton({
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
         <div className="flex-1">
-          <h4 className="font-medium text-red-900">Event wirklich löschen?</h4>
+          <h4 className="font-medium text-red-900">
+            {getEventTypeLabel().charAt(0).toUpperCase() +
+              getEventTypeLabel().slice(1)}{' '}
+            wirklich löschen?
+          </h4>
           <p className="mt-1 text-sm text-red-700">
-            Diese Aktion kann nicht rückgängig gemacht werden. Das Event wird
-            unwiderruflich gelöscht.
+            Diese Aktion kann nicht rückgängig gemacht werden. Das{' '}
+            {getEventTypeLabel()} wird unwiderruflich gelöscht.
           </p>
 
           {hasParticipants && (
@@ -130,7 +147,7 @@ export function EventDeleteButton({
               <p className="text-sm font-medium text-red-800">
                 ⚠️ Achtung: {event.participant_count}{' '}
                 {event.participant_count === 1 ? 'Person ist' : 'Personen sind'}{' '}
-                für dieses Event angemeldet!
+                für dieses {getEventTypeLabel()} angemeldet!
               </p>
               <p className="mt-1 text-xs text-red-700">
                 Alle Teilnehmer werden über die Absage informiert.
@@ -138,16 +155,30 @@ export function EventDeleteButton({
             </div>
           )}
 
+          {eventType === 'civic' && (
+            <div className="mt-3 rounded-md bg-red-100 p-3">
+              <p className="text-sm font-medium text-red-800">
+                🏛️ Politisches Event
+              </p>
+              <p className="mt-1 text-xs text-red-700">
+                Das Löschen eines politischen Events kann Auswirkungen auf
+                geplante Community-Diskussionen haben.
+              </p>
+            </div>
+          )}
+
           <div className="mt-4">
             <label className="block text-sm font-medium text-red-900">
-              Gib den Event-Titel zur Bestätigung ein:
+              Gib den {getEventTypeLabel()}-Titel zur Bestätigung ein:
             </label>
-            <p className="mb-2 font-mono text-sm text-red-800">{event.title}</p>
+            <p className="mb-2 break-words font-mono text-sm text-red-800">
+              {event.title}
+            </p>
             <input
               type="text"
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="Event-Titel eingeben..."
+              placeholder={`${getEventTypeLabel()}-Titel eingeben...`}
               className="w-full rounded-md border border-red-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               disabled={isDeleting}
             />

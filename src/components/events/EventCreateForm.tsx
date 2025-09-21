@@ -24,6 +24,8 @@ import {
   Save,
   RefreshCw,
 } from 'lucide-react';
+import { Controller } from 'react-hook-form';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 
 interface EventCreateFormProps {
   onSuccess?: (eventId: number) => void;
@@ -40,6 +42,7 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     watch,
     reset,
@@ -48,17 +51,13 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
     defaultValues: {
       title: '',
       description: '',
-      start_datetime: formatDateTimeForInput(
-        new Date(Date.now() + 24 * 60 * 60 * 1000)
-      ),
+      start_datetime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       end_datetime: '',
       location: '',
       max_participants: undefined,
       category_id: undefined,
     },
   });
-
-  const startDateTime = watch('start_datetime');
 
   const onSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
@@ -174,10 +173,18 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
             <CalendarDays className="h-4 w-4" />
             Startdatum & Zeit *
           </label>
-          <Input
-            type="datetime-local"
-            {...register('start_datetime')}
-            error={!!errors.start_datetime}
+          <Controller
+            name="start_datetime"
+            control={control}
+            render={({ field }) => (
+              <DateTimePicker
+                value={field.value ? new Date(field.value) : undefined}
+                onChange={(date) => field.onChange(date?.toISOString())}
+                placeholder="TT.MM.JJJJ HH:MM"
+                error={!!errors.start_datetime}
+                minDate={new Date()}
+              />
+            )}
           />
           {errors.start_datetime && (
             <p className="mt-1 text-sm text-red-600">
@@ -191,11 +198,22 @@ export function EventCreateForm({ onSuccess, onCancel }: EventCreateFormProps) {
             <Clock className="h-4 w-4" />
             Enddatum & Zeit (optional)
           </label>
-          <Input
-            type="datetime-local"
-            {...register('end_datetime')}
-            min={startDateTime}
-            error={!!errors.end_datetime}
+          <Controller
+            name="end_datetime"
+            control={control}
+            render={({ field }) => (
+              <DateTimePicker
+                value={field.value ? new Date(field.value) : undefined}
+                onChange={(date) => field.onChange(date?.toISOString())}
+                placeholder="TT.MM.JJJJ HH:MM (optional)"
+                error={!!errors.end_datetime}
+                minDate={
+                  watch('start_datetime')
+                    ? new Date(watch('start_datetime'))
+                    : new Date()
+                }
+              />
+            )}
           />
           {errors.end_datetime && (
             <p className="mt-1 text-sm text-red-600">

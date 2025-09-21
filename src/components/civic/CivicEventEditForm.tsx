@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useCreateCivicEvent } from '@/hooks/useEvents';
+import { useUpdateEvent } from '@/hooks/useEventMutations';
 import { toast } from '@/components/ui/toast';
 import {
   CalendarDays,
@@ -16,6 +16,7 @@ import {
   Clock,
   Save,
   RefreshCw,
+  Trash2,
   Megaphone,
   AlertTriangle,
 } from 'lucide-react';
@@ -26,7 +27,7 @@ const parseDateTimeFromInput = (dateTimeString: string) => {
   return new Date(dateTimeString).toISOString();
 };
 
-const civicEventSchema = z.object({
+const civicEventEditSchema = z.object({
   title: z.string().min(1, 'Titel ist erforderlich').max(200, 'Titel zu lang'),
   description: z
     .string()
@@ -38,103 +39,122 @@ const civicEventSchema = z.object({
   max_participants: z.number().min(1).max(1000).optional(),
 });
 
-type CivicEventFormData = z.infer<typeof civicEventSchema>;
+type CivicEventEditFormData = z.infer<typeof civicEventEditSchema>;
 
-interface CivicEventCreateFormProps {
-  onSuccess?: (eventId: number) => void;
+interface EventDetail {
+  id: number;
+  title: string;
+  description: string;
+  start_datetime: string;
+  end_datetime?: string;
+  location?: string;
+  max_participants?: number;
+  category_id: number;
+  is_active: boolean;
+  participant_count: number;
+}
+
+interface CivicEventEditFormProps {
+  event: EventDetail;
+  onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function CivicEventCreateForm({
+export function CivicEventEditForm({
+  event,
   onSuccess,
   onCancel,
-}: CivicEventCreateFormProps) {
+}: CivicEventEditFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createEventMutation = useCreateCivicEvent();
+  const updateEventMutation = useUpdateEvent();
 
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
     watch,
     reset,
-  } = useForm<CivicEventFormData>({
-    resolver: zodResolver(civicEventSchema),
+  } = useForm<CivicEventEditFormData>({
+    resolver: zodResolver(civicEventEditSchema),
     defaultValues: {
-      title: '',
-      description: '',
-      start_datetime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      end_datetime: '',
-      location: '',
-      max_participants: undefined,
+      title: event.title,
+      description: event.description,
+      start_datetime: event.start_datetime,
+      end_datetime: event.end_datetime || '',
+      location: event.location || '',
+      max_participants: event.max_participants || undefined,
     },
   });
 
-  const onSubmit = async (data: CivicEventFormData) => {
+  const hasParticipants = event.participant_count > 0;
+
+  const onSubmit = async (data: CivicEventEditFormData) => {
     setIsSubmitting(true);
 
     try {
-      const cleanedData = {
+      const eventData = {
         title: data.title.trim(),
         description: data.description.trim(),
         start_datetime: parseDateTimeFromInput(data.start_datetime),
-        end_datetime:
-          data.end_datetime && data.end_datetime.trim() !== ''
-            ? parseDateTimeFromInput(data.end_datetime)
-            : undefined,
-        location:
-          data.location && data.location.trim() !== ''
-            ? data.location.trim()
-            : undefined,
-        max_participants:
-          data.max_participants &&
-          !isNaN(data.max_participants) &&
-          data.max_participants > 0
-            ? Number(data.max_participants)
-            : undefined,
+        end_datetime: data.end_datetime
+          ? parseDateTimeFromInput(data.end_datetime)
+          : undefined,
+        location: data.location?.trim() || undefined,
+        max_participants: data.max_participants || undefined,
+        category_id: event.category_id,
       };
 
-      const result = (await createEventMutation.mutateAsync(cleanedData)) as {
-        id: number;
-      };
+      await updateEventMutation.mutateAsync({
+        eventId: event.id,
+        eventData,
+      });
 
       toast.success(
-        'Politisches Event erstellt!',
-        'Dein politisches Event wurde erfolgreich erstellt.'
+        'Politisches Event aktualisiert!',
+        'Die Änderungen wurden erfolgreich gespeichert.'
       );
-      reset();
 
-      if (onSuccess && result?.id) {
-        onSuccess(result.id);
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
-      console.error('Create civic event error:', error);
+      console.error('Update civic event error:', error);
 
       if (error instanceof Error) {
         if (error.message.includes('400')) {
           toast.error('Ungültige Daten', 'Bitte überprüfe deine Eingaben.');
         } else if (error.message.includes('401')) {
           toast.error(
-            'Nicht angemeldet',
-            'Du musst angemeldet sein, um Events zu erstellen.'
+            'Nicht berechtigt',
+            'Du bist nicht berechtigt, dieses Event zu bearbeiten.'
+          );
+        } else if (error.message.includes('403')) {
+          toast.error(
+            'Aktion nicht erlaubt',
+            'Das Event kann nicht mehr bearbeitet werden.'
           );
         } else {
           toast.error(
-            'Fehler beim Erstellen',
+            'Fehler beim Speichern',
             'Bitte versuche es später erneut.'
           );
         }
       } else {
         toast.error(
-          'Fehler beim Erstellen',
+          'Fehler beim Speichern',
           'Bitte versuche es später erneut.'
         );
       }
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleReset = () => {
+    reset();
+    toast.success('Zurückgesetzt', 'Alle Änderungen wurden verworfen.');
   };
 
   return (
@@ -144,11 +164,12 @@ export function CivicEventCreateForm({
           <Megaphone className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
           <div>
             <h3 className="font-medium text-blue-900">
-              Politisches Event erstellen
+              Politisches Event bearbeiten
             </h3>
             <p className="mt-1 text-sm text-blue-800">
-              Du erstellst ein Event mit politischem oder gesellschaftlichem
-              Fokus. Bitte achte auf eine sachliche, respektvolle Beschreibung.
+              Du bearbeitest ein Event mit politischem oder gesellschaftlichem
+              Fokus. Bitte achte weiterhin auf eine sachliche, respektvolle
+              Beschreibung.
             </p>
           </div>
         </div>
@@ -194,6 +215,12 @@ export function CivicEventCreateForm({
           {errors.start_datetime && (
             <p className="mt-1 text-sm text-red-600">
               {errors.start_datetime.message}
+            </p>
+          )}
+          {hasParticipants && (
+            <p className="mt-1 text-xs text-yellow-600">
+              ⚠️ Bei bereits angemeldeten Teilnehmern solltest du das Datum nur
+              in Notfällen ändern.
             </p>
           )}
         </div>
@@ -256,7 +283,7 @@ export function CivicEventCreateForm({
           </label>
           <Input
             type="number"
-            min="1"
+            min={event.participant_count || 1}
             max="1000"
             {...register('max_participants', {
               setValueAs: (value) => {
@@ -267,11 +294,17 @@ export function CivicEventCreateForm({
                 return isNaN(num) ? undefined : num;
               },
             })}
+            placeholder="Unbegrenzt"
             error={!!errors.max_participants}
           />
           {errors.max_participants && (
             <p className="mt-1 text-sm text-red-600">
               {errors.max_participants.message}
+            </p>
+          )}
+          {hasParticipants && (
+            <p className="mt-1 text-xs text-gray-500">
+              Minimum: {event.participant_count} (bereits angemeldet)
             </p>
           )}
         </div>
@@ -315,36 +348,51 @@ export function CivicEventCreateForm({
               <li>• Respektvoller, sachlicher Umgang miteinander</li>
               <li>• Keine Hassrede oder Diskriminierung</li>
               <li>• Demokratische Werte respektieren</li>
-              <li>• Bei Demos: Separate Anmeldung bei Behörden erforderlich</li>
+              <li>• Bei größeren Änderungen Teilnehmer vorab informieren</li>
               <li>• Eventuelle rechtliche Bestimmungen beachten</li>
             </ul>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row">
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex items-center gap-2"
-        >
-          {isSubmitting ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Event erstellen...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              Politisches Event erstellen
-            </>
+      <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            disabled={isSubmitting || !isDirty}
+            className="flex items-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Speichern...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Änderungen speichern
+              </>
+            )}
+          </Button>
+
+          {isDirty && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Zurücksetzen
+            </Button>
           )}
-        </Button>
+        </div>
 
         {onCancel && (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}
           >
@@ -352,6 +400,15 @@ export function CivicEventCreateForm({
           </Button>
         )}
       </div>
+
+      {!isDirty && (
+        <div className="rounded-lg bg-blue-50 p-4">
+          <p className="text-sm text-blue-700">
+            ✓ Alle Änderungen wurden gespeichert. Du kannst weitere Anpassungen
+            vornehmen oder zur Event-Ansicht zurückkehren.
+          </p>
+        </div>
+      )}
     </form>
   );
 }

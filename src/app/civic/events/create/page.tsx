@@ -18,8 +18,8 @@ export default function CreateCivicEventPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  const handleSuccess = () => {
-    router.push(`/civic/events`);
+  const handleSuccess = (eventId: number) => {
+    router.push(`/civic/events/${eventId}`);
   };
 
   const handleCancel = () => {
