@@ -24,6 +24,7 @@ export default function VerifyEmailPage() {
       toast.success('Bestätigungsmail wurde erneut gesendet');
     } catch (error) {
       toast.error('Fehler beim Versenden der E-Mail');
+      console.log(error);
     } finally {
       setIsResending(false);
     }

@@ -1,4 +1,3 @@
-// src/components/auth/RegisterForm.tsx
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -44,24 +43,20 @@ export function RegisterForm({ className }: RegisterFormProps) {
   const [step1Data, setStep1Data] = useState<RegisterStep1Data | null>(null);
   const [currentPassword, setCurrentPassword] = useState('');
 
-  // Live validation states
   const [emailStatus, setEmailStatus] = useState<AvailabilityStatus>('idle');
   const [displayNameStatus, setDisplayNameStatus] =
     useState<AvailabilityStatus>('idle');
 
   const router = useRouter();
 
-  // Step 1 Form
   const step1Form = useForm<RegisterStep1Data>({
     resolver: zodResolver(registerStep1Schema),
   });
 
-  // Step 2 Form
   const step2Form = useForm<RegisterStep2Data>({
     resolver: zodResolver(registerStep2Schema),
   });
 
-  // Debounced availability check
   const checkAvailability = useCallback(
     async (field: 'email' | 'displayName', value: string) => {
       if (!value || value.length < 2) return;
@@ -77,7 +72,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
         const result = await apiClient.auth.checkAvailability(checkData);
         setStatus(result.available ? 'available' : 'taken');
 
-        // Set form error if taken
         if (!result.available) {
           const message =
             field === 'email'
@@ -95,7 +89,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
     [step1Form]
   );
 
-  // Debounce helper with proper typing
   const useDebounce = <T extends unknown[]>(
     callback: (...args: T) => void,
     delay: number
@@ -122,12 +115,10 @@ export function RegisterForm({ className }: RegisterFormProps) {
     500
   );
 
-  // Handle Step 1 submission
   const onStep1Submit = async (data: RegisterStep1Data) => {
     setIsSubmitting(true);
 
     try {
-      // Final availability check before proceeding
       const emailCheck = apiClient.auth.checkAvailability({
         email: data.email,
       });
@@ -183,7 +174,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
     }
   };
 
-  // Handle Step 2 submission
   const onStep2Submit = async (data: RegisterStep2Data) => {
     if (!step1Data) return;
 
@@ -217,10 +207,8 @@ export function RegisterForm({ className }: RegisterFormProps) {
     }
   };
 
-  // Availability status component
   const AvailabilityIndicator = ({
     status,
-    field,
   }: {
     status: AvailabilityStatus;
     field: string;
@@ -239,7 +227,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
     }
   };
 
-  // Password strength component
   const PasswordStrength = ({ password }: { password: string }) => {
     return (
       <div className="mt-2 space-y-1">
@@ -279,7 +266,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
         <p className="text-gray-600">Werden Sie Teil unserer Community</p>
       </div>
 
-      {/* Progress bar */}
       <div className="mb-8">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs font-medium text-community-600">
@@ -298,7 +284,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
       </div>
 
       {currentStep === 1 ? (
-        // STEP 1: Basic Information mit Live Validation
         <form
           onSubmit={step1Form.handleSubmit(onStep1Submit)}
           className="space-y-6"
@@ -325,7 +310,7 @@ export function RegisterForm({ className }: RegisterFormProps) {
                       debouncedDisplayNameCheck(e.target.value);
                     }
                   },
-                  onChange: (e) => {
+                  onChange: () => {
                     if (displayNameStatus !== 'idle') {
                       setDisplayNameStatus('idle');
                     }
@@ -360,7 +345,7 @@ export function RegisterForm({ className }: RegisterFormProps) {
                       debouncedEmailCheck(e.target.value);
                     }
                   },
-                  onChange: (e) => {
+                  onChange: () => {
                     if (emailStatus !== 'idle') {
                       setEmailStatus('idle');
                     }
@@ -406,13 +391,11 @@ export function RegisterForm({ className }: RegisterFormProps) {
           </div>
         </form>
       ) : (
-        // STEP 2: Password & Details
         <form
           onSubmit={step2Form.handleSubmit(onStep2Submit)}
           className="space-y-6"
           noValidate
         >
-          {/* Back button */}
           <button
             type="button"
             onClick={() => setCurrentStep(1)}
@@ -422,7 +405,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
             Zurück zu Schritt 1
           </button>
 
-          {/* Step 1 data display */}
           <div className="mb-4 flex items-center rounded bg-green-50 p-3 text-sm text-gray-600">
             <Check className="mr-2 h-4 w-4 text-green-600" />
             <span>
@@ -430,7 +412,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
             </span>
           </div>
 
-          {/* Password field */}
           <FormField
             label="Passwort"
             required
@@ -465,7 +446,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
             </div>
           </FormField>
 
-          {/* Confirm password */}
           <FormField
             label="Passwort bestätigen"
             required
@@ -494,7 +474,6 @@ export function RegisterForm({ className }: RegisterFormProps) {
             </div>
           </FormField>
 
-          {/* Optional fields */}
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Vorname (optional)">
               <Input

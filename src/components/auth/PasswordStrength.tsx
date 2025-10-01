@@ -1,4 +1,3 @@
-// src/components/auth/PasswordStrength.tsx
 import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { passwordCriteria } from '@/lib/auth-schemas';

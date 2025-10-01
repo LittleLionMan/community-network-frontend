@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, File, Image, X, Download } from 'lucide-react';
-
-interface Attachment {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  url: string;
-}
+import { Upload, File } from 'lucide-react';
 
 interface MessageAttachmentProps {
   onAttachmentSend: (file: File) => Promise<void>;

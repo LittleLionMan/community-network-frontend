@@ -272,6 +272,7 @@ const RateLimitModal: React.FC<RateLimitModalProps> = ({
       setRateLimitStats(stats);
     } catch (error) {
       toast.error('Fehler beim Laden der Rate Limit Statistiken');
+      console.log(error);
     } finally {
       setIsLoading(false);
     }
@@ -290,6 +291,7 @@ const RateLimitModal: React.FC<RateLimitModalProps> = ({
       await fetchRateLimitStats();
     } catch (error) {
       toast.error('Fehler beim Löschen der Rate Limits');
+      console.log(error);
     }
   };
 

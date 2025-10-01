@@ -23,7 +23,7 @@ interface PrivacyUpdateData {
 }
 
 export function useProfile() {
-  const { user: authUser, login, logout, validateToken } = useAuthStore();
+  const { user: authUser, login, logout } = useAuthStore();
   const [user, setUser] = useState<User | null>(authUser);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +36,15 @@ export function useProfile() {
     }
   };
 
+  const updateUserInStore = (userData: User) => {
+    const accessToken = localStorage.getItem('auth_token');
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    if (accessToken && refreshToken) {
+      login(userData, accessToken, refreshToken);
+    }
+  };
+
   const refreshUser = async () => {
     if (!authUser) return;
 
@@ -45,7 +54,7 @@ export function useProfile() {
     try {
       const userData = (await apiClient.auth.me()) as User;
       setUser(userData);
-      login(userData);
+      updateUserInStore(userData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
       handleAuthError(err);
@@ -63,7 +72,7 @@ export function useProfile() {
     try {
       const updatedUser = (await apiClient.users.updateMe(data)) as User;
       setUser(updatedUser);
-      login(updatedUser);
+      updateUserInStore(updatedUser);
       return updatedUser;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update profile');
@@ -83,7 +92,7 @@ export function useProfile() {
     try {
       const updatedUser = (await apiClient.users.updateMe(data)) as User;
       setUser(updatedUser);
-      login(updatedUser);
+      updateUserInStore(updatedUser);
       return updatedUser;
     } catch (err) {
       setError(
@@ -100,7 +109,7 @@ export function useProfile() {
     if (user) {
       const updatedUser = { ...user, profile_image_url: imageUrl };
       setUser(updatedUser);
-      login(updatedUser);
+      updateUserInStore(updatedUser);
     }
   };
 

@@ -20,6 +20,18 @@ import type {
   ServiceRatingData,
   ServiceSearchFilters,
 } from '@/types/service';
+import type {
+  ForumCategory,
+  ForumThread,
+  ForumPost,
+  ForumCategoryCreate,
+  ForumCategoryUpdate,
+  ForumThreadCreate,
+  ForumThreadUpdate,
+  ForumPostCreate,
+  ForumPostUpdate,
+} from '@/types/forum';
+
 import { useAuthStore } from '@/store/auth';
 import { extendApiClientWithAdmin } from './admin-api';
 
@@ -751,11 +763,6 @@ class ApiClient {
       }),
   };
 
-  discussions = {
-    list: (params?: URLSearchParams) =>
-      this.request(`/api/discussions/${params ? '?' + params.toString() : ''}`),
-  };
-
   polls = {
     list: (params?: URLSearchParams) =>
       this.request<Poll[]>(
@@ -926,6 +933,142 @@ class ApiClient {
         method: 'PUT',
         body: JSON.stringify(settings),
       }),
+  };
+
+  forumCategories = {
+    list: (include_inactive = false) => {
+      const params = new URLSearchParams();
+      if (include_inactive) params.append('include_inactive', 'true');
+      return this.request<ForumCategory[]>(
+        `/api/forum-categories/${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    get: (categoryId: number) =>
+      this.request<ForumCategory>(`/api/forum-categories/${categoryId}`),
+
+    create: (data: ForumCategoryCreate) =>
+      this.request<ForumCategory>('/api/forum-categories/admin', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    update: (categoryId: number, data: ForumCategoryUpdate) =>
+      this.request<ForumCategory>(`/api/forum-categories/admin/${categoryId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    delete: (categoryId: number) =>
+      this.request(`/api/forum-categories/admin/${categoryId}`, {
+        method: 'DELETE',
+      }),
+  };
+
+  discussions = {
+    list: (params?: {
+      skip?: number;
+      limit?: number;
+      category_id?: number;
+      pinned_first?: boolean;
+    }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            searchParams.append(key, value.toString());
+          }
+        });
+      }
+      return this.request<ForumThread[]>(
+        `/api/discussions/${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+      );
+    },
+
+    get: (threadId: number) =>
+      this.request<ForumThread>(`/api/discussions/${threadId}`),
+
+    create: (data: ForumThreadCreate) =>
+      this.request<ForumThread>('/api/discussions/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    update: (threadId: number, data: ForumThreadUpdate) =>
+      this.request<ForumThread>(`/api/discussions/${threadId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    delete: (threadId: number) =>
+      this.request(`/api/discussions/${threadId}`, {
+        method: 'DELETE',
+      }),
+
+    getThreadPosts: (
+      threadId: number,
+      params?: {
+        skip?: number;
+        limit?: number;
+      }
+    ) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            searchParams.append(key, value.toString());
+          }
+        });
+      }
+      return this.request<ForumPost[]>(
+        `/api/discussions/${threadId}/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+      );
+    },
+
+    createPost: (threadId: number, data: ForumPostCreate) =>
+      this.request<ForumPost>(`/api/discussions/${threadId}/posts`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    updatePost: (postId: number, data: ForumPostUpdate) =>
+      this.request<ForumPost>(`/api/discussions/posts/${postId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deletePost: (postId: number) =>
+      this.request(`/api/discussions/posts/${postId}`, {
+        method: 'DELETE',
+      }),
+
+    getMyThreads: (params?: { skip?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            searchParams.append(key, value.toString());
+          }
+        });
+      }
+      return this.request<ForumThread[]>(
+        `/api/discussions/my/threads${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+      );
+    },
+
+    getMyPosts: (params?: { skip?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            searchParams.append(key, value.toString());
+          }
+        });
+      }
+      return this.request<ForumPost[]>(
+        `/api/discussions/my/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+      );
+    },
   };
 
   createWebSocket = (endpoint: string, token?: string): WebSocket => {

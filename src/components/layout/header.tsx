@@ -12,6 +12,8 @@ import {
   MessageCircle,
   Bell,
   Shield,
+  MessageSquare,
+  PocketKnife,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
@@ -41,7 +43,7 @@ export function Header() {
             validateToken();
           }
         },
-        10 * 60 * 1000 // 10 minutes
+        10 * 60 * 1000
       );
     }
 
@@ -130,7 +132,7 @@ export function Header() {
               Civic
             </Link>
             <Link
-              href="/meta"
+              href="/forum"
               className="hover:text-foreground/80 transition-colors"
             >
               Meta
@@ -230,6 +232,24 @@ export function Header() {
                     >
                       <User className="mr-3 h-4 w-4" />
                       Mein Profil
+                    </Link>
+
+                    <Link
+                      href="/forum/my/threads"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <MessageSquare className="mr-3 h-4 w-4" />
+                      Meine Threads
+                    </Link>
+
+                    <Link
+                      href="/services/my/"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <PocketKnife className="mr-3 h-4 w-4" />
+                      Meine Services
                     </Link>
 
                     <Link

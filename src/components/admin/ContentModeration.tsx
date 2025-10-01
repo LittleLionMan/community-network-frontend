@@ -236,6 +236,7 @@ export function ContentModeration() {
       await fetchFlaggedContent(currentPage);
     } catch (error) {
       toast.error('Fehler bei der Moderation');
+      console.log(error);
     }
   };
 

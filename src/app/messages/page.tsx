@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Settings, X } from 'lucide-react';
+import { Plus, Search, Settings } from 'lucide-react';
 import MessagesInterface from '@/components/messages/MessagesInterface';
 import { SecurityBanner } from '@/components/messages/SecurityBanner';
 import { UnifiedErrorBoundary } from '@/components/errors/UnifiedErrorBoundary';
@@ -29,7 +29,6 @@ import type {
   CreateConversationData,
   WebSocketMessage,
   UnreadCount,
-  MessagePrivacySettings,
 } from '@/types/message';
 
 interface SearchUser {
@@ -299,7 +298,6 @@ export default function MessagesPage() {
     errors: conversationErrors,
     createConversation,
     refreshConversations,
-    updateConversation,
     updateConversationUnreadCount,
     clearError: clearConversationError,
   } = useConversations();

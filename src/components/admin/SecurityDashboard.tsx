@@ -151,6 +151,7 @@ export function SecurityDashboard() {
       await fetchSecurityData();
     } catch (error) {
       toast.error('Fehler beim Löschen der Rate Limits');
+      console.log(error);
     }
   };
 
@@ -516,6 +517,7 @@ export function SecurityDashboard() {
                 );
               } catch (error) {
                 toast.error('Security Test fehlgeschlagen');
+                console.log(error);
               }
             }}
             className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -544,6 +546,7 @@ export function SecurityDashboard() {
                 await fetchSecurityData();
               } catch (error) {
                 toast.error('System Maintenance fehlgeschlagen');
+                console.log(error);
               }
             }}
             className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-sm font-medium text-gray-700 hover:bg-gray-50"

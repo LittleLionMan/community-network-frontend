@@ -12,7 +12,6 @@ import {
   MessageCircle,
   CheckCircle,
   Edit3,
-  Trash2,
   Eye,
   Users,
   AlertCircle,
@@ -231,24 +230,6 @@ export default function ServiceDetailPage() {
         ...currentService,
         interest_count: newInterestCount,
       });
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!currentService || !window.confirm('Service wirklich löschen?')) return;
-
-    try {
-      await apiClient.services.delete(currentService.id);
-      toast.success(
-        'Service gelöscht',
-        'Der Service wurde erfolgreich gelöscht.'
-      );
-      router.push('/services');
-    } catch (error) {
-      toast.error(
-        'Fehler beim Löschen',
-        'Der Service konnte nicht gelöscht werden.'
-      );
     }
   };
 

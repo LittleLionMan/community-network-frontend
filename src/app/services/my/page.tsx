@@ -7,7 +7,6 @@ import {
   Plus,
   Eye,
   Edit3,
-  Trash2,
   TrendingUp,
   AlertCircle,
   RefreshCw,
@@ -17,9 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import { ServiceDeleteButton } from '@/components/services/ServiceDeleteButton';
-import { useMyServices, useServiceMutations } from '@/hooks/useServices';
+import { useMyServices } from '@/hooks/useServices';
 import { useAuthStore } from '@/store/auth';
-import { toast } from '@/components/ui/toast';
 
 export default function MyServicesPage() {
   const router = useRouter();
@@ -48,28 +46,6 @@ export default function MyServicesPage() {
     limit: 50,
     is_offering: isOfferingFilter,
   });
-
-  const { deleteService, isDeleting } = useServiceMutations();
-
-  const handleDelete = async (serviceId: number, title: string) => {
-    if (!window.confirm(`Service "${title}" wirklich löschen?`)) {
-      return;
-    }
-
-    try {
-      await deleteService(serviceId);
-      toast.success(
-        'Service gelöscht',
-        'Der Service wurde erfolgreich gelöscht.'
-      );
-      refetch();
-    } catch (error) {
-      toast.error(
-        'Fehler beim Löschen',
-        'Der Service konnte nicht gelöscht werden.'
-      );
-    }
-  };
 
   const getServiceTypeLabel = (type: 'all' | 'offering' | 'seeking') => {
     switch (type) {

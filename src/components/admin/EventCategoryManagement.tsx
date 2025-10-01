@@ -291,6 +291,7 @@ export function EventCategoryManagement() {
       toast.success('Standard-Kategorien erstellt', response.message);
     } catch (error) {
       toast.error('Fehler beim Erstellen der Standard-Kategorien');
+      console.log(error);
     }
   };
 
@@ -314,6 +315,7 @@ export function EventCategoryManagement() {
           ? 'Fehler beim Aktualisieren der Kategorie'
           : 'Fehler beim Erstellen der Kategorie'
       );
+      console.log(error);
     }
   };
 
@@ -327,6 +329,7 @@ export function EventCategoryManagement() {
       setSelectedCategory(null);
     } catch (error) {
       toast.error('Fehler beim Löschen der Kategorie');
+      console.log(error);
     }
   };
 

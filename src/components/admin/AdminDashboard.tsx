@@ -158,6 +158,7 @@ export function AdminDashboard() {
       toast.success('System Maintenance erfolgreich ausgeführt');
     } catch (error) {
       toast.error('Fehler beim System Maintenance');
+      console.log(error);
     }
   };
 

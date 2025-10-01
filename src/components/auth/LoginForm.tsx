@@ -54,6 +54,7 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
       setShowResendButton(false);
     } catch (error) {
       toast.error('Fehler beim Versenden der E-Mail');
+      console.log(error);
     } finally {
       setIsResending(false);
     }

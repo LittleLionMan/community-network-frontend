@@ -73,7 +73,9 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
           text: `Event: ${event.title}`,
           url: window.location.href,
         });
-      } catch (error) {}
+      } catch (error) {
+        console.log(error);
+      }
     } else {
       try {
         await navigator.clipboard.writeText(window.location.href);
@@ -83,6 +85,7 @@ export default function EventDetailPage({ params }: EventDetailPageProps) {
         );
       } catch (error) {
         toast.error('Fehler', 'Link konnte nicht kopiert werden.');
+        console.log(error);
       }
     }
   };
