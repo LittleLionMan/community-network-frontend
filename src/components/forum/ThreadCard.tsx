@@ -9,14 +9,26 @@ import type { ForumThread } from '@/types/forum';
 interface ThreadCardProps {
   thread: ForumThread;
   showCategory?: boolean;
+  isUnread?: boolean;
 }
 
-export function ThreadCard({ thread, showCategory = false }: ThreadCardProps) {
+export function ThreadCard({
+  thread,
+  showCategory = false,
+  isUnread = false,
+}: ThreadCardProps) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center gap-2">
+            {isUnread && (
+              <div
+                className="h-2 w-2 flex-shrink-0 rounded-full bg-community-600"
+                title="Ungelesen"
+              />
+            )}
+
             {thread.is_pinned && (
               <Pin className="h-4 w-4 flex-shrink-0 text-blue-600" />
             )}
@@ -26,7 +38,9 @@ export function ThreadCard({ thread, showCategory = false }: ThreadCardProps) {
 
             <Link
               href={`/forum/threads/${thread.id}`}
-              className="min-w-0 flex-1 text-lg font-semibold text-gray-900 hover:text-community-600"
+              className={`min-w-0 flex-1 text-lg font-semibold transition-colors hover:text-community-600 ${
+                isUnread ? 'text-gray-900' : 'text-gray-700'
+              }`}
             >
               <span className="line-clamp-2">{thread.title}</span>
             </Link>
@@ -56,10 +70,13 @@ export function ThreadCard({ thread, showCategory = false }: ThreadCardProps) {
           </div>
         </div>
 
-        {/* Post Count */}
         <div className="flex flex-shrink-0 items-center gap-2 text-gray-600">
           <MessageSquare className="h-5 w-5" />
-          <span className="font-medium">{thread.post_count}</span>
+          <span
+            className={`font-medium ${isUnread ? 'text-community-600' : ''}`}
+          >
+            {thread.post_count}
+          </span>
         </div>
       </div>
     </div>

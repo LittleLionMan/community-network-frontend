@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { PostEditForm } from '@/components/forum/PostEditForm';
 import { PostDeleteButton } from '@/components/forum/PostDeleteButton';
+import { QuoteButton } from '@/components/forum/QuoteButton';
+import { QuotedPostDisplay } from '@/components/forum/QuotedPostDisplay';
 import { formatAbsolute } from '@/lib/forum-utils';
 import type { ForumPost } from '@/types/forum';
 
@@ -13,9 +15,17 @@ interface PostCardProps {
   post: ForumPost;
   canEdit: boolean;
   canDelete: boolean;
+  onQuote?: (post: ForumPost) => void;
+  showQuoteButton?: boolean;
 }
 
-export function PostCard({ post, canEdit, canDelete }: PostCardProps) {
+export function PostCard({
+  post,
+  canEdit,
+  canDelete,
+  onQuote,
+  showQuoteButton = true,
+}: PostCardProps) {
   const [isEditing, setIsEditing] = useState(false);
 
   return (
@@ -34,8 +44,11 @@ export function PostCard({ post, canEdit, canDelete }: PostCardProps) {
           </div>
         </div>
 
-        {(canEdit || canDelete) && !isEditing && (
+        {!isEditing && (
           <div className="flex gap-2">
+            {showQuoteButton && onQuote && (
+              <QuoteButton onQuote={() => onQuote(post)} disabled={isEditing} />
+            )}
             {canEdit && (
               <Button
                 variant="ghost"
@@ -58,9 +71,15 @@ export function PostCard({ post, canEdit, canDelete }: PostCardProps) {
           onSuccess={() => setIsEditing(false)}
         />
       ) : (
-        <div className="prose max-w-none">
-          <p className="whitespace-pre-line text-gray-700">{post.content}</p>
-        </div>
+        <>
+          {post.quoted_post && (
+            <QuotedPostDisplay quotedPost={post.quoted_post} />
+          )}
+          <div
+            className="prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
+        </>
       )}
     </div>
   );

@@ -10,7 +10,6 @@ import { useEventCategories } from '@/hooks/useEvents';
 import {
   eventCreateSchema,
   type EventFormData,
-  formatDateTimeForInput,
   parseDateTimeFromInput,
 } from '@/lib/validations/event';
 import { toast } from '@/components/ui/toast';

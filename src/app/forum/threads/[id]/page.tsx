@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Lock, Pin, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,9 @@ import { PostReplyForm } from '@/components/forum/PostReplyForm';
 import { ThreadModActions } from '@/components/forum/ThreadModActions';
 import { PostListSkeleton } from '@/components/forum/Skeletons';
 import { useThread, useThreadPosts } from '@/hooks/useDiscussions';
+import { useMarkThreadAsRead } from '@/hooks/useUnreadStatus';
 import { useAuthStore } from '@/store/auth';
+import type { ForumPost } from '@/types/forum';
 
 interface ThreadPageProps {
   params: Promise<{ id: string }>;
@@ -19,6 +21,7 @@ export default function ThreadPage({ params }: ThreadPageProps) {
   const resolvedParams = use(params);
   const threadId = parseInt(resolvedParams.id);
   const { user, isAuthenticated } = useAuthStore();
+  const [quotedPost, setQuotedPost] = useState<ForumPost | null>(null);
 
   const { data: thread, isLoading: threadLoading } = useThread(threadId);
   const {
@@ -31,6 +34,22 @@ export default function ThreadPage({ params }: ThreadPageProps) {
   const isLoading = threadLoading || postsLoading;
   const isCreator = user?.id === thread?.creator.id;
   const canModerate = user?.is_admin;
+
+  const handleQuote = (post: ForumPost) => {
+    setQuotedPost(post);
+  };
+
+  const handleClearQuote = () => {
+    setQuotedPost(null);
+  };
+
+  const markAsRead = useMarkThreadAsRead();
+
+  useEffect(() => {
+    if (thread && isAuthenticated) {
+      markAsRead.mutate(threadId);
+    }
+  }, [threadId, thread, isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -135,6 +154,10 @@ export default function ThreadPage({ params }: ThreadPageProps) {
                   !isFirstPost &&
                   ((user?.id === post.author.id || canModerate) ?? false)
                 }
+                onQuote={
+                  isAuthenticated && !thread.is_locked ? handleQuote : undefined
+                }
+                showQuoteButton={isAuthenticated && !thread.is_locked}
               />
             );
           })}
@@ -148,7 +171,11 @@ export default function ThreadPage({ params }: ThreadPageProps) {
 
       {isAuthenticated && !thread.is_locked && (
         <div className="mt-8">
-          <PostReplyForm threadId={threadId} />
+          <PostReplyForm
+            threadId={threadId}
+            quotedPost={quotedPost}
+            onClearQuote={handleClearQuote}
+          />
         </div>
       )}
 

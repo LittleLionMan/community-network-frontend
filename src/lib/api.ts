@@ -30,6 +30,7 @@ import type {
   ForumThreadUpdate,
   ForumPostCreate,
   ForumPostUpdate,
+  UserSummary,
 } from '@/types/forum';
 
 import { useAuthStore } from '@/store/auth';
@@ -510,6 +511,9 @@ class ApiClient {
           profile_image_url: string;
         }>
       >(`/api/users${params ? '?' + params.toString() : ''}`),
+
+    search: (params: URLSearchParams) =>
+      this.request<UserSummary[]>(`/api/users/search?${params.toString()}`),
 
     updateMe: (data: ProfileUpdateData) =>
       this.request('/api/users/me', {

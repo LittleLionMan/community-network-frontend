@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -12,8 +12,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThreadCard } from '@/components/forum/ThreadCard';
 import { ThreadListSkeleton } from '@/components/forum/Skeletons';
+import { ThreadSearch } from '@/components/forum/ThreadSearch';
 import { useForumCategory } from '@/hooks/useForumCategories';
 import { useCategoryThreads } from '@/hooks/useDiscussions';
+import { useUnreadStatus } from '@/hooks/useUnreadStatus';
 import { useAuthStore } from '@/store/auth';
 
 interface CategoryPageProps {
@@ -21,6 +23,7 @@ interface CategoryPageProps {
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
+  const [searchQuery, setSearchQuery] = useState('');
   const resolvedParams = use(params);
   const categoryId = parseInt(resolvedParams.id);
   const { isAuthenticated } = useAuthStore();
@@ -33,6 +36,20 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     error,
     refetch,
   } = useCategoryThreads(categoryId);
+
+  const threadIds = threads?.map((t) => t.id) ?? [];
+  const { data: unreadStatus } = useUnreadStatus(threadIds);
+
+  const filteredThreads = useMemo(() => {
+    if (!threads || !searchQuery) return threads;
+
+    const query = searchQuery.toLowerCase();
+    return threads.filter(
+      (thread) =>
+        thread.title.toLowerCase().includes(query) ||
+        thread.creator.display_name.toLowerCase().includes(query)
+    );
+  }, [threads, searchQuery]);
 
   const isLoading = categoryLoading || threadsLoading;
 
@@ -118,11 +135,30 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         )}
       </div>
 
-      {threads && threads.length > 0 ? (
+      {isAuthenticated && (
+        <div className="mb-6">
+          <ThreadSearch
+            onSearch={setSearchQuery}
+            placeholder="Threads durchsuchen..."
+          />
+        </div>
+      )}
+
+      {filteredThreads && filteredThreads.length > 0 ? (
         <div className="space-y-2">
-          {threads.map((thread) => (
-            <ThreadCard key={thread.id} thread={thread} />
+          {filteredThreads?.map((thread) => (
+            <ThreadCard
+              key={thread.id}
+              thread={thread}
+              isUnread={unreadStatus?.[thread.id] ?? false}
+            />
           ))}
+        </div>
+      ) : searchQuery ? (
+        <div className="py-12 text-center">
+          <p className="text-gray-600">
+            Keine Threads gefunden für {searchQuery}
+          </p>
         </div>
       ) : (
         <div className="py-12 text-center">

@@ -1,10 +1,11 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { RichTextEditor } from '@/components/forum/RichTextEditor';
 import { useCreateThread, useCreatePost } from '@/hooks/useDiscussions';
 import { FileText, Tag, MessageSquare, Save, X, RefreshCw } from 'lucide-react';
 import type { ForumCategory } from '@/types/forum';
@@ -44,6 +45,7 @@ export function ThreadCreateForm({
     handleSubmit,
     formState: { errors },
     watch,
+    control,
   } = useForm<ThreadFormData>({
     resolver: zodResolver(threadSchema),
     defaultValues: {
@@ -56,7 +58,7 @@ export function ThreadCreateForm({
   const createThread = useCreateThread();
   const createPost = useCreatePost();
 
-  const contentLength = watch('content')?.length || 0;
+  const contentLength = watch('content')?.replace(/<[^>]*>/g, '').length || 0;
 
   const onSubmit = async (data: ThreadFormData) => {
     setIsCreating(true);
@@ -130,12 +132,17 @@ export function ThreadCreateForm({
           <MessageSquare className="h-4 w-4" />
           Erster Post *
         </label>
-        <textarea
-          {...register('content')}
-          rows={8}
-          className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          placeholder="Starte die Diskussion... Was möchtest du besprechen?"
-          disabled={isCreating}
+        <Controller
+          name="content"
+          control={control}
+          render={({ field }) => (
+            <RichTextEditor
+              content={field.value}
+              onChange={field.onChange}
+              placeholder="Starte die Diskussion... Was möchtest du besprechen?"
+              disabled={isCreating}
+            />
+          )}
         />
         <div className="mt-1 flex items-center justify-between">
           <p className="text-xs text-gray-500">{contentLength}/5000 Zeichen</p>

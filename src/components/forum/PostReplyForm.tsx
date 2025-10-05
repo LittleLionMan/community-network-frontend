@@ -1,23 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { RichTextEditor } from '@/components/forum/RichTextEditor';
+import { QuotedPostPreview } from '@/components/forum/QuotedPostPreview';
 import { useCreatePost } from '@/hooks/useDiscussions';
 import { Send, RefreshCw } from 'lucide-react';
+import type { ForumPost } from '@/types/forum';
 
 interface PostReplyFormProps {
   threadId: number;
+  quotedPost?: ForumPost | null;
+  onClearQuote?: () => void;
   onSuccess?: () => void;
 }
 
-export function PostReplyForm({ threadId, onSuccess }: PostReplyFormProps) {
+export function PostReplyForm({
+  threadId,
+  quotedPost,
+  onClearQuote,
+  onSuccess,
+}: PostReplyFormProps) {
   const [content, setContent] = useState('');
+  const [resetKey, setResetKey] = useState(0);
   const createPost = useCreatePost();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (quotedPost && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [quotedPost]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!content.trim()) {
+    const textContent = content.replace(/<[^>]*>/g, '').trim();
+    if (!textContent) {
       return;
     }
 
@@ -25,8 +44,13 @@ export function PostReplyForm({ threadId, onSuccess }: PostReplyFormProps) {
       await createPost.mutateAsync({
         threadId,
         content: content.trim(),
+        quoted_post_id: quotedPost?.id || null,
       });
       setContent('');
+      setResetKey((prev) => prev + 1);
+      if (onClearQuote) {
+        onClearQuote();
+      }
       if (onSuccess) {
         onSuccess();
       }
@@ -35,28 +59,29 @@ export function PostReplyForm({ threadId, onSuccess }: PostReplyFormProps) {
     }
   };
 
+  const textLength = content.replace(/<[^>]*>/g, '').length;
+
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
       className="rounded-lg border border-gray-200 bg-white p-6"
     >
       <h3 className="mb-4 font-semibold text-gray-900">Antworten</h3>
 
+      {quotedPost && onClearQuote && (
+        <QuotedPostPreview post={quotedPost} onRemove={onClearQuote} />
+      )}
+
       <div className="mb-4">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={6}
-          className="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        <RichTextEditor
+          key={resetKey}
+          content={content}
+          onChange={setContent}
           placeholder="Schreibe deine Antwort..."
           disabled={createPost.isPending}
-          required
-          minLength={1}
-          maxLength={5000}
         />
-        <p className="mt-1 text-xs text-gray-500">
-          {content.length}/5000 Zeichen
-        </p>
+        <p className="mt-1 text-xs text-gray-500">{textLength}/5000 Zeichen</p>
       </div>
 
       <div className="flex justify-end">

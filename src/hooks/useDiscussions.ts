@@ -165,11 +165,16 @@ export function useCreatePost() {
     mutationFn: async ({
       threadId,
       content,
+      quoted_post_id,
     }: {
       threadId: number;
       content: string;
+      quoted_post_id?: number | null;
     }) => {
-      return await apiClient.discussions.createPost(threadId, { content });
+      return await apiClient.discussions.createPost(threadId, {
+        content,
+        quoted_post_id,
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
