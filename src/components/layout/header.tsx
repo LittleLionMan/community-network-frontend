@@ -10,7 +10,6 @@ import {
   Settings,
   ChevronDown,
   MessageCircle,
-  Bell,
   Shield,
   MessageSquare,
   PocketKnife,
@@ -18,14 +17,13 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { useGlobalUnreadCount } from '@/components/providers/UnreadCountProvider';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 export function Header() {
   const { user, isAuthenticated, isLoading, logout, validateToken } =
     useAuthStore();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const notificationRef = useRef<HTMLDivElement>(null);
 
   const { unreadCount } = useGlobalUnreadCount();
 
@@ -84,12 +82,6 @@ export function Header() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setShowDropdown(false);
-      }
-      if (
-        notificationRef.current &&
-        !notificationRef.current.contains(event.target as Node)
-      ) {
-        setShowNotifications(false);
       }
     }
 
@@ -176,29 +168,7 @@ export function Header() {
                 </button>
               </Link>
 
-              <div className="relative" ref={notificationRef}>
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="flex items-center justify-center rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-
-                {showNotifications && (
-                  <div className="absolute right-0 z-50 mt-2 w-80 rounded-md border bg-white py-2 shadow-lg">
-                    <div className="border-b px-4 py-2">
-                      <h3 className="font-medium text-gray-900">
-                        Benachrichtigungen
-                      </h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      <div className="p-4 text-center text-sm text-gray-500">
-                        Keine neuen Benachrichtigungen
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <NotificationDropdown />
 
               <div className="relative" ref={dropdownRef}>
                 <button

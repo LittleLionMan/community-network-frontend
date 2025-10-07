@@ -32,6 +32,13 @@ import type {
   ForumPostUpdate,
   UserSummary,
 } from '@/types/forum';
+import type {
+  Notification,
+  NotificationStats,
+  NotificationUpdate,
+  NotificationType,
+  NotificationPrivacySettings,
+} from '@/types/notification';
 
 import { useAuthStore } from '@/store/auth';
 import { extendApiClientWithAdmin } from './admin-api';
@@ -1073,6 +1080,73 @@ class ApiClient {
         `/api/discussions/my/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
       );
     },
+  };
+
+  notifications = {
+    getStats: () => this.request<NotificationStats>('/api/notifications/stats'),
+
+    list: (params?: {
+      skip?: number;
+      limit?: number;
+      unread_only?: boolean;
+      type_filter?: NotificationType;
+    }) => {
+      const searchParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            searchParams.append(key, value.toString());
+          }
+        });
+      }
+      return this.request<Notification[]>(
+        `/api/notifications${searchParams.toString() ? '?' + searchParams.toString() : ''}`
+      );
+    },
+
+    update: (notificationId: number, data: NotificationUpdate) =>
+      this.request<Notification>(`/api/notifications/${notificationId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    markAllAsRead: (typeFilter?: NotificationType) => {
+      const params = new URLSearchParams();
+      if (typeFilter) params.append('type_filter', typeFilter);
+      return this.request<{ message: string; count: number }>(
+        `/api/notifications/mark-all-read${params.toString() ? '?' + params.toString() : ''}`,
+        {
+          method: 'POST',
+        }
+      );
+    },
+
+    delete: (notificationId: number) =>
+      this.request(`/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+      }),
+
+    deleteAllRead: () =>
+      this.request<{ message: string; deleted_count: number }>(
+        '/api/notifications',
+        {
+          method: 'DELETE',
+        }
+      ),
+
+    getPrivacySettings: () =>
+      this.request<NotificationPrivacySettings>(
+        '/api/notifications/privacy-settings'
+      ),
+
+    updatePrivacySettings: (settings: NotificationPrivacySettings) =>
+      this.request<NotificationPrivacySettings>(
+        '/api/notifications/privacy-settings',
+        {
+          method: 'PUT',
+          body: JSON.stringify(settings),
+        }
+      ),
   };
 
   createWebSocket = (endpoint: string, token?: string): WebSocket => {

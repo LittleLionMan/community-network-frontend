@@ -34,8 +34,8 @@ interface WebSocketManagerReturn {
   retryAuth: () => Promise<void>;
 }
 
-class EnhancedMessageWebSocketManager {
-  private static instance: EnhancedMessageWebSocketManager | null = null;
+class EnhancedUserWebSocketManager {
+  private static instance: EnhancedUserWebSocketManager | null = null;
   private userWs: AuthenticatedWebSocket | null = null;
   private conversationWs: AuthenticatedWebSocket | null = null;
   private typingTimeouts: Map<number, NodeJS.Timeout> = new Map();
@@ -53,12 +53,12 @@ class EnhancedMessageWebSocketManager {
 
   private subscribers: Set<(state: WebSocketState) => void> = new Set();
 
-  static getInstance(): EnhancedMessageWebSocketManager {
-    if (!EnhancedMessageWebSocketManager.instance) {
-      EnhancedMessageWebSocketManager.instance =
-        new EnhancedMessageWebSocketManager();
+  static getInstance(): EnhancedUserWebSocketManager {
+    if (!EnhancedUserWebSocketManager.instance) {
+      EnhancedUserWebSocketManager.instance =
+        new EnhancedUserWebSocketManager();
     }
-    return EnhancedMessageWebSocketManager.instance;
+    return EnhancedUserWebSocketManager.instance;
   }
 
   subscribe(callback: (state: WebSocketState) => void) {
@@ -104,7 +104,6 @@ class EnhancedMessageWebSocketManager {
         'ws://localhost:8000';
       this.userWs = new AuthenticatedWebSocket(`${wsUrl}/api/messages/ws/user`);
 
-      // Listen to auth websocket events
       this.userWs.addEventListener('connected', () => {
         this.updateState({
           isConnected: true,
@@ -199,12 +198,20 @@ class EnhancedMessageWebSocketManager {
   }
 
   private handleMessage(message: WebSocketMessage, currentUserId: number) {
-    // Forward to global event system (for backward compatibility)
     window.dispatchEvent(
       new CustomEvent('global-websocket-message', { detail: message })
     );
 
-    // Handle typing status
+    if (
+      message.type === 'forum_reply' ||
+      message.type === 'forum_mention' ||
+      message.type === 'forum_quote'
+    ) {
+      window.dispatchEvent(
+        new CustomEvent('forum-notification', { detail: message })
+      );
+    }
+
     if (
       message.type === 'typing_status' &&
       message.conversation_id &&
@@ -292,7 +299,6 @@ class EnhancedMessageWebSocketManager {
       const refreshResult = await authStore.refreshToken();
 
       if (refreshResult.success && refreshResult.token) {
-        // Refresh tokens in both connections
         if (this.userWs) {
           this.userWs.refreshToken(refreshResult.token);
         }
@@ -306,7 +312,6 @@ class EnhancedMessageWebSocketManager {
       }
     } catch (error) {
       console.error('Auth retry failed:', error);
-      // Error will be handled by the auth store (logout)
     }
   }
 
@@ -333,21 +338,20 @@ class EnhancedMessageWebSocketManager {
   }
 
   static cleanup() {
-    if (EnhancedMessageWebSocketManager.instance) {
-      EnhancedMessageWebSocketManager.instance.cleanup();
-      EnhancedMessageWebSocketManager.instance = null;
+    if (EnhancedUserWebSocketManager.instance) {
+      EnhancedUserWebSocketManager.instance.cleanup();
+      EnhancedUserWebSocketManager.instance = null;
     }
   }
 }
 
-// Cleanup on page unload
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
-    EnhancedMessageWebSocketManager.cleanup();
+    EnhancedUserWebSocketManager.cleanup();
   });
 }
 
-export function useMessageWebSocket(
+export function useUserWebSocket(
   activeConversationId?: number | null
 ): WebSocketManagerReturn {
   const { user } = useAuthStore();
@@ -359,12 +363,12 @@ export function useMessageWebSocket(
     typingState: {},
   });
 
-  const managerRef = useRef<EnhancedMessageWebSocketManager | null>(null);
+  const managerRef = useRef<EnhancedUserWebSocketManager | null>(null);
   const previousConversationIdRef = useRef<number | null>(null);
   const previousUserIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    managerRef.current = EnhancedMessageWebSocketManager.getInstance();
+    managerRef.current = EnhancedUserWebSocketManager.getInstance();
     const unsubscribe = managerRef.current.subscribe(setWsState);
     return unsubscribe;
   }, []);

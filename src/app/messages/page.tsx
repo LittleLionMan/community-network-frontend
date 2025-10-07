@@ -17,7 +17,7 @@ import {
   useUnreadCount,
   useMessagePrivacy,
 } from '@/hooks/useMessages';
-import { useMessageWebSocket } from '@/hooks/useMessageWebSocket';
+import { useUserWebSocket } from '@/hooks/useUserWebSocket';
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
 import { useMessageNotifications } from '@/hooks/useMessageNotifications';
 import { useAuthErrorHandler } from '@/hooks/useAuthErrorHandler';
@@ -290,7 +290,7 @@ export default function MessagesPage() {
     reconnect,
     clearAuthError,
     retryAuth,
-  } = useMessageWebSocket(selectedConversationId);
+  } = useUserWebSocket(selectedConversationId);
 
   const {
     conversations,

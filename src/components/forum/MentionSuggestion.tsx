@@ -9,6 +9,8 @@ let component: ReactRenderer | null = null;
 let popup: TippyInstance[] | null = null;
 
 export const mentionSuggestion: Partial<SuggestionOptions> = {
+  char: '@',
+  allowSpaces: false,
   items: async ({ query }) => {
     if (!query || query.length < 2) return [];
 
@@ -67,7 +69,6 @@ export const mentionSuggestion: Partial<SuggestionOptions> = {
           popup?.[0]?.hide();
           return true;
         }
-
         return (component?.ref as MentionListRef)?.onKeyDown(props) ?? false;
       },
 

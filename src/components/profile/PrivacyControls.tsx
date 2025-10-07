@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, EyeOff, MessageCircle, Users, Bell } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Users } from 'lucide-react';
 import type { User } from '@/types';
 import { useMessagePrivacy } from '@/hooks/useMessages';
+import { NotificationPrivacyControls } from '@/components/notifications/NotificationPrivacyControls';
 
 interface PrivacyControlsProps {
   user: User;
@@ -185,9 +186,9 @@ export function PrivacyControls({
   showPreview,
   isLoading,
 }: PrivacyControlsProps) {
-  const [activeSection, setActiveSection] = useState<'profile' | 'messages'>(
-    'profile'
-  );
+  const [activeSection, setActiveSection] = useState<
+    'profile' | 'messages' | 'notifications'
+  >('profile');
 
   const handleMessageSettingsChange = (settings: Record<string, boolean>) => {
     console.log('Message settings changed:', settings);
@@ -265,6 +266,16 @@ export function PrivacyControls({
             }`}
           >
             Nachrichten-Privacy
+          </button>
+          <button
+            onClick={() => setActiveSection('notifications')}
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              activeSection === 'notifications'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Benachrichtigungen
           </button>
         </div>
       </div>
@@ -366,10 +377,12 @@ export function PrivacyControls({
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeSection === 'messages' ? (
         <MessagePrivacyControls
           onSettingsChange={handleMessageSettingsChange}
         />
+      ) : (
+        <NotificationPrivacyControls />
       )}
     </div>
   );

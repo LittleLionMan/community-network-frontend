@@ -4,6 +4,7 @@ import './globals.css';
 import { Header } from '@/components/layout/header';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { UnreadCountProvider } from '@/components/providers/UnreadCountProvider';
+import { NotificationProvider } from '@/components/providers/NotificationProvider';
 import { ToastProvider } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
@@ -29,11 +30,13 @@ export default function RootLayout({
       >
         <QueryProvider>
           <UnreadCountProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <ToastProvider />
-            </div>
+            <NotificationProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+                <ToastProvider />
+              </div>
+            </NotificationProvider>
           </UnreadCountProvider>
         </QueryProvider>
       </body>

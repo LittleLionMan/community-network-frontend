@@ -134,14 +134,12 @@ export function PublicProfileView({
 }: PublicProfileViewProps) {
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showMessageSuccess, setShowMessageSuccess] = useState(false);
-  const router = useRouter();
 
   const handleMessageSuccess = () => {
     setShowMessageSuccess(true);
     setTimeout(() => {
       setShowMessageSuccess(false);
-      router.push('/messages');
-    }, 2000);
+    }, 500);
   };
   return (
     <>
@@ -237,8 +235,7 @@ export function PublicProfileView({
           <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
             <div className="flex items-center">
               <Check className="mr-2 h-4 w-4" />
-              Nachricht erfolgreich gesendet! Du wirst zu den Nachrichten
-              weitergeleitet...
+              Nachricht erfolgreich gesendet!
             </div>
           </div>
         )}

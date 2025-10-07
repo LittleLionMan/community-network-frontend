@@ -105,7 +105,10 @@ export interface WebSocketMessage {
     | 'token_refresh_failed'
     | 'token_expiring'
     | 'ping'
-    | 'pong';
+    | 'pong'
+    | 'forum_reply'
+    | 'forum_mention'
+    | 'forum_quote';
   conversation_id?: number;
   message?: Message;
   user_id?: number;
@@ -117,6 +120,17 @@ export interface WebSocketMessage {
   success?: boolean;
   expires_in?: number;
   timestamp?: number;
+  notification_id?: number;
+  thread_id?: number;
+  post_id?: number;
+  thread_title?: string;
+  actor?: {
+    id: number;
+    display_name: string;
+    email: string;
+    profile_image_url?: string;
+  };
+  quoted_post_id?: number;
 }
 
 export interface TypingStatus {
