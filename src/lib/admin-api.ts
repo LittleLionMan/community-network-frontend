@@ -90,6 +90,31 @@ interface AdminMethods {
 
     getUser: (userId: number) => Promise<AdminUser>;
 
+    deactivateUser: (
+      userId: number,
+      reason?: string
+    ) => Promise<{
+      message: string;
+      user_id: number;
+      admin_user: string;
+    }>;
+
+    activateUser: (userId: number) => Promise<{
+      message: string;
+      user_id: number;
+      admin_user: string;
+    }>;
+
+    updateAdminStatus: (
+      userId: number,
+      isAdmin: boolean
+    ) => Promise<{
+      message: string;
+      user_id: number;
+      is_admin: boolean;
+      admin_user: string;
+    }>;
+
     getFlaggedContent: (params?: {
       page?: number;
       size?: number;
@@ -234,6 +259,27 @@ export function extendApiClientWithAdmin<
 
     getUser: (userId: number) =>
       apiClient.request<AdminUser>(`/api/users/${userId}`),
+
+    deactivateUser: (userId: number, reason?: string) => {
+      const params = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+      return apiClient.request(
+        `/api/users/${userId}/admin/deactivate${params}`,
+        { method: 'POST' }
+      );
+    },
+
+    activateUser: (userId: number) =>
+      apiClient.request(`/api/users/${userId}/admin/activate`, {
+        method: 'POST',
+      }),
+
+    updateAdminStatus: (userId: number, isAdmin: boolean) => {
+      const params = `?is_admin=${isAdmin}`;
+      return apiClient.request(
+        `/api/users/${userId}/admin/admin-status${params}`,
+        { method: 'PUT' }
+      );
+    },
 
     getFlaggedContent: (params = {}) => {
       const searchParams = new URLSearchParams();

@@ -5,6 +5,7 @@ import {
   Search,
   Users,
   Shield,
+  ShieldOff,
   CheckCircle,
   XCircle,
   Clock,
@@ -25,12 +26,16 @@ interface UserCardProps {
   user: AdminUser;
   onViewDetails: (user: AdminUser) => void;
   onViewRateLimits: (user: AdminUser) => void;
+  onToggleStatus: (user: AdminUser) => void;
+  onToggleAdmin: (user: AdminUser) => void;
 }
 
 const UserCard: React.FC<UserCardProps> = ({
   user,
   onViewDetails,
   onViewRateLimits,
+  onToggleStatus,
+  onToggleAdmin,
 }) => {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -123,6 +128,36 @@ const UserCard: React.FC<UserCardProps> = ({
               title="Rate Limits anzeigen"
             >
               <Ban className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onToggleStatus(user)}
+              className={`rounded-md p-2 ${
+                user.is_active
+                  ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                  : 'bg-green-50 text-green-600 hover:bg-green-100'
+              }`}
+              title={user.is_active ? 'User deaktivieren' : 'User aktivieren'}
+            >
+              {user.is_active ? (
+                <XCircle className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              onClick={() => onToggleAdmin(user)}
+              className={`rounded-md p-2 ${
+                user.is_admin
+                  ? 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+              title={user.is_admin ? 'Admin entfernen' : 'Zum Admin machen'}
+            >
+              {user.is_admin ? (
+                <ShieldOff className="h-4 w-4" />
+              ) : (
+                <Shield className="h-4 w-4" />
+              )}
             </button>
           </div>
         </div>
@@ -435,6 +470,88 @@ const RateLimitModal: React.FC<RateLimitModalProps> = ({
   );
 };
 
+interface ConfirmActionModalProps {
+  isOpen: boolean;
+  user: AdminUser | null;
+  action: 'activate' | 'deactivate' | 'makeAdmin' | 'removeAdmin';
+  onConfirm: () => void;
+  onClose: () => void;
+  isLoading?: boolean;
+}
+
+const ConfirmActionModal: React.FC<ConfirmActionModalProps> = ({
+  isOpen,
+  user,
+  action,
+  onConfirm,
+  onClose,
+  isLoading = false,
+}) => {
+  if (!isOpen || !user) return null;
+
+  const actionConfig = {
+    activate: {
+      title: 'User aktivieren',
+      message: `Möchten Sie ${user.display_name} wirklich wieder aktivieren?`,
+      confirmText: 'Aktivieren',
+      confirmClass: 'bg-green-600 hover:bg-green-700',
+    },
+    deactivate: {
+      title: 'User deaktivieren',
+      message: `Möchten Sie ${user.display_name} wirklich deaktivieren? Der User kann sich dann nicht mehr einloggen.`,
+      confirmText: 'Deaktivieren',
+      confirmClass: 'bg-red-600 hover:bg-red-700',
+    },
+    makeAdmin: {
+      title: 'Zum Admin machen',
+      message: `Möchten Sie ${user.display_name} wirklich Admin-Rechte geben?`,
+      confirmText: 'Zum Admin machen',
+      confirmClass: 'bg-purple-600 hover:bg-purple-700',
+    },
+    removeAdmin: {
+      title: 'Admin entfernen',
+      message: `Möchten Sie ${user.display_name} die Admin-Rechte entziehen?`,
+      confirmText: 'Admin entfernen',
+      confirmClass: 'bg-orange-600 hover:bg-orange-700',
+    },
+  };
+
+  const config = actionConfig[action];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <h2 className="mb-4 text-xl font-bold text-gray-900">{config.title}</h2>
+        <p className="mb-6 text-gray-600">{config.message}</p>
+
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Abbrechen
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={`flex items-center rounded-md px-4 py-2 text-white disabled:opacity-50 ${config.confirmClass}`}
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Lädt...
+              </>
+            ) : (
+              config.confirmText
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export function UserManagement() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -448,6 +565,12 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRateLimitModal, setShowRateLimitModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    isOpen: boolean;
+    user: AdminUser | null;
+    action: 'activate' | 'deactivate' | 'makeAdmin' | 'removeAdmin';
+  } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchUsers = async (params: UserSearchParams = {}) => {
     setIsLoading(true);
@@ -457,8 +580,6 @@ export function UserManagement() {
         ...params,
         search: searchTerm || undefined,
       });
-
-      console.log('API Response:', response);
 
       if (Array.isArray(response)) {
         setUsers(response);
@@ -500,6 +621,64 @@ export function UserManagement() {
   const handleViewRateLimits = (user: AdminUser) => {
     setSelectedUser(user);
     setShowRateLimitModal(true);
+  };
+
+  const handleToggleUserStatus = (user: AdminUser) => {
+    setSelectedUser(user);
+    setConfirmAction({
+      isOpen: true,
+      user,
+      action: user.is_active ? 'deactivate' : 'activate',
+    });
+  };
+
+  const handleToggleAdminStatus = (user: AdminUser) => {
+    setSelectedUser(user);
+    setConfirmAction({
+      isOpen: true,
+      user,
+      action: user.is_admin ? 'removeAdmin' : 'makeAdmin',
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction?.user) return;
+
+    setActionLoading(true);
+    try {
+      const { user, action } = confirmAction;
+
+      switch (action) {
+        case 'activate':
+          await apiClient.admin.activateUser(user.id);
+          toast.success(`${user.display_name} wurde aktiviert`);
+          break;
+        case 'deactivate':
+          await apiClient.admin.deactivateUser(
+            user.id,
+            'Deaktiviert durch Admin'
+          );
+          toast.success(`${user.display_name} wurde deaktiviert`);
+          break;
+        case 'makeAdmin':
+          await apiClient.admin.updateAdminStatus(user.id, true);
+          toast.success(`${user.display_name} ist jetzt Admin`);
+          break;
+        case 'removeAdmin':
+          await apiClient.admin.updateAdminStatus(user.id, false);
+          toast.success(`${user.display_name} ist kein Admin mehr`);
+          break;
+      }
+
+      await fetchUsers();
+      setConfirmAction(null);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Aktion fehlgeschlagen';
+      toast.error(message);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -634,6 +813,8 @@ export function UserManagement() {
               user={user}
               onViewDetails={handleViewDetails}
               onViewRateLimits={handleViewRateLimits}
+              onToggleStatus={handleToggleUserStatus}
+              onToggleAdmin={handleToggleAdminStatus}
             />
           ))}
         </div>
@@ -750,6 +931,16 @@ export function UserManagement() {
           setSelectedUser(null);
         }}
       />
+      {confirmAction && (
+        <ConfirmActionModal
+          isOpen={confirmAction.isOpen}
+          user={confirmAction.user}
+          action={confirmAction.action}
+          onConfirm={handleConfirmAction}
+          onClose={() => setConfirmAction(null)}
+          isLoading={actionLoading}
+        />
+      )}
     </div>
   );
 }

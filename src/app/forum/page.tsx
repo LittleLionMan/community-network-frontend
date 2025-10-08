@@ -16,7 +16,7 @@ export default function ForumPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Meta Forum</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Agora</h1>
           <p className="mt-2 text-gray-600">
             Diskutiere über die Plattform, Features und Community-Governance
           </p>
@@ -30,7 +30,7 @@ export default function ForumPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Meta Forum</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Agora</h1>
           <p className="mt-2 text-gray-600">
             Diskutiere über die Plattform, Features und Community-Governance
           </p>
@@ -60,7 +60,7 @@ export default function ForumPage() {
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Meta Forum</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Agora</h1>
             <p className="mt-2 text-gray-600">
               Diskutiere über die Plattform, Features und Community-Governance
             </p>

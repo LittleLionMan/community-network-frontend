@@ -127,7 +127,7 @@ export function Header() {
               href="/forum"
               className="hover:text-foreground/80 transition-colors"
             >
-              Meta
+              Agora
             </Link>
             {isAuthenticated && user?.is_admin && (
               <Link

@@ -80,11 +80,6 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
     } catch (error: unknown) {
       console.error('💥 Login error:', error);
 
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
-      }
-
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
 
@@ -108,8 +103,7 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
       } else if (errorMessage.includes('403')) {
         setError('root', {
           type: 'manual',
-          message:
-            'Account deaktiviert oder Token ungültig - kontaktieren Sie den Support',
+          message: 'Account deaktiviert - kontaktieren Sie den Support',
         });
       } else {
         toast.error('Network error');

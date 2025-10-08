@@ -23,7 +23,7 @@ const features = [
   },
   {
     icon: MessageSquare,
-    title: 'Meta',
+    title: 'Agora',
     href: '/forum',
     description: 'App Forum',
   },

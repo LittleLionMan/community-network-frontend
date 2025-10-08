@@ -108,7 +108,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
     <div className="container mx-auto px-4 py-8">
       <nav className="mb-6 text-sm">
         <Link href="/forum" className="text-community-600 hover:underline">
-          Meta Forum
+          Agora
         </Link>
         <span className="mx-2 text-gray-400">/</span>
         <span className="text-gray-900">{category.name}</span>
