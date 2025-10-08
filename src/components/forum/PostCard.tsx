@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Edit } from 'lucide-react';
+import { Edit, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { PostEditForm } from '@/components/forum/PostEditForm';
@@ -30,6 +30,12 @@ export function PostCard({
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6">
+      {post.has_achievement && (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
+          <CheckCircle className="h-4 w-4" />
+          Bestätigter Bug
+        </div>
+      )}
       <div className="mb-4 flex items-start justify-between">
         <div className="flex items-center gap-3">
           <ProfileAvatar user={post.author} size="md" />

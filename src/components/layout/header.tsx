@@ -107,25 +107,26 @@ export function Header() {
           <nav className="flex items-center gap-6 text-sm">
             <Link
               href="/events"
-              className="hover:text-foreground/80 transition-colors"
+              className="font-medium text-community-700 transition-colors hover:text-community-800"
             >
               Events
             </Link>
             <Link
               href="/services"
-              className="hover:text-foreground/80 transition-colors"
+              className="font-medium text-community-700 transition-colors hover:text-community-800"
             >
               Services
             </Link>
             <Link
               href="/civic"
-              className="hover:text-foreground/80 transition-colors"
+              className="font-medium text-community-700 transition-colors hover:text-community-800"
             >
               Civic
             </Link>
+            <div className="h-6 w-px bg-gray-300"></div>
             <Link
               href="/forum"
-              className="hover:text-foreground/80 transition-colors"
+              className="text-gray-600 transition-colors hover:text-gray-800"
             >
               Agora
             </Link>

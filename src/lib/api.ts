@@ -39,6 +39,12 @@ import type {
   NotificationType,
   NotificationPrivacySettings,
 } from '@/types/notification';
+import type {
+  Achievement,
+  LeaderboardResponse,
+  UserAchievementStats,
+  AchievementCreate,
+} from '@/types/achievement';
 
 import { useAuthStore } from '@/store/auth';
 import { extendApiClientWithAdmin } from './admin-api';
@@ -974,6 +980,45 @@ class ApiClient {
       this.request(`/api/forum-categories/admin/${categoryId}`, {
         method: 'DELETE',
       }),
+  };
+
+  achievements = {
+    create: (data: AchievementCreate) =>
+      this.request<Achievement>('/api/achievements', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    delete: (achievementId: number) =>
+      this.request(`/api/achievements/${achievementId}`, {
+        method: 'DELETE',
+      }),
+
+    getLeaderboard: (achievementType: string, limit: number = 50) =>
+      this.request<LeaderboardResponse>(
+        `/api/achievements/leaderboard?achievement_type=${achievementType}&limit=${limit}`
+      ),
+
+    getMyStats: () =>
+      this.request<UserAchievementStats>('/api/achievements/my-stats'),
+
+    getUserAchievements: (
+      userId: number,
+      achievementType?: string,
+      skip: number = 0,
+      limit: number = 20
+    ) => {
+      const params = new URLSearchParams({
+        skip: skip.toString(),
+        limit: limit.toString(),
+      });
+      if (achievementType) {
+        params.append('achievement_type', achievementType);
+      }
+      return this.request<Achievement[]>(
+        `/api/achievements/user/${userId}?${params.toString()}`
+      );
+    },
   };
 
   discussions = {

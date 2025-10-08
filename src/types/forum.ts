@@ -54,6 +54,7 @@ export interface ForumPost {
   thread_id: number;
   quoted_post?: QuotedPostSummary | null;
   mentioned_user_ids?: number[] | null;
+  has_achievement?: boolean;
 }
 
 export interface ForumCategoryCreate {
@@ -92,4 +93,10 @@ export interface ForumPostCreate {
 
 export interface ForumPostUpdate {
   content: string;
+}
+
+export interface ThreadPostsParams {
+  skip?: number;
+  limit?: number;
+  check_achievement?: string;
 }

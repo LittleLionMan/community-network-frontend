@@ -6,6 +6,7 @@ import type {
   ForumPost,
   ForumThreadCreate,
   ForumThreadUpdate,
+  ThreadPostsParams,
 } from '@/types/forum';
 
 export function useCategoryThreads(categoryId: number | null) {
