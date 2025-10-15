@@ -752,9 +752,9 @@ export default function MessagesPage() {
               </div>
             )}
           </div>
-          {/* To Do */}
+
           <div className="flex items-center space-x-2">
-            <button
+            {/*<button
               onClick={() => setShowSearch(true)}
               disabled={true}
               className="flex items-center space-x-2 rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
@@ -764,7 +764,7 @@ export default function MessagesPage() {
               <span className="hidden sm:inline">
                 Suchen (TODO: Implementierung)
               </span>
-            </button>
+            </button>*/}
 
             <div className="relative">
               <button

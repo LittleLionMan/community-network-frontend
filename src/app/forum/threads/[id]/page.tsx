@@ -17,6 +17,9 @@ interface ThreadPageProps {
   params: Promise<{ id: string }>;
 }
 
+// In Produktion an die Id des Threads anpassen!
+const BUG_BOUNTY_THREAD_ID = 6;
+
 export default function ThreadPage({ params }: ThreadPageProps) {
   const resolvedParams = use(params);
   const threadId = parseInt(resolvedParams.id);
@@ -24,12 +27,14 @@ export default function ThreadPage({ params }: ThreadPageProps) {
   const [quotedPost, setQuotedPost] = useState<ForumPost | null>(null);
 
   const { data: thread, isLoading: threadLoading } = useThread(threadId);
+
+  const isBugBountyThread = threadId === BUG_BOUNTY_THREAD_ID;
   const {
     data: posts,
     isLoading: postsLoading,
     error,
     refetch,
-  } = useThreadPosts(threadId);
+  } = useThreadPosts(threadId, isBugBountyThread ? 'bug_bounty' : undefined);
 
   const isLoading = threadLoading || postsLoading;
   const isCreator = user?.id === thread?.creator.id;
@@ -133,6 +138,11 @@ export default function ThreadPage({ params }: ThreadPageProps) {
                 Gesperrt
               </span>
             )}
+            {isBugBountyThread && (
+              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                🐛 Bug Bounty
+              </span>
+            )}
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900">{thread.title}</h1>
@@ -158,6 +168,8 @@ export default function ThreadPage({ params }: ThreadPageProps) {
                   isAuthenticated && !thread.is_locked ? handleQuote : undefined
                 }
                 showQuoteButton={isAuthenticated && !thread.is_locked}
+                threadId={threadId}
+                showAchievementButton={isBugBountyThread}
               />
             );
           })}

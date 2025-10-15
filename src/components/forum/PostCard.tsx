@@ -8,6 +8,8 @@ import { PostEditForm } from '@/components/forum/PostEditForm';
 import { PostDeleteButton } from '@/components/forum/PostDeleteButton';
 import { QuoteButton } from '@/components/forum/QuoteButton';
 import { QuotedPostDisplay } from '@/components/forum/QuotedPostDisplay';
+import { AwardBugBountyButton } from '@/components/achievements/AwardBugBountyButton';
+import { useAuthStore } from '@/store/auth';
 import { formatAbsolute } from '@/lib/forum-utils';
 import type { ForumPost } from '@/types/forum';
 
@@ -17,6 +19,8 @@ interface PostCardProps {
   canDelete: boolean;
   onQuote?: (post: ForumPost) => void;
   showQuoteButton?: boolean;
+  threadId?: number; // ADDED: To check if it's the bug bounty thread
+  showAchievementButton?: boolean; // ADDED: Control visibility
 }
 
 export function PostCard({
@@ -25,8 +29,14 @@ export function PostCard({
   canDelete,
   onQuote,
   showQuoteButton = true,
+  threadId,
+  showAchievementButton = false,
 }: PostCardProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const { user } = useAuthStore();
+
+  const showBugBountyButton =
+    showAchievementButton && user?.is_admin && threadId === 6; // Thread Id anpassen!
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -54,6 +64,13 @@ export function PostCard({
           <div className="flex gap-2">
             {showQuoteButton && onQuote && (
               <QuoteButton onQuote={() => onQuote(post)} disabled={isEditing} />
+            )}
+            {showBugBountyButton && (
+              <AwardBugBountyButton
+                postId={post.id}
+                authorId={post.author.id}
+                isConfirmed={post.has_achievement ?? false}
+              />
             )}
             {canEdit && (
               <Button

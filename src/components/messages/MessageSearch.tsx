@@ -170,7 +170,7 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({
           ) : query.trim() ? (
             <div className="p-8 text-center text-gray-500">
               <Search className="mx-auto mb-2 h-12 w-12 text-gray-300" />
-              <p>Keine Nachrichten gefunden für "{query}"</p>
+              <p>Keine Nachrichten gefunden für {query}</p>
             </div>
           ) : (
             <div className="p-8 text-center text-gray-500">

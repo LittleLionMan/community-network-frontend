@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'Community Network',
+  title: 'Plätzchen',
   description: 'Eine demokratische Community-Plattform',
 };
 

@@ -1066,6 +1066,7 @@ class ApiClient {
       params?: {
         skip?: number;
         limit?: number;
+        check_achievement?: string;
       }
     ) => {
       const searchParams = new URLSearchParams();
@@ -1112,7 +1113,11 @@ class ApiClient {
       );
     },
 
-    getMyPosts: (params?: { skip?: number; limit?: number }) => {
+    getMyPosts: (params?: {
+      skip?: number;
+      limit?: number;
+      check_achievement?: string;
+    }) => {
       const searchParams = new URLSearchParams();
       if (params) {
         Object.entries(params).forEach(([key, value]) => {

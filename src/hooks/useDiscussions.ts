@@ -6,7 +6,6 @@ import type {
   ForumPost,
   ForumThreadCreate,
   ForumThreadUpdate,
-  ThreadPostsParams,
 } from '@/types/forum';
 
 export function useCategoryThreads(categoryId: number | null) {
@@ -145,14 +144,17 @@ export function useDeleteThread() {
   });
 }
 
-export function useThreadPosts(threadId: number | null) {
+export function useThreadPosts(
+  threadId: number | null,
+  checkAchievement?: string
+) {
   return useQuery({
     queryKey: ['thread-posts', threadId],
     queryFn: async () => {
       if (!threadId) throw new Error('Thread ID required');
-      return (await apiClient.discussions.getThreadPosts(
-        threadId
-      )) as ForumPost[];
+      return (await apiClient.discussions.getThreadPosts(threadId, {
+        check_achievement: checkAchievement,
+      })) as ForumPost[];
     },
     enabled: !!threadId,
     staleTime: 30 * 1000,
@@ -301,11 +303,13 @@ export function useMyThreads() {
   });
 }
 
-export function useMyPosts() {
+export function useMyPosts(checkAchievement?: string) {
   return useQuery({
     queryKey: ['my-posts'],
     queryFn: async () => {
-      return (await apiClient.discussions.getMyPosts()) as ForumPost[];
+      return (await apiClient.discussions.getMyPosts({
+        check_achievement: checkAchievement,
+      })) as ForumPost[];
     },
     staleTime: 2 * 60 * 1000,
   });

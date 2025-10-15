@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { useMessagePrivacy } from '@/hooks/useMessages';
 import { apiClient } from '@/lib/api';
 
 interface MessageUser {
@@ -716,7 +715,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
         </div>
 
         <div className="flex items-center space-x-2">
-          <button
+          {/*<button
             disabled={true}
             className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
             title="Anruf (TODO: Implementierung)"
@@ -783,7 +782,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
               </div>
             )}
           </div>
-
+          */}
           {onClose && (
             <button
               onClick={onClose}

@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Trophy,
+  Bug,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { AchievementLeaderboard } from '@/components/achievements/Leaderboard';
@@ -52,8 +53,8 @@ export default function HomePage() {
     <div className="container mx-auto px-4 py-16">
       <div className="mb-12 text-center">
         <h1 className="mb-4 text-4xl font-bold">
-          Willkommen im{' '}
-          <span className="text-community-600">Community Network</span>
+          Willkommen auf dem{' '}
+          <span className="text-community-600">Plätzchen</span>
         </h1>
         <p className="text-muted-foreground mx-auto max-w-2xl text-xl">
           Eine demokratische Plattform für lokale Gemeinschaften
@@ -73,7 +74,7 @@ export default function HomePage() {
               <p className="text-sm text-gray-600">
                 {showIntro
                   ? 'Klicke um weniger zu sehen'
-                  : 'Erfahre mehr über das Community Network und wie du teilnehmen kannst...'}
+                  : 'Erfahre mehr über das Projekt und wie du teilnehmen kannst...'}
               </p>
             </div>
             {showIntro ? (
@@ -87,23 +88,85 @@ export default function HomePage() {
         {showIntro && (
           <div className="mt-4 space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6">
             <p className="text-gray-700">
-              Das Community Network ist eine demokratische Plattform, die lokale
-              Gemeinschaften dabei unterstützt, sich zu organisieren, Ressourcen
-              zu teilen und gemeinsam Entscheidungen zu treffen.
+              Ein Freund hat meine kläglichen Erklärungsversuche zu Sinn und
+              Zweck dieser Plattform mit <em>digitaler Na Dann</em>{' '}
+              zusammengefasst. Ich finde, das ist ein charmanter Startpunkt. Ein
+              Marktplatz für Ideen, eine Plattform für Begegnungen und Fundament
+              für lokale Zusammenarbeit - das war das Ziel, das im digitalen
+              Raum ursprünglich durch soziale Netzwerke realisiert werden
+              sollte. Manipulative Algorithmen und toxische Kommunikation in
+              Abwesenheit vernünftiger Moderation lassen diese Ambition aber
+              immer unwahrscheinlicher werden. Das Ziel kommerzieller sozialer
+              Netzwerke ist es, uns möglichst lange an den Bildschirm zu
+              fesseln. Im Vordergrund steht nicht das Interesse der Nutzerinnen
+              und Nutzer, sondern das der Unternehmen, die diese Netzwerke
+              betreiben. Dieses Projekt möchte das Gegenteil erreichen.
+              Möglichst direkter Informationsaustausch, um echte, sinnvolle
+              Interaktion in der analogen Welt zu erleichtern. Eine negative
+              Folge herkömmlicher sozialer Netzwerke ist die Bildung und
+              Förderung von Filterblasen. Zu einem gewissen Grad ist die Bildung
+              von Milieus nachvollziehbar und auch sinnvoll. Gleichgesinnte
+              gelangen schneller und effizienter in einen konstruktiven Diskurs.
+              Allerdings war es für eine gesunde Gemeinschaft stets von Vorteil,
+              wenn ihre Mitglieder zuweilen auch über diesen Tellerrand
+              hinausschauten und einen heterogeneren Austausch wagten. In der
+              Vergangenheit gelang dies besonders dank Vereinen, religiösen
+              Gemeinschaften, politischen Parteien und anderen sozialen
+              Organisationen. All diesen ist gemein, dass ihnen der Sprung ins
+              digitale Zeitalter vergleichsweise schlecht gelungen ist. Ein
+              Nachbarschaftsdienst ist auch heute noch im Interesse der
+              Beteiligten und ist oft sinnvoller als der bloße Konsum
+              entsprechender Leistungen im Handel. Der Unterschied ist, dass ein
+              Klick bei Amazon mittlerweile unendlich viel bequemer ist als
+              Alternativen. Das muss aber nicht so sein, solange der soziale,
+              digitale Raum nicht zum Selbstzweck verkommt.
             </p>
             <p className="text-gray-700">
-              <strong>Events</strong> helfen dir, lokale Veranstaltungen zu
-              organisieren und daran teilzunehmen.
-              <strong> Services</strong> ermöglichen den Austausch von
-              Fähigkeiten und Ressourcen innerhalb der Community.{' '}
-              <strong>Civic</strong> bietet Raum für demokratische Beteiligung
-              und politische Diskussionen.
-            </p>
-            <p className="text-gray-700">
-              Das <strong>Agora Forum</strong> ist der zentrale Ort für
-              Diskussionen über die Weiterentwicklung der Plattform selbst –
-              hier können alle Mitglieder Ideen einbringen, Features vorschlagen
-              und über die Zukunft der Community mitentscheiden.
+              Diese erste Testversion umfasst drei einfache Kategorien als
+              funktionale Grundlage:
+              <br /> <strong>Events</strong> dient der Organisation
+              gemeinschaftlicher Aktivitäten. Der Lauftreff kommt genau an dem
+              Abend in der Woche zusammen, an dem ich keine Zeit habe? Ich würde
+              super gerne die Weltmeisterschaft meiner Lieblingssportart in
+              einer Gemeinschaft verfolgen, kenne aber niemanden mit ähnlichem
+              Interesse? Wir haben viele Interessierte für ein
+              Nachbarschaftsfest, aber keine Plattform, um dieses zu
+              organisieren? In solchen Fällen kann dieser Bereich hoffentlich
+              eine wachsende Unterstützung bieten.
+              <br />
+              <strong>Services</strong> sollen Hilfsleistungen und
+              Tauschgeschäfte in unserer Gemeinschaft vereinfachen. Es geht
+              nicht um einen klassischen Marktplatz oder gar ein zweites
+              Shopify. Ohne Frage gibt es Leistungen, die finanziell entlohnt
+              werden müssen, soll der Leistende keine Schuld aufnehmen. Im
+              Vordergrund soll hier aber keine Marge, sondern der kommunale
+              Austausch stehen.
+              <br />
+              Politische Arbeit wird zunehmend an Parteien und NGOs delegiert.
+              Insbesondere auf komunaler Ebene werden dadurch aber viele nicht
+              mehr abgeholt. <strong>Civic</strong> soll ein Gegenentwurf für
+              diese Entwicklung sein und die Organisation überparteilicher
+              Gruppen vereinfachen, um zu lokalen Themen den Diskurs zu suchen.
+              Ist eine autofreie Innenstadt in absehbarer Zeit möglich?
+              Vielleicht findet sich ein Kreis Interessierter, der mit
+              vielfältigem Hintergrund und breitem Blickwinkel genau diese Frage
+              diskutiert.
+              <br />
+              Hinter all diesem steht zusätzlich ein Forum.{' '}
+              <strong>Agora</strong> soll einerseits verhindern, dass die oben
+              genannten Probleme sozialer Netzwerke sich auch hier
+              einschleichen. Die eigentliche Organisation und die Richtung, in
+              die sich diese Plattform entwickeln kann, soll hier diskutiert
+              werden. Nicht zuletzt dadurch wird deutlich, dass dieses Projekt
+              nicht allein durch eine Person getragen werden kann und ehrlich
+              gesagt so auch relativ sinnlos wäre. Andererseits soll das Forum
+              deswegen auch ein Raum sein, um sich einzubringen. Dazu gehören
+              Ideen für konkrete Projekte genauso, wie abstraktere juristische
+              oder philosophische Debatten wie eine fortlaufende Dienlichkeit
+              der Plattform in Sinne einer Gemeinschaft gewährleistet werden
+              kann. Hilfe sowohl bei der technischen Architektur als auch beim
+              konkreten Aufbau einer Community für unser digitales Dorf ist mehr
+              als willkommen.
             </p>
           </div>
         )}
@@ -168,7 +231,7 @@ export default function HomePage() {
                 <p className="text-sm text-gray-700">
                   {showBugBounty
                     ? 'Klicke um Details zu verbergen'
-                    : 'Hilf uns die Plattform zu verbessern und werde belohnt!'}
+                    : 'Hilf dabei die Plattform zu verbessern!'}
                 </p>
               </div>
             </div>
@@ -184,17 +247,13 @@ export default function HomePage() {
           <div className="mt-4 space-y-6 rounded-lg border-2 border-yellow-300 bg-white p-6">
             <div className="space-y-4">
               <p className="text-gray-700">
-                <strong>Wir brauchen deine Hilfe!</strong> Während der
-                Beta-Phase suchen wir aktiv nach Bugs, Usability-Problemen und
+                <strong>Hilf mit!</strong> Während der Beta-Phase suchen wir
+                aktiv nach Bugs, Usability-Problemen und
                 Verbesserungsvorschlägen.
-              </p>
-              <p className="text-gray-700">
-                Für jeden bestätigten Bug-Report gibt es ein{' '}
-                <strong>Kaltgetränk deiner Wahl</strong> 🍺🥤
               </p>
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
                 <h4 className="mb-2 font-semibold text-blue-900">
-                  So funktioniert's:
+                  So funktioniert es:
                 </h4>
                 <ol className="list-inside list-decimal space-y-1 text-sm text-blue-800">
                   <li>Finde einen Bug oder ein Problem auf der Plattform</li>
@@ -208,7 +267,7 @@ export default function HomePage() {
               </div>
               <div className="flex justify-center">
                 <Button asChild>
-                  <Link href="/forum/threads/1">
+                  <Link href="/forum/threads/6">
                     Zum Bug Bounty Thread im Forum
                   </Link>
                 </Button>
@@ -220,7 +279,11 @@ export default function HomePage() {
                 <Trophy className="h-5 w-5 text-yellow-600" />
                 Bug Hunter Leaderboard
               </h4>
-              <AchievementLeaderboard />
+              <AchievementLeaderboard
+                achievementType="bug_bounty"
+                title="Bug Hunter Leaderboard"
+                icon={Bug}
+              />
             </div>
           </div>
         )}

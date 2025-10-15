@@ -73,18 +73,12 @@ export function AchievementLeaderboard({
   return (
     <div className="space-y-4">
       {showStats && (
-        <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-2 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900">
               {data.total_points_awarded}
             </div>
             <div className="text-sm text-gray-600">Punkte vergeben</div>
-          </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {data.total_achievements}
-            </div>
-            <div className="text-sm text-gray-600">Achievements</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-community-600">
@@ -107,9 +101,6 @@ export function AchievementLeaderboard({
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
                 Punkte
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
-                Anzahl
               </th>
             </tr>
           </thead>
@@ -144,11 +135,6 @@ export function AchievementLeaderboard({
                   <span className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900">
                     {Icon && <Icon className="h-4 w-4 text-community-600" />}
                     {entry.total_points}
-                  </span>
-                </td>
-                <td className="whitespace-nowrap px-4 py-4 text-center">
-                  <span className="text-sm text-gray-600">
-                    {entry.achievement_count}
                   </span>
                 </td>
               </tr>
