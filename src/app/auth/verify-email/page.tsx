@@ -1,16 +1,13 @@
 'use client';
-
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Mail, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const [isResending, setIsResending] = useState(false);
   const searchParams = useSearchParams();
   const email = searchParams.get('email');
@@ -91,5 +88,24 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-16">
+          <div className="mx-auto max-w-md">
+            <div className="rounded-lg border border-gray-200 bg-white px-6 py-8 text-center shadow-sm">
+              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-community-600"></div>
+              <p className="mt-4 text-gray-600">Wird geladen...</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

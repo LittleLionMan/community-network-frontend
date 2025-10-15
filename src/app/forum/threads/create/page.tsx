@@ -7,11 +7,9 @@ import { Button } from '@/components/ui/button';
 import { ThreadCreateForm } from '@/components/forum/ThreadCreateForm';
 import { useForumCategories } from '@/hooks/useForumCategories';
 import { useAuthStore } from '@/store/auth';
-import { useEffect } from 'react';
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
+import { useEffect, Suspense } from 'react';
 
-export default function ThreadCreatePage() {
+function ThreadCreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryId = searchParams.get('category');
@@ -122,5 +120,24 @@ export default function ThreadCreatePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ThreadCreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-community-200 border-t-community-600"></div>
+              <p className="text-gray-600">Wird geladen...</p>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <ThreadCreatePageContent />
+    </Suspense>
   );
 }

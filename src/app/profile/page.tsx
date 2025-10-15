@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { User, Settings, Shield, Activity, Edit, Check, X } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
@@ -13,7 +13,7 @@ import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { AccountDeletionModal } from '@/components/profile/AccountDeletionModal';
 import { apiClient } from '@/lib/api';
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialTab = searchParams.get('tab') || 'profile';
@@ -516,5 +516,22 @@ export default function ProfilePage() {
         isLoading={isDeleting}
       />
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+            <p className="mt-4 text-gray-600">Wird geladen...</p>
+          </div>
+        </div>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
   );
 }
