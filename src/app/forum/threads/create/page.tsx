@@ -8,6 +8,8 @@ import { ThreadCreateForm } from '@/components/forum/ThreadCreateForm';
 import { useForumCategories } from '@/hooks/useForumCategories';
 import { useAuthStore } from '@/store/auth';
 import { useEffect } from 'react';
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export default function ThreadCreatePage() {
   const router = useRouter();

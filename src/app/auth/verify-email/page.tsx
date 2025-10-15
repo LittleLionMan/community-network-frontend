@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Mail, ArrowLeft } from 'lucide-react';
@@ -6,6 +7,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export default function VerifyEmailPage() {
   const [isResending, setIsResending] = useState(false);
