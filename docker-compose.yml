@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: .
+    container_name: community-network-frontend
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env.production
+    restart: unless-stopped
