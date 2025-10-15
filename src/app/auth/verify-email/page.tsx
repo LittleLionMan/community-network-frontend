@@ -75,7 +75,7 @@ function VerifyEmailContent() {
             </Link>
           </div>
           <div className="mt-8 border-t border-gray-200 pt-6">
-            <p className="text-xs text-gray-500">
+            {/*<p className="text-xs text-gray-500">
               Bei Problemen kontaktieren Sie unseren{' '}
               <Link
                 href="/support"
@@ -83,7 +83,7 @@ function VerifyEmailContent() {
               >
                 Support
               </Link>
-            </p>
+            </p>*/}
           </div>
         </div>
       </div>
