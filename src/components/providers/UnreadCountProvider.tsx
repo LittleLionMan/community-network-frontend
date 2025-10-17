@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
 import type { UnreadCount, WebSocketMessage } from '@/types/message';
-import { useUserWebSocket } from '@/hooks/useUserWebSocket';
 import { useMessagePrivacy } from '@/hooks/useMessages';
 
 interface UnreadCountContextType {
@@ -37,7 +36,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAuthenticated } = useAuthStore();
-  const { isConnected } = useUserWebSocket();
 
   const refreshUnreadCount = async () => {
     if (!user || !isAuthenticated) {
@@ -185,22 +183,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
       setIsLoading(false);
     }
   }, [user, isAuthenticated]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        refreshUnreadCount();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user]);
 
   return (
     <UnreadCountContext.Provider

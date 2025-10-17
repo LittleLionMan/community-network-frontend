@@ -11,6 +11,7 @@ import { PublicProfileView } from '@/components/profile/PublicProfileView';
 import { PasswordUpdateForm } from '@/components/profile/PasswordUpdateForm';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { AccountDeletionModal } from '@/components/profile/AccountDeletionModal';
+import { ThemeToggle } from '@/components/profile/ThemeToggle';
 import { apiClient } from '@/lib/api';
 
 function ProfilePageContent() {
@@ -347,46 +348,52 @@ function ProfilePageContent() {
 
           {activeTab === 'settings' && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Account-Einstellungen
               </h2>
 
               <div className="space-y-4">
-                <div className="rounded-lg border p-4">
-                  <h3 className="mb-2 font-medium text-gray-900">
+                <ThemeToggle />
+
+                <div className="rounded-lg border p-4 dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-2 font-medium text-gray-900 dark:text-gray-100">
                     Email-Adresse
                   </h3>
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-gray-900">{user.email}</div>
-                      <div className="flex items-center text-sm text-green-600">
+                      <div className="text-gray-900 dark:text-gray-100">
+                        {user.email}
+                      </div>
+                      <div className="flex items-center text-sm text-green-600 dark:text-green-400">
                         <Check className="mr-1 h-4 w-4" />
                         {user.email_verified ? 'Bestätigt' : 'Nicht bestätigt'}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-gray-600">
+                  <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
                     Wenn Sie ihre Mail-Adresse ändern wollen, wenden Sie sich
                     bitte an einen Administrator
                   </div>
                 </div>
 
-                <div className="rounded-lg border p-4">
-                  <h3 className="mb-2 font-medium text-gray-900">Passwort</h3>
-                  <div className="mb-3 text-sm text-gray-600">
+                <div className="rounded-lg border p-4 dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-2 font-medium text-gray-900 dark:text-gray-100">
+                    Passwort
+                  </h3>
+                  <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
                     Aus Sicherheitsgründen können wir das letzte Update nicht
                     anzeigen
                   </div>
                   <button
                     onClick={() => setShowPasswordForm(true)}
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
                   >
                     Passwort ändern
                   </button>
                 </div>
 
-                <div className="rounded-lg border p-4">
-                  <h3 className="mb-2 font-medium text-gray-900">
+                <div className="rounded-lg border p-4 dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-2 font-medium text-gray-900 dark:text-gray-100">
                     E-Mail-Benachrichtigungen
                   </h3>
                   <div className="space-y-3 text-sm">
@@ -397,7 +404,7 @@ function ProfilePageContent() {
                         checked={user.email_notifications_events || false}
                         disabled={true}
                       />
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 dark:text-gray-400">
                         Event-Einladungen (to do)
                       </span>
                     </label>
@@ -414,7 +421,9 @@ function ProfilePageContent() {
                         }
                         disabled={isLoading}
                       />
-                      <span className={isLoading ? 'opacity-50' : ''}>
+                      <span
+                        className={`dark:text-gray-200 ${isLoading ? 'opacity-50' : ''}`}
+                      >
                         Neue Nachrichten
                       </span>
                     </label>
@@ -425,22 +434,22 @@ function ProfilePageContent() {
                         checked={user.email_notifications_newsletter || false}
                         disabled={true}
                       />
-                      <span className="text-gray-500">
+                      <span className="text-gray-500 dark:text-gray-400">
                         Newsletter (möglicherweise zukünftig)
                       </span>
                     </label>
                   </div>
-                  <div className="mt-3 text-xs text-gray-600">
+                  <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
                     Du erhältst nur E-Mails wenn du gerade nicht in der App
                     aktiv bist.
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                  <h3 className="mb-2 font-medium text-red-900">
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
+                  <h3 className="mb-2 font-medium text-red-900 dark:text-red-200">
                     Gefahrenzone
                   </h3>
-                  <div className="mb-3 text-sm text-red-700">
+                  <div className="mb-3 text-sm text-red-700 dark:text-red-300">
                     Das Deaktivieren Ihres Accounts kann nicht direkt rückgängig
                     gemacht werden. Kontaktieren Sie den Support für eine
                     Reaktivierung.
@@ -448,7 +457,7 @@ function ProfilePageContent() {
                   <button
                     onClick={() => setShowDeleteModal(true)}
                     disabled={isDeleting}
-                    className="text-sm font-medium text-red-600 hover:text-red-800"
+                    className="text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                   >
                     {isDeleting
                       ? 'Wird deaktiviert...'

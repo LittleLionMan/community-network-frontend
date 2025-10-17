@@ -182,12 +182,12 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
             </span>
           </label>
 
-          <Link
+          {/*<Link
             href="/auth/forgot-password"
             className="text-sm text-community-600 hover:text-community-500 focus:underline focus:outline-none"
           >
             Passwort vergessen?
-          </Link>
+          </Link>*/}
         </div>
 
         {errors.root && (
