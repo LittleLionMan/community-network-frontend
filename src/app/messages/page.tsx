@@ -10,7 +10,6 @@ import { ErrorList } from '@/components/errors/UnifiedErrorComponents';
 import { MessageSearch } from '@/components/messages/MessageSearch';
 import SettingsModal from '@/components/messages/SettingsModal';
 import { AuthErrorBanner } from '@/components/messages/AuthErrorBanner';
-import { NotificationPermissionBanner } from '@/components/notifications/NotificationPermissionBanner';
 import {
   useConversations,
   useConversation,
@@ -676,10 +675,6 @@ export default function MessagesPage() {
   return (
     <UnifiedErrorBoundary>
       <div className="flex h-screen flex-col">
-        {notificationsSupported && !notificationsEnabled && (
-          <NotificationPermissionBanner />
-        )}
-
         {authError && !isErrorDismissed(getErrorId(authError)) && (
           <AuthErrorBanner
             error={authError}
