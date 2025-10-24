@@ -18,7 +18,7 @@ export function useAuthErrorHandler() {
             const authStore = useAuthStore.getState();
             const refreshResult = await authStore.refreshToken();
 
-            if (refreshResult.success) {
+            if (refreshResult) {
               return true;
             } else {
               logout();

@@ -245,7 +245,7 @@ export class ErrorLogger {
     }
   }
 
-  private static sendToExternalLogger(logData: Record<string, unknown>): void {
+  private static sendToExternalLogger(): void {
     // Implement external logging service integration
     // For example: Sentry, LogRocket, etc.
     if (process.env.NODE_ENV === 'production') {

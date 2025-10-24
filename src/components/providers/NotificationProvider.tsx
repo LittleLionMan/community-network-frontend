@@ -50,7 +50,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       const customEvent = event as CustomEvent;
       const message = customEvent.detail;
 
-      // Handle forum notification events
       if (
         message.type === 'forum_reply' ||
         message.type === 'forum_mention' ||

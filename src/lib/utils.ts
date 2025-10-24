@@ -26,9 +26,7 @@ export function formatRegistrationDeadline(startDateTime: string): string {
 
 export function getRegistrationDeadlineText(startDateTime: string): string {
   const deadline = getRegistrationDeadline(startDateTime);
-  const eventStart = parseISO(startDateTime);
 
-  const eventText = format(eventStart, 'dd.MM.yyyy, HH:mm', { locale: de });
   const deadlineText = format(deadline, 'dd.MM.yyyy, HH:mm', { locale: de });
 
   return `Anmeldung bis ${deadlineText} Uhr möglich`;

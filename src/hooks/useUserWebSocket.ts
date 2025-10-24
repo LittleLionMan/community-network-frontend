@@ -296,22 +296,15 @@ class EnhancedUserWebSocketManager {
   async retryAuth(): Promise<void> {
     try {
       const authStore = useAuthStore.getState();
-      const refreshResult = await authStore.refreshToken();
+      const refreshed = await authStore.refreshToken();
 
-      if (refreshResult.success && refreshResult.token) {
-        if (this.userWs) {
-          this.userWs.refreshToken(refreshResult.token);
-        }
-        if (this.conversationWs) {
-          this.conversationWs.refreshToken(refreshResult.token);
-        }
-
+      if (refreshed) {
         this.clearAuthError();
       } else {
-        throw new Error(refreshResult.error || 'Token refresh failed');
+        throw new Error('Token refresh failed');
       }
     } catch (error) {
-      console.error('Auth retry failed:', error);
+      console.error('❌ Auth retry failed:', error);
     }
   }
 

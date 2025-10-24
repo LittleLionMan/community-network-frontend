@@ -30,18 +30,9 @@ export function useProfile() {
 
   const handleAuthError = (error: unknown) => {
     if (error instanceof Error && error.message.includes('401')) {
-      console.log('Auth error detected, logging out');
+      console.warn('⚠️ Auth error detected, logging out');
       logout();
       window.location.href = '/auth/login';
-    }
-  };
-
-  const updateUserInStore = (userData: User) => {
-    const accessToken = localStorage.getItem('auth_token');
-    const refreshToken = localStorage.getItem('refresh_token');
-
-    if (accessToken && refreshToken) {
-      login(userData, accessToken, refreshToken);
     }
   };
 
@@ -54,7 +45,7 @@ export function useProfile() {
     try {
       const userData = (await apiClient.auth.me()) as User;
       setUser(userData);
-      updateUserInStore(userData);
+      login(userData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
       handleAuthError(err);
@@ -72,7 +63,7 @@ export function useProfile() {
     try {
       const updatedUser = (await apiClient.users.updateMe(data)) as User;
       setUser(updatedUser);
-      updateUserInStore(updatedUser);
+      login(updatedUser);
       return updatedUser;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update profile');
@@ -92,7 +83,7 @@ export function useProfile() {
     try {
       const updatedUser = (await apiClient.users.updateMe(data)) as User;
       setUser(updatedUser);
-      updateUserInStore(updatedUser);
+      login(updatedUser);
       return updatedUser;
     } catch (err) {
       setError(
@@ -109,13 +100,15 @@ export function useProfile() {
     if (user) {
       const updatedUser = { ...user, profile_image_url: imageUrl };
       setUser(updatedUser);
-      updateUserInStore(updatedUser);
+      login(updatedUser);
     }
   };
 
   useEffect(() => {
     if (authUser && !user) {
       refreshUser();
+    } else if (!authUser) {
+      setUser(null);
     }
   }, [authUser]);
 

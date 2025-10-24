@@ -53,6 +53,7 @@ export const useAuthStore = create<AuthState>()(
           });
           return true;
         } catch (error) {
+          console.log(error);
           const refreshed = await get().refreshToken();
           if (refreshed) {
             try {
@@ -79,6 +80,11 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: async (): Promise<boolean> => {
         try {
           await apiClient.auth.refresh();
+          const userData = await apiClient.auth.me();
+          set({
+            user: userData as User,
+            isAuthenticated: true,
+          });
           return true;
         } catch (error) {
           console.error('Token refresh failed:', error);

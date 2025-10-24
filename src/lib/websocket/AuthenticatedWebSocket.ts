@@ -208,7 +208,7 @@ export class AuthenticatedWebSocket extends EventTarget {
           tokenExpiring: true,
           tokenExpiresIn: message.expires_in,
         });
-        this.handleTokenExpiring(message.expires_in || 300);
+        this.handleTokenExpiring();
         break;
 
       case 'token_refreshed':
@@ -285,15 +285,15 @@ export class AuthenticatedWebSocket extends EventTarget {
     }, delay);
   }
 
-  private async handleTokenExpiring(expiresInSeconds: number): Promise<void> {
+  private async handleTokenExpiring(): Promise<void> {
     console.log('🔄 Attempting to refresh token...');
 
     try {
       const authStore = useAuthStore.getState();
-      const refreshResult = await authStore.refreshToken();
+      const refreshed = await authStore.refreshToken();
 
-      if (refreshResult.success && refreshResult.token) {
-        this.refreshToken(refreshResult.token);
+      if (refreshed) {
+        console.log('✅ Token refreshed successfully');
       } else {
         throw new Error('Token refresh returned no token');
       }

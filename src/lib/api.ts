@@ -355,7 +355,7 @@ class ApiClient {
       const authStore = useAuthStore.getState();
       const refreshResult = await authStore.refreshToken();
 
-      if (refreshResult.success) {
+      if (refreshResult) {
         this.processQueue();
 
         return await this.request<T>(endpoint, options);
