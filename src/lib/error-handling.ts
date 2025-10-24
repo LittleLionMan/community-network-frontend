@@ -225,7 +225,7 @@ export class ErrorLogger {
     );
 
     if (error.severity === 'critical' || error.severity === 'high') {
-      this.sendToExternalLogger(logData);
+      this.sendToExternalLogger();
     }
   }
 
