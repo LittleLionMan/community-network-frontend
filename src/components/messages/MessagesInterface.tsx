@@ -710,7 +710,6 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
             <h2 className="text-lg font-semibold text-gray-900">
               {participantName}
             </h2>
-            <p className="text-sm text-gray-500">Online vor 2h</p>
           </div>
         </div>
 

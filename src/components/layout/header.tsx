@@ -32,11 +32,7 @@ export function Header() {
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (isAuthenticated && !isLoading) {
-      validateToken();
-    }
-
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       interval = setInterval(
         () => {
           if (!isLoading) {
@@ -52,7 +48,7 @@ export function Header() {
         clearInterval(interval);
       }
     };
-  }, [isAuthenticated, isLoading, validateToken]);
+  }, [isAuthenticated, user, isLoading, validateToken]);
 
   useEffect(() => {
     let focusTimeout: NodeJS.Timeout | null = null;
@@ -61,7 +57,7 @@ export function Header() {
       if (focusTimeout) clearTimeout(focusTimeout);
 
       focusTimeout = setTimeout(() => {
-        if (isAuthenticated && !isLoading) {
+        if (isAuthenticated && user && !isLoading) {
           validateToken();
         }
       }, 1000);
@@ -75,7 +71,7 @@ export function Header() {
         clearTimeout(focusTimeout);
       }
     };
-  }, [isAuthenticated, isLoading, validateToken]);
+  }, [isAuthenticated, user, isLoading, validateToken]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

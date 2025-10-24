@@ -13,11 +13,13 @@ import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { AccountDeletionModal } from '@/components/profile/AccountDeletionModal';
 import { ThemeToggle } from '@/components/profile/ThemeToggle';
 import { apiClient } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 function ProfilePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialTab = searchParams.get('tab') || 'profile';
+  const { logout } = useAuthStore();
 
   const { user, isLoading, updateProfile, updatePrivacy, updateProfileImage } =
     useProfile();
@@ -117,11 +119,11 @@ function ProfilePageContent() {
 
   const handleAccountDeletion = async () => {
     setIsDeleting(true);
+
     try {
       await apiClient.auth.deleteAccount();
 
-      localStorage.removeItem('auth_token');
-      apiClient.setToken(null);
+      logout();
 
       setToastMessage({
         type: 'success',

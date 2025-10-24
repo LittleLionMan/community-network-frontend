@@ -239,26 +239,11 @@ class ApiError extends Error {
 
 class ApiClient {
   private baseURL: string;
-  private token: string | null = null;
   private refreshInProgress = false;
   private requestQueue: QueuedRequest[] = [];
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('auth_token');
-    }
-  }
-
-  setToken(token: string | null) {
-    this.token = token;
-    if (typeof window !== 'undefined') {
-      if (token) {
-        localStorage.setItem('auth_token', token);
-      } else {
-        localStorage.removeItem('auth_token');
-      }
-    }
   }
 
   public async request<T>(
@@ -275,20 +260,21 @@ class ApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    if (this.token && !skipAuth) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    const config = { ...options, headers };
+    const config = {
+      ...options,
+      headers,
+      credentials: 'include' as RequestCredentials,
+    };
 
     try {
       const response = await fetch(url, config);
 
-      if (
-        response.status === 401 &&
-        !skipAuth &&
-        !endpoint.includes('/auth/')
-      ) {
+      const isAuthEndpoint =
+        endpoint.includes('/auth/login') ||
+        endpoint.includes('/auth/register') ||
+        endpoint.includes('/auth/refresh');
+
+      if (response.status === 401 && !skipAuth && !isAuthEndpoint) {
         return this.handleUnauthorized<T>(endpoint, options);
       }
 
@@ -321,12 +307,16 @@ class ApiClient {
       const data = await response.json();
       return this.transformRelativeUrls(data);
     } catch (error) {
+      const isAuthEndpoint =
+        endpoint.includes('/auth/login') ||
+        endpoint.includes('/auth/register') ||
+        endpoint.includes('/auth/refresh');
       if (
         error instanceof Error &&
         (error.message.includes('401') ||
           error.message.includes('Unauthorized')) &&
         !skipAuth &&
-        !endpoint.includes('/auth/')
+        !isAuthEndpoint
       ) {
         return this.handleUnauthorized<T>(endpoint, options);
       }
@@ -338,6 +328,14 @@ class ApiClient {
     endpoint: string,
     options: RequestInit
   ): Promise<T> {
+    if (
+      endpoint.includes('/auth/refresh') ||
+      endpoint.includes('/auth/login') ||
+      endpoint.includes('/auth/register')
+    ) {
+      useAuthStore.getState().logout();
+      throw new Error('Authentication failed');
+    }
     if (this.refreshInProgress) {
       return new Promise<T>((resolve, reject) => {
         this.requestQueue.push({
@@ -448,7 +446,21 @@ class ApiClient {
         true
       ),
 
+    logout: () =>
+      this.request('/api/auth/logout', {
+        method: 'POST',
+      }),
+
     me: () => this.request('/api/auth/me'),
+
+    refresh: () =>
+      this.request<TokenResponse>(
+        '/api/auth/refresh',
+        {
+          method: 'POST',
+        },
+        true
+      ),
 
     checkAvailability: (data: { email?: string; display_name?: string }) =>
       this.request<{ available: boolean; message?: string }>(
@@ -496,16 +508,6 @@ class ApiClient {
       this.request('/api/auth/account', {
         method: 'DELETE',
       }),
-
-    refresh: (data: { refresh_token: string }) =>
-      this.request<TokenResponse>(
-        '/api/auth/refresh',
-        {
-          method: 'POST',
-          body: JSON.stringify(data),
-        },
-        true
-      ),
   };
 
   users = {

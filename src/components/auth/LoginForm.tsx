@@ -66,13 +66,13 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
     clearErrors('root');
 
     try {
-      const response = await apiClient.auth.login({
+      await apiClient.auth.login({
         email: data.email,
         password: data.password,
       });
-      apiClient.setToken(response.access_token);
+
       const userResponse = (await apiClient.auth.me()) as User;
-      login(userResponse, response.access_token, response.refresh_token);
+      login(userResponse);
       toast.success('Login erfolgreich');
 
       const destination = redirectTo || '/';

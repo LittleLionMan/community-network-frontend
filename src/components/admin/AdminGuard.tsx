@@ -11,7 +11,7 @@ interface AdminGuardProps {
 }
 
 export function AdminGuard({ children, fallback }: AdminGuardProps) {
-  const { user, isAuthenticated, isLoading, validateToken } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -24,11 +24,7 @@ export function AdminGuard({ children, fallback }: AdminGuardProps) {
       router.push('/');
       return;
     }
-
-    if (isAuthenticated && user?.is_admin) {
-      validateToken();
-    }
-  }, [isAuthenticated, isLoading, user, router, validateToken]);
+  }, [isAuthenticated, isLoading, user, router]);
 
   if (isLoading) {
     return (
