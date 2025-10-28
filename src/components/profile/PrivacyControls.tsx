@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import { Eye, EyeOff, MessageCircle, Users } from 'lucide-react';
 import type { User } from '@/types';
-import { useMessagePrivacy } from '@/hooks/useMessages';
+import {
+  useMessagePrivacy,
+  useUpdateMessagePrivacy,
+} from '@/hooks/useMessagePrivacyApi';
 import { NotificationPrivacyControls } from '@/components/notifications/NotificationPrivacyControls';
 
 interface PrivacyControlsProps {
@@ -20,11 +23,12 @@ interface MessagePrivacyControlsProps {
 const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
   onSettingsChange,
 }) => {
-  const { settings, isLoading, updateSettings } = useMessagePrivacy();
+  const { data: settings, isLoading } = useMessagePrivacy();
+  const updatePrivacy = useUpdateMessagePrivacy();
 
   const handleToggle = async (setting: string, value: boolean) => {
     try {
-      await updateSettings({ [setting]: value });
+      await updatePrivacy.mutateAsync({ [setting]: value });
       onSettingsChange({ [setting]: value });
     } catch (error) {
       console.error('Failed to update message privacy settings:', error);

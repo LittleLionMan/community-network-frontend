@@ -14,8 +14,8 @@ import {
   useConversations,
   useConversation,
   useUnreadCount,
-  useMessagePrivacy,
 } from '@/hooks/useMessages';
+import { useMessagePrivacy } from '@/hooks/useMessagePrivacyApi';
 import { useUserWebSocket } from '@/hooks/useUserWebSocket';
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
 import { useMessageNotifications } from '@/hooks/useMessageNotifications';
@@ -333,7 +333,7 @@ export default function MessagesPage() {
     clearBlock: clearMainBlock,
   } = useMessageSecurity();
 
-  const { settings: privacySettings, isLoading: privacyLoading } =
+  const { data: privacySettings, isLoading: privacyLoading } =
     useMessagePrivacy();
 
   const {

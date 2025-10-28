@@ -28,7 +28,7 @@ export default function EventsPage() {
   } = useRegularEvents({
     limit: 50,
     category_id: selectedCategory || undefined,
-    upcoming_only: true,
+    upcoming_only: false,
   });
 
   const filteredEvents = useMemo(() => {

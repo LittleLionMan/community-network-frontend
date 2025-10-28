@@ -9,7 +9,10 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react';
-import { useMessagePrivacy } from '@/hooks/useMessages';
+import {
+  useMessagePrivacy,
+  useUpdateMessagePrivacy,
+} from '@/hooks/useMessagePrivacyApi';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -20,8 +23,9 @@ interface SettingsModalProps {
 }
 
 const SettingsModal = React.memo<SettingsModalProps>(
-  ({ isOpen, onClose, notificationsEnabled, isConnected, isReconnecting }) => {
-    const { settings, isLoading, updateSettings } = useMessagePrivacy();
+  ({ isOpen, onClose, isConnected, isReconnecting }) => {
+    const { data: settings, isLoading } = useMessagePrivacy();
+    const updatePrivacy = useUpdateMessagePrivacy();
     const [updating, setUpdating] = useState<string | null>(null);
     const [saveStatus, setSaveStatus] = useState<{
       type: 'success' | 'error' | null;
@@ -33,7 +37,7 @@ const SettingsModal = React.memo<SettingsModalProps>(
       setSaveStatus({ type: null, message: '' });
 
       try {
-        await updateSettings({ [setting]: value });
+        await updatePrivacy.mutateAsync({ [setting]: value });
         setSaveStatus({
           type: 'success',
           message: 'Einstellungen erfolgreich gespeichert',

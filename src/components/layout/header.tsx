@@ -21,57 +21,12 @@ import { useGlobalUnreadCount } from '@/components/providers/UnreadCountProvider
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 export function Header() {
-  const { user, isAuthenticated, isLoading, logout, validateToken } =
-    useAuthStore();
+  const { user, isAuthenticated, isLoading, logout } = useAuthStore();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { unreadCount } = useGlobalUnreadCount();
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isAuthenticated && user) {
-      interval = setInterval(
-        () => {
-          if (!isLoading) {
-            validateToken();
-          }
-        },
-        10 * 60 * 1000
-      );
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isAuthenticated, user, isLoading, validateToken]);
-
-  useEffect(() => {
-    let focusTimeout: NodeJS.Timeout | null = null;
-
-    const handleFocus = () => {
-      if (focusTimeout) clearTimeout(focusTimeout);
-
-      focusTimeout = setTimeout(() => {
-        if (isAuthenticated && user && !isLoading) {
-          validateToken();
-        }
-      }, 1000);
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      if (focusTimeout) {
-        clearTimeout(focusTimeout);
-      }
-    };
-  }, [isAuthenticated, user, isLoading, validateToken]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

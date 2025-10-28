@@ -4,7 +4,11 @@ import { Bell, CheckCheck } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/components/providers/NotificationProvider';
-import { useNotificationApi } from '@/hooks/useNotificationApi';
+import {
+  useNotifications as useNotificationsList,
+  useMarkNotificationAsRead,
+  useMarkAllNotificationsAsRead,
+} from '@/hooks/useNotificationApi';
 import { NotificationList } from './NotificationList';
 import { Button } from '@/components/ui/button';
 import type { Notification } from '@/types/notification';
@@ -17,15 +21,12 @@ export function NotificationDropdown() {
   const router = useRouter();
 
   const { notificationStats } = useNotifications();
-  const {
-    useNotifications: useNotificationsList,
-    markAsRead,
-    markAllAsRead,
-  } = useNotificationApi();
-
   const { data: notifications = [], isLoading } = useNotificationsList({
     limit: 10,
   });
+
+  const markAsRead = useMarkNotificationAsRead();
+  const markAllAsRead = useMarkAllNotificationsAsRead();
 
   const unreadCount = notificationStats?.total_unread ?? 0;
 

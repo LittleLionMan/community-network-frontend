@@ -35,7 +35,7 @@ export default function CivicEventsPage() {
   } = useCivicEvents({
     limit: 50,
     category_id: selectedCategory || undefined,
-    upcoming_only: true,
+    upcoming_only: false,
   });
 
   const filteredEvents = useMemo(() => {

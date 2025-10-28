@@ -923,8 +923,6 @@ class ApiClient {
       if (upToMessageId)
         params.append('up_to_message_id', upToMessageId.toString());
 
-      console.log('Marking as read:', { conversationId, upToMessageId });
-
       return this.request(
         `/api/messages/conversations/${conversationId}/read`,
         {

@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
 import type { UnreadCount, WebSocketMessage } from '@/types/message';
-import { useMessagePrivacy } from '@/hooks/useMessages';
+import { useMessagePrivacy } from '@/hooks/useMessagePrivacyApi';
 
 interface UnreadCountContextType {
   unreadCount: UnreadCount;
@@ -71,7 +71,7 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
 
   const privacySettings =
     isAuthenticated && user
-      ? privacyHookResult.settings
+      ? privacyHookResult.data
       : { messages_notifications: true };
 
   useEffect(() => {
@@ -80,16 +80,10 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
 
       switch (message.type) {
         case 'new_message':
-          console.log('New message event received:', message);
-          console.log('Privacy settings:', privacySettings);
-          console.log(
-            'Should update unread?',
-            privacySettings.messages_notifications !== false
-          );
           if (
             message.conversation_id &&
             message.message?.sender.id !== user?.id &&
-            privacySettings.messages_notifications !== false
+            privacySettings?.messages_notifications !== false
           ) {
             refreshUnreadCount();
           }
@@ -123,7 +117,7 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
         handleGlobalWebSocketMessage as EventListener
       );
     };
-  }, [user?.id]);
+  }, [user?.id, privacySettings]);
 
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {

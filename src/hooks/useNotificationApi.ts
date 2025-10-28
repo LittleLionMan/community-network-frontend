@@ -9,28 +9,27 @@ interface GetNotificationsParams {
   type_filter?: NotificationType;
 }
 
-export function useNotificationApi() {
+export function useNotificationStats(enabled = true) {
+  return useQuery({
+    queryKey: ['notification-stats'],
+    queryFn: () => apiClient.notifications.getStats(),
+    staleTime: 30000,
+    enabled,
+  });
+}
+
+export function useNotifications(params: GetNotificationsParams = {}) {
+  return useQuery({
+    queryKey: ['notifications', params],
+    queryFn: () => apiClient.notifications.list(params),
+    staleTime: 30000,
+  });
+}
+
+export function useMarkNotificationAsRead() {
   const queryClient = useQueryClient();
 
-  const useNotificationStats = (enabled = true) => {
-    return useQuery({
-      queryKey: ['notification-stats'],
-      queryFn: () => apiClient.notifications.getStats(),
-      staleTime: 30000,
-      refetchOnWindowFocus: true,
-      enabled,
-    });
-  };
-
-  const useNotifications = (params: GetNotificationsParams = {}) => {
-    return useQuery({
-      queryKey: ['notifications', params],
-      queryFn: () => apiClient.notifications.list(params),
-      staleTime: 30000,
-    });
-  };
-
-  const markAsRead = useMutation({
+  return useMutation({
     mutationFn: async ({
       notificationId,
       isRead,
@@ -47,8 +46,12 @@ export function useNotificationApi() {
       queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
     },
   });
+}
 
-  const markAllAsRead = useMutation({
+export function useMarkAllNotificationsAsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async (typeFilter?: NotificationType) => {
       return apiClient.notifications.markAllAsRead(typeFilter);
     },
@@ -57,8 +60,12 @@ export function useNotificationApi() {
       queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
     },
   });
+}
 
-  const deleteNotification = useMutation({
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
     mutationFn: async (notificationId: number) => {
       return apiClient.notifications.delete(notificationId);
     },
@@ -67,18 +74,13 @@ export function useNotificationApi() {
       queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
     },
   });
+}
 
-  const invalidateNotifications = () => {
+export function useInvalidateNotifications() {
+  const queryClient = useQueryClient();
+
+  return () => {
     queryClient.invalidateQueries({ queryKey: ['notifications'] });
     queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
-  };
-
-  return {
-    useNotificationStats,
-    useNotifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    invalidateNotifications,
   };
 }

@@ -2,7 +2,10 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { useNotificationApi } from '@/hooks/useNotificationApi';
+import {
+  useNotificationStats,
+  useInvalidateNotifications,
+} from '@/hooks/useNotificationApi';
 import { toast } from '@/components/ui/toast';
 import type { NotificationStats } from '@/types/notification';
 
@@ -30,8 +33,7 @@ interface NotificationProviderProps {
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
   const { user, isAuthenticated } = useAuthStore();
-  const { useNotificationStats, invalidateNotifications } =
-    useNotificationApi();
+  const invalidateNotifications = useInvalidateNotifications();
 
   const {
     data: notificationStats,
@@ -58,7 +60,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         if (document.hidden && message.message) {
           toast.success('Neue Benachrichtigung', message.message);
         }
-
         invalidateNotifications();
       }
     };
@@ -75,28 +76,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       );
     };
   }, [invalidateNotifications]);
-
-  useEffect(() => {
-    if (!user || !isAuthenticated) return;
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden && isAuthenticated) {
-        refetch();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, isAuthenticated, refetch]);
-
-  useEffect(() => {
-    if (user && isAuthenticated) {
-      refetch();
-    }
-  }, [user?.id, isAuthenticated, refetch]);
 
   return (
     <NotificationContext.Provider

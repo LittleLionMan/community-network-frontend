@@ -92,11 +92,6 @@ export function NotificationItem({
   const relativeTime = getRelativeTime(created_at);
   const cleanPreview = stripHtml(data.content_preview);
 
-  // Debug logging (remove after testing)
-  console.log('Raw content_preview:', data.content_preview);
-  console.log('Cleaned preview:', cleanPreview);
-  console.log('Preview length:', cleanPreview.length);
-
   return (
     <button
       onClick={() => onClick(notification)}
