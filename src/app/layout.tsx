@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/layout/header';
 import { QueryProvider } from '@/components/providers/query-provider';
+import { GlobalWebSocketProvider } from '@/components/providers/GlobalWebSocketProvider';
 import { UnreadCountProvider } from '@/components/providers/UnreadCountProvider';
 import { NotificationProvider } from '@/components/providers/NotificationProvider';
 import { TokenRefreshProvider } from '@/components/providers/TokenRefreshProvider';
@@ -30,16 +31,18 @@ export default function RootLayout({
         )}
       >
         <QueryProvider>
-          <UnreadCountProvider>
-            <NotificationProvider>
-              <div className="relative flex min-h-screen flex-col">
-                <Header />
-                <main className="flex-1">{children}</main>
-                <ToastProvider />
-              </div>
-              <TokenRefreshProvider />
-            </NotificationProvider>
-          </UnreadCountProvider>
+          <GlobalWebSocketProvider>
+            <UnreadCountProvider>
+              <NotificationProvider>
+                <div className="relative flex min-h-screen flex-col">
+                  <Header />
+                  <main className="flex-1">{children}</main>
+                  <ToastProvider />
+                </div>
+                <TokenRefreshProvider />
+              </NotificationProvider>
+            </UnreadCountProvider>
+          </GlobalWebSocketProvider>
         </QueryProvider>
       </body>
     </html>

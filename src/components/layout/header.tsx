@@ -100,12 +100,33 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="flex items-center md:hidden">
-            <Link className="mr-4 flex items-center space-x-2" href="/">
-              <span className="font-bold">Plätzchen</span>
-            </Link>
-          </div>
+        {/* Mobile Logo - Left Side */}
+        <div className="flex items-center md:hidden">
+          <Link className="flex items-center space-x-2" href="/">
+            <span className="font-bold">Plätzchen</span>
+          </Link>
+        </div>
+
+        <div className="flex flex-1 items-center justify-end space-x-2 md:justify-end">
+          {/* Mobile: Messages, Notifications and Menu - Right Side */}
+          {isAuthenticated && user && (
+            <div className="flex items-center gap-1 md:hidden">
+              <Link href="/messages" className="relative">
+                <button className="flex items-center justify-center rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900">
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadCount.total_unread > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-medium text-white">
+                      {unreadCount.total_unread > 9
+                        ? '9+'
+                        : unreadCount.total_unread}
+                    </span>
+                  )}
+                </button>
+              </Link>
+
+              <NotificationDropdown />
+            </div>
+          )}
 
           <Button
             variant="ghost"
@@ -301,22 +322,6 @@ export function Header() {
                 >
                   <User className="mr-3 h-4 w-4" />
                   Mein Profil
-                </Link>
-
-                <Link
-                  href="/messages"
-                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
-                  onClick={closeMobileMenu}
-                >
-                  <MessageCircle className="mr-3 h-4 w-4" />
-                  Nachrichten
-                  {unreadCount.total_unread > 0 && (
-                    <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
-                      {unreadCount.total_unread > 99
-                        ? '99+'
-                        : unreadCount.total_unread}
-                    </span>
-                  )}
                 </Link>
 
                 <Link
