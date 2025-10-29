@@ -18,7 +18,13 @@ export function ThreadCard({
   isUnread = false,
 }: ThreadCardProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50">
+    <div
+      className={`rounded-lg border p-4 transition-colors ${
+        isUnread
+          ? 'border-community-200 bg-community-50 hover:bg-community-100'
+          : 'border-gray-200 bg-white hover:bg-gray-50'
+      }`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center gap-2">
@@ -28,7 +34,6 @@ export function ThreadCard({
                 title="Ungelesen"
               />
             )}
-
             {thread.is_pinned && (
               <Pin className="h-4 w-4 flex-shrink-0 text-blue-600" />
             )}
@@ -73,7 +78,7 @@ export function ThreadCard({
         <div className="flex flex-shrink-0 items-center gap-2 text-gray-600">
           <MessageSquare className="h-5 w-5" />
           <span
-            className={`font-medium ${isUnread ? 'text-community-600' : ''}`}
+            className={`font-medium ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}
           >
             {thread.post_count}
           </span>

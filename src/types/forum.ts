@@ -15,6 +15,9 @@ export interface ForumCategory {
   created_at: string;
   thread_count: number;
   latest_thread?: ForumThreadSummary;
+  latest_activity_thread?: ForumThreadSummary;
+  latest_activity_post?: ForumPostSummary;
+  latest_activity_at?: string;
 }
 
 export interface ForumThreadSummary {
@@ -22,6 +25,13 @@ export interface ForumThreadSummary {
   title: string;
   created_at: string;
   creator: UserSummary;
+}
+
+export interface ForumPostSummary {
+  id: number;
+  content: string;
+  created_at: string;
+  author: UserSummary;
 }
 
 export interface ForumThread {
@@ -34,6 +44,7 @@ export interface ForumThread {
   category: ForumCategory;
   post_count: number;
   latest_post?: string;
+  latest_post_author?: UserSummary;
 }
 
 export interface QuotedPostSummary {

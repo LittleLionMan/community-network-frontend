@@ -7,20 +7,35 @@ import {
   formatRelative,
   getContrastColor,
 } from '@/lib/forum-utils';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import type { ForumCategory } from '@/types/forum';
 
 interface CategoryCardProps {
   category: ForumCategory;
+  unreadCount?: number;
 }
 
-export function CategoryCard({ category }: CategoryCardProps) {
+export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
   const bgColor = category.color || '#E5E7EB';
   const textColor = getContrastColor(bgColor);
+
+  const displayActivity =
+    category.latest_activity_thread || category.latest_thread;
+  const displayActivityTime =
+    category.latest_activity_at || displayActivity?.created_at;
+  const displayActivityAuthor =
+    category.latest_activity_post?.author || displayActivity?.creator;
+
+  const hasUnread = unreadCount > 0;
 
   return (
     <Link
       href={`/forum/categories/${category.id}`}
-      className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+      className={`block rounded-lg border p-6 transition-all hover:shadow-md ${
+        hasUnread
+          ? 'border-community-200 bg-blue-50 dark:border-community-800 dark:bg-blue-950/30'
+          : 'border-gray-200 bg-white'
+      }`}
     >
       <div className="flex items-start gap-4">
         <div
@@ -34,9 +49,16 @@ export function CategoryCard({ category }: CategoryCardProps) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {category.name}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {category.name}
+            </h3>
+            {hasUnread && (
+              <span className="inline-flex items-center rounded-full bg-community-600 px-2.5 py-0.5 text-xs font-semibold text-white dark:bg-community-500">
+                {unreadCount} neu
+              </span>
+            )}
+          </div>
           {category.description && (
             <p className="mt-1 text-sm text-gray-600">{category.description}</p>
           )}
@@ -50,13 +72,26 @@ export function CategoryCard({ category }: CategoryCardProps) {
               </span>
             </div>
 
-            {category.latest_thread && (
+            {displayActivity && displayActivityTime && (
               <div className="flex items-center gap-2">
-                <span>Neueste:</span>
-                <span className="truncate font-medium text-gray-700">
-                  {category.latest_thread.title}
+                <span>
+                  {category.latest_activity_thread
+                    ? 'Letzte Aktivität:'
+                    : 'Neueste:'}
                 </span>
-                <span>{formatRelative(category.latest_thread.created_at)}</span>
+                <span className="truncate font-medium text-gray-700">
+                  {displayActivity.title}
+                </span>
+                {displayActivityAuthor && (
+                  <>
+                    <span>von</span>
+                    <ProfileAvatar user={displayActivityAuthor} size="sm" />
+                    <span className="font-medium text-gray-700">
+                      {displayActivityAuthor.display_name}
+                    </span>
+                  </>
+                )}
+                <span>{formatRelative(displayActivityTime)}</span>
               </div>
             )}
           </div>

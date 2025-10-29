@@ -5,12 +5,16 @@ import { Settings, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CategoryCard } from '@/components/forum/CategoryCard';
 import { CategoryListSkeleton } from '@/components/forum/Skeletons';
-import { useForumCategories } from '@/hooks/useForumCategories';
+import {
+  useForumCategories,
+  useUnreadCategoryCounts,
+} from '@/hooks/useForumCategories';
 import { useAuthStore } from '@/store/auth';
 
 export default function ForumPage() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { data: categories, isLoading, error, refetch } = useForumCategories();
+  const { data: unreadCounts } = useUnreadCategoryCounts();
 
   if (isLoading) {
     return (
@@ -56,7 +60,6 @@ export default function ForumPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
       <div className="mb-8">
         <div className="flex items-start justify-between">
           <div>
@@ -80,11 +83,18 @@ export default function ForumPage() {
         </div>
       </div>
 
-      {/* Category List */}
       {categories && categories.length > 0 ? (
         <div className="space-y-4">
           {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
+            <CategoryCard
+              key={category.id}
+              category={category}
+              unreadCount={
+                isAuthenticated && unreadCounts
+                  ? unreadCounts[category.id.toString()] || 0
+                  : 0
+              }
+            />
           ))}
         </div>
       ) : (

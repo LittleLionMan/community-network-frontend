@@ -964,6 +964,11 @@ class ApiClient {
     get: (categoryId: number) =>
       this.request<ForumCategory>(`/api/forum-categories/${categoryId}`),
 
+    getUnreadCounts: () =>
+      this.request<Record<string, number>>(
+        '/api/forum-categories/unread-counts'
+      ),
+
     create: (data: ForumCategoryCreate) =>
       this.request<ForumCategory>('/api/forum-categories/admin', {
         method: 'POST',
@@ -1112,6 +1117,19 @@ class ApiClient {
         `/api/discussions/my/threads${searchParams.toString() ? '?' + searchParams.toString() : ''}`
       );
     },
+
+    getUnreadStatus: (threadIds: number[]) => {
+      const params = new URLSearchParams();
+      threadIds.forEach((id) => params.append('thread_ids', id.toString()));
+      return this.request<Record<number, boolean>>(
+        `/api/discussions/unread-status?${params}`
+      );
+    },
+
+    markThreadAsRead: (threadId: number) =>
+      this.request(`/api/discussions/${threadId}/mark-read`, {
+        method: 'POST',
+      }),
 
     getMyPosts: (params?: {
       skip?: number;

@@ -6,18 +6,7 @@ export function useUnreadStatus(threadIds: number[]) {
   const { isAuthenticated } = useAuthStore();
   return useQuery({
     queryKey: ['unread-status', threadIds],
-    queryFn: async () => {
-      if (threadIds.length === 0) return {};
-
-      const params = new URLSearchParams();
-      threadIds.forEach((id) => params.append('thread_ids', id.toString()));
-
-      const response = await apiClient.request<Record<number, boolean>>(
-        `/api/discussions/unread-status?${params}`
-      );
-
-      return response;
-    },
+    queryFn: () => apiClient.discussions.getUnreadStatus(threadIds),
     enabled: threadIds.length > 0 && isAuthenticated,
     staleTime: 30 * 1000,
   });
@@ -27,13 +16,13 @@ export function useMarkThreadAsRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (threadId: number) => {
-      return await apiClient.request(`/api/discussions/${threadId}/mark-read`, {
-        method: 'POST',
-      });
-    },
+    mutationFn: (threadId: number) =>
+      apiClient.discussions.markThreadAsRead(threadId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['unread-status'] });
+      queryClient.invalidateQueries({
+        queryKey: ['forum-category-unread-counts'],
+      });
     },
   });
 }

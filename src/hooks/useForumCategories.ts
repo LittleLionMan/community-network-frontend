@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
+import { useAuthStore } from '@/store/auth';
 import type {
   ForumCategory,
   ForumCategoryCreate,
@@ -16,6 +17,18 @@ export function useForumCategories(includeInactive = false) {
       )) as ForumCategory[];
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useUnreadCategoryCounts() {
+  const { isAuthenticated } = useAuthStore();
+
+  return useQuery({
+    queryKey: ['forum-category-unread-counts'],
+    queryFn: () => apiClient.forumCategories.getUnreadCounts(),
+    enabled: isAuthenticated,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
 }
 
@@ -104,7 +117,6 @@ export function useDeleteCategory() {
     },
     onError: (error: unknown) => {
       console.error('Delete category error:', error);
-
       if (
         error &&
         typeof error === 'object' &&
