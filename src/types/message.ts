@@ -1,13 +1,13 @@
 export interface User {
   id: number;
   display_name: string;
-  profile_image_url?: string;
+  profile_image_url?: string | null;
 }
 
 export interface MessageUser {
   id: number;
   display_name: string;
-  profile_image_url?: string;
+  profile_image_url?: string | null;
 }
 
 export interface Message {
@@ -129,7 +129,7 @@ export interface WebSocketMessage {
     id: number;
     display_name: string;
     email: string;
-    profile_image_url?: string;
+    profile_image_url?: string | null;
   };
   quoted_post_id?: number;
 }
