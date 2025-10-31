@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import {
   Send,
-  MoreHorizontal,
   Edit3,
   Trash2,
   Reply,
@@ -15,21 +14,18 @@ import {
   CheckCheck,
   MessageCircle,
   X,
-  Archive,
-  VolumeX,
-  Volume2,
-  Phone,
-  Video,
-  Info,
   ArrowLeft,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { apiClient } from '@/lib/api';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
+import { ConversationList } from './ConversationList';
 
 interface MessageUser {
   id: number;
   display_name: string;
+  profile_image_url?: string | null;
 }
 
 interface Message {
@@ -167,7 +163,6 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
         setIsEditing(false);
       } catch (error) {
         console.error('Failed to edit message:', error);
-        // Keep editing mode open on error
       } finally {
         setIsSubmitting(false);
       }
@@ -219,10 +214,15 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
           className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} max-w-[70%] items-end sm:max-w-[80%]`}
         >
           {!isConsecutive && (
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-sm font-medium text-white ${isOwnMessage ? 'ml-2' : 'mr-2'}`}
-            >
-              {message.sender.display_name.charAt(0).toUpperCase()}
+            <div className={`${isOwnMessage ? 'ml-2' : 'mr-2'}`}>
+              <ProfileAvatar
+                user={{
+                  id: message.sender.id,
+                  display_name: message.sender.display_name,
+                  profile_image_url: message.sender.profile_image_url,
+                }}
+                size="sm"
+              />
             </div>
           )}
 
@@ -511,113 +511,6 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
 
 MessageInput.displayName = 'MessageInput';
 
-interface ConversationListItemProps {
-  conversation: Conversation;
-  currentUserId: number;
-  isSelected?: boolean;
-  onClick: () => void;
-}
-
-const ConversationListItem: React.FC<ConversationListItemProps> = React.memo(
-  ({ conversation, currentUserId, isSelected = false, onClick }) => {
-    const otherParticipant = useMemo(
-      () => conversation.participants.find((p) => p.user.id !== currentUserId),
-      [conversation.participants, currentUserId]
-    );
-
-    const participantName = otherParticipant?.user.display_name || 'Unbekannt';
-
-    const formatTime = useCallback((dateString: string) => {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-      if (diffInHours < 24) {
-        return date.toLocaleTimeString('de-DE', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-      } else if (diffInHours < 24 * 7) {
-        return date.toLocaleDateString('de-DE', { weekday: 'short' });
-      } else {
-        return date.toLocaleDateString('de-DE', {
-          day: '2-digit',
-          month: '2-digit',
-        });
-      }
-    }, []);
-
-    return (
-      <div
-        onClick={onClick}
-        className={`flex cursor-pointer items-center space-x-3 border-b border-gray-100 p-4 hover:bg-gray-50 ${
-          isSelected ? 'border-indigo-200 bg-indigo-50' : ''
-        }`}
-      >
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 font-medium text-white">
-          {participantName.charAt(0).toUpperCase()}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between">
-            <h3
-              className={`truncate text-sm font-medium ${
-                conversation.unread_count > 0
-                  ? 'text-gray-900'
-                  : 'text-gray-600'
-              }`}
-            >
-              {participantName}
-            </h3>
-
-            <div className="flex items-center space-x-2">
-              {conversation.last_message_at && (
-                <span className="text-xs text-gray-500">
-                  {formatTime(conversation.last_message_at)}
-                </span>
-              )}
-
-              {conversation.unread_count > 0 && (
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-indigo-600 px-1 text-xs font-medium text-white">
-                  {conversation.unread_count > 99
-                    ? '99+'
-                    : conversation.unread_count}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {conversation.last_message && (
-            <p
-              className={`truncate text-sm ${
-                conversation.unread_count > 0
-                  ? 'font-medium text-gray-900'
-                  : 'text-gray-500'
-              }`}
-            >
-              {conversation.last_message.sender.id === currentUserId && 'Du: '}
-              {conversation.last_message.is_deleted
-                ? '[Nachricht gelöscht]'
-                : conversation.last_message.content}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-col items-end space-y-1">
-          {otherParticipant?.is_muted && (
-            <VolumeX className="h-4 w-4 text-gray-400" />
-          )}
-          {otherParticipant?.is_archived && (
-            <Archive className="h-4 w-4 text-gray-400" />
-          )}
-        </div>
-      </div>
-    );
-  }
-);
-
-ConversationListItem.displayName = 'ConversationListItem';
-
 interface TypingIndicatorProps {
   typingUsers: MessageUser[];
 }
@@ -676,13 +569,10 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
   ({
     conversation,
     currentUserId,
-    onToggleMute,
-    onToggleArchive,
     onClose,
     showBackButton = false,
     onBack,
   }) => {
-    const [showActions, setShowActions] = useState(false);
     const otherParticipant = useMemo(
       () => conversation.participants.find((p) => p.user.id !== currentUserId),
       [conversation.participants, currentUserId]
@@ -702,9 +592,14 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
             </button>
           )}
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 font-medium text-white">
-            {participantName.charAt(0).toUpperCase()}
-          </div>
+          <ProfileAvatar
+            user={{
+              id: otherParticipant?.user.id,
+              display_name: participantName,
+              profile_image_url: otherParticipant?.user.profile_image_url,
+            }}
+            size="md"
+          />
 
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -714,74 +609,6 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
         </div>
 
         <div className="flex items-center space-x-2">
-          {/*<button
-            disabled={true}
-            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
-            title="Anruf (TODO: Implementierung)"
-          >
-            <Phone className="h-5 w-5" />
-          </button>
-
-          <button
-            disabled={true}
-            className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50"
-            title="Video-Anruf (TODO: Implementierung)"
-          >
-            <Video className="h-5 w-5" />
-          </button>
-
-          <div className="relative">
-            <button
-              disabled={true}
-              onClick={() => setShowActions(!showActions)}
-              className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
-
-            {showActions && (
-              <div className="absolute right-0 z-10 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
-                <button
-                  onClick={() => {
-                    onToggleMute?.();
-                    setShowActions(false);
-                  }}
-                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  {otherParticipant?.is_muted ? (
-                    <>
-                      <Volume2 className="mr-3 h-4 w-4" />
-                      Stummschaltung aufheben
-                    </>
-                  ) : (
-                    <>
-                      <VolumeX className="mr-3 h-4 w-4" />
-                      Stummschalten
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => {
-                    onToggleArchive?.();
-                    setShowActions(false);
-                  }}
-                  className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <Archive className="mr-3 h-4 w-4" />
-                  {otherParticipant?.is_archived
-                    ? 'Aus Archiv entfernen'
-                    : 'Archivieren'}
-                </button>
-
-                <button className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                  <Info className="mr-3 h-4 w-4" />
-                  Conversation Info
-                </button>
-              </div>
-            )}
-          </div>
-          */}
           {onClose && (
             <button
               onClick={onClose}
@@ -830,7 +657,7 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
           prevMessage.sender.id === message.sender.id &&
           new Date(message.created_at).getTime() -
             new Date(prevMessage.created_at).getTime() <
-            300000; // 5 minutes
+            300000;
       }
       return { ...message, isConsecutive };
     });
@@ -880,7 +707,7 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
         await onEditMessage(messageId, content);
       } catch (error) {
         console.error('Failed to edit message:', error);
-        throw error; // Re-throw to keep editing mode open
+        throw error;
       }
     },
     [onEditMessage]
@@ -905,64 +732,29 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
   }, [isLoadingMore, hasMoreMessages, onLoadMoreMessages]);
 
   return (
-    <div className="flex h-full bg-gray-50">
-      {/* Desktop conversation list */}
+    <div className="relative flex h-full bg-gray-50">
       <div className="hidden w-80 flex-col border-r border-gray-200 bg-white md:flex">
-        <div className="border-b border-gray-200 p-4">
-          <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
-              <MessageCircle className="mx-auto mb-2 h-12 w-12 text-gray-300" />
-              <p>Keine Conversations gefunden</p>
-            </div>
-          ) : (
-            conversations.map((conversation) => (
-              <ConversationListItem
-                key={conversation.id}
-                conversation={conversation}
-                currentUserId={currentUserId}
-                isSelected={selectedConversation?.id === conversation.id}
-                onClick={() => handleSelectConversation(conversation)}
-              />
-            ))
-          )}
-        </div>
+        <ConversationList
+          conversations={conversations}
+          currentUserId={currentUserId}
+          selectedConversationId={selectedConversation?.id || null}
+          onSelectConversation={onSelectConversation}
+        />
       </div>
 
-      {/* Mobile conversation list */}
       <div
-        className={`w-full transition-transform duration-300 md:hidden ${
+        className={`absolute inset-0 w-full bg-white transition-transform duration-300 md:hidden ${
           showMobileConversationList ? 'translate-x-0' : '-translate-x-full'
-        } absolute inset-0 bg-white`}
+        }`}
       >
-        <div className="border-b border-gray-200 p-4">
-          <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
-              <MessageCircle className="mx-auto mb-2 h-12 w-12 text-gray-300" />
-              <p>Keine Conversations gefunden</p>
-            </div>
-          ) : (
-            conversations.map((conversation) => (
-              <ConversationListItem
-                key={conversation.id}
-                conversation={conversation}
-                currentUserId={currentUserId}
-                isSelected={selectedConversation?.id === conversation.id}
-                onClick={() => handleSelectConversation(conversation)}
-              />
-            ))
-          )}
-        </div>
+        <ConversationList
+          conversations={conversations}
+          currentUserId={currentUserId}
+          selectedConversationId={selectedConversation?.id || null}
+          onSelectConversation={handleSelectConversation}
+        />
       </div>
 
-      {/* Main conversation area */}
       <div
         className={`flex flex-1 flex-col transition-transform duration-300 md:translate-x-0 ${
           !showMobileConversationList

@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Settings } from 'lucide-react';
+import { Search } from 'lucide-react';
 import MessagesInterface from '@/components/messages/MessagesInterface';
-import { SecurityBanner } from '@/components/messages/SecurityBanner';
 import { UnifiedErrorBoundary } from '@/components/errors/UnifiedErrorBoundary';
-import { ErrorList } from '@/components/errors/UnifiedErrorComponents';
 import { MessageSearch } from '@/components/messages/MessageSearch';
 import SettingsModal from '@/components/messages/SettingsModal';
-import { AuthErrorBanner } from '@/components/messages/AuthErrorBanner';
+import { MobileHeader } from '@/components/messages/MobileHeader';
+import { DesktopHeader } from '@/components/messages/DesktopHeader';
+import { ToastManager } from '@/components/messages/ToastManager';
 import {
   useConversations,
   useConversation,
@@ -59,8 +59,7 @@ const NewConversationModal = React.memo<{
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
-  const { validateAndSendMessage, isBlocked, blockReason, clearBlock } =
-    useMessageSecurity();
+  const { validateAndSendMessage, isBlocked } = useMessageSecurity();
 
   const handleSubmit = useCallback(async () => {
     if (!selectedUserId || !message.trim()) return;
@@ -155,13 +154,6 @@ const NewConversationModal = React.memo<{
           <h2 className="mb-4 text-xl font-semibold text-gray-900">
             Neue Conversation starten
           </h2>
-
-          <SecurityBanner
-            isBlocked={isBlocked}
-            blockReason={blockReason}
-            onClear={clearBlock}
-            type="error"
-          />
 
           <div className="space-y-4">
             <div>
@@ -333,15 +325,14 @@ export default function MessagesPage() {
     clearBlock: clearMainBlock,
   } = useMessageSecurity();
 
-  const { data: privacySettings, isLoading: privacyLoading } =
-    useMessagePrivacy();
+  const { data: privacySettings } = useMessagePrivacy();
 
   const {
     isEnabled: notificationsEnabled,
     isSupported: notificationsSupported,
   } = useMessageNotifications();
 
-  const { handleAuthError, dismissError, isErrorDismissed, getErrorId } =
+  const { handleAuthError, isErrorDismissed, getErrorId } =
     useAuthErrorHandler();
 
   const handleSelectConversation = useCallback((conversation: Conversation) => {
@@ -441,7 +432,7 @@ export default function MessagesPage() {
       const success = await retryOperation(async () => {
         switch (error.context?.action) {
           case 'load_conversations':
-            await refreshConversations();
+            refreshConversations();
             break;
           case 'create_conversation':
             throw new Error('Please try creating the conversation again');
@@ -640,6 +631,7 @@ export default function MessagesPage() {
     },
     [clearConversationError, clearMessageError, removeError]
   );
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -674,176 +666,49 @@ export default function MessagesPage() {
 
   return (
     <UnifiedErrorBoundary>
-      <div className="flex h-screen flex-col">
-        {authError && !isErrorDismissed(getErrorId(authError)) && (
-          <AuthErrorBanner
-            error={authError}
-            tokenExpiring={tokenExpiring}
-            expiresIn={tokenExpiring ? 300 : undefined}
-            onRetry={retryAuth}
-            onDismiss={() => {
-              dismissError(getErrorId(authError));
-              clearAuthError();
-            }}
-          />
-        )}
+      <div className="flex h-[calc(100vh-4rem)] flex-col">
+        <ToastManager
+          authError={
+            authError && !isErrorDismissed(getErrorId(authError))
+              ? authError
+              : null
+          }
+          securityBlock={{
+            isBlocked: isMainBlocked,
+            reason: mainBlockReason,
+          }}
+          offlineQueueLength={offlineQueueLength}
+          errors={allErrors}
+          onAuthRetry={retryAuth}
+          onSecurityClear={clearMainBlock}
+          onErrorRetry={handleRetry}
+          onErrorDismiss={handleErrorDismiss}
+        />
 
-        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-semibold text-gray-900">Nachrichten</h1>
+        <MobileHeader
+          unreadCount={unreadCount.total_unread}
+          isConnected={isConnected}
+          isReconnecting={isReconnecting}
+          tokenExpiring={tokenExpiring}
+          notificationsEnabled={notificationsEnabled}
+          notificationsSupported={notificationsSupported}
+          onNewMessage={() => setShowNewConversationModal(true)}
+          onOpenSettings={() => setShowSettings(true)}
+          messagesEnabled={privacySettings.messages_enabled ?? true}
+        />
 
-            {unreadCount.total_unread > 0 && (
-              <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-red-500 px-2 text-xs font-medium text-white">
-                {unreadCount.total_unread > 99
-                  ? '99+'
-                  : unreadCount.total_unread}
-              </span>
-            )}
-
-            <div
-              className={`flex items-center space-x-1 text-xs ${
-                isConnected ? 'text-green-600' : 'text-gray-400'
-              }`}
-            >
-              <div
-                className={`h-2 w-2 rounded-full ${
-                  isConnected ? 'bg-green-500' : 'bg-gray-400'
-                } ${isReconnecting ? 'animate-pulse' : ''}`}
-              />
-              <span>
-                {isConnected
-                  ? tokenExpiring
-                    ? 'Sitzung läuft ab'
-                    : 'Online'
-                  : isReconnecting
-                    ? 'Verbinde...'
-                    : 'Offline'}
-              </span>
-            </div>
-
-            {tokenExpiring && (
-              <div className="flex items-center space-x-1 text-xs text-orange-600">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-orange-500" />
-                <span>Token läuft ab</span>
-              </div>
-            )}
-
-            {notificationsSupported && (
-              <div
-                className={`flex items-center space-x-1 text-xs ${
-                  notificationsEnabled ? 'text-blue-600' : 'text-gray-400'
-                }`}
-              >
-                <div
-                  className={`h-2 w-2 rounded-full ${
-                    notificationsEnabled ? 'bg-blue-500' : 'bg-gray-400'
-                  }`}
-                />
-                <span>
-                  {notificationsEnabled
-                    ? 'Benachrichtigungen an'
-                    : 'Benachrichtigungen aus'}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-2">
-            {/*<button
-              onClick={() => setShowSearch(true)}
-              disabled={true}
-              className="flex items-center space-x-2 rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50"
-              title="Nachrichten durchsuchen (TODO: Implementierung)"
-            >
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">
-                Suchen (TODO: Implementierung)
-              </span>
-            </button>*/}
-
-            <div className="relative">
-              <button
-                onClick={() => setShowNewConversationModal(true)}
-                disabled={privacyLoading || !privacySettings.messages_enabled}
-                className={`flex items-center space-x-2 rounded-lg px-4 py-2 transition-colors ${
-                  privacySettings.messages_enabled && !privacyLoading
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'cursor-not-allowed bg-gray-300 text-gray-500'
-                }`}
-                title={
-                  !privacySettings.messages_enabled
-                    ? 'Du hast Nachrichten in deinen Einstellungen deaktiviert'
-                    : undefined
-                }
-              >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Neue Nachricht</span>
-              </button>
-
-              {!privacySettings.messages_enabled && (
-                <div className="absolute bottom-full left-1/2 mb-2 hidden w-48 -translate-x-1/2 transform rounded-lg bg-gray-900 px-3 py-2 text-xs text-white group-hover:block">
-                  Du musst Nachrichten in deinen Privacy-Einstellungen
-                  aktivieren
-                  <div className="absolute left-1/2 top-full -translate-x-1/2 transform border-4 border-transparent border-t-gray-900"></div>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => setShowSettings(true)}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            >
-              <Settings className="h-5 w-5" />
-            </button>
-
-            {!isConnected && (
-              <button
-                onClick={reconnect}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                disabled={isReconnecting}
-              >
-                {isReconnecting ? 'Verbinde...' : 'Reconnect'}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Unified Error Display */}
-        {allErrors.length > 0 && (
-          <div className="border-b bg-gray-50 px-4 py-2">
-            <ErrorList
-              errors={allErrors}
-              onDismiss={handleErrorDismiss}
-              onRetry={handleRetry}
-              maxVisible={3}
-              compact
-            />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <SecurityBanner
-            isBlocked={isMainBlocked}
-            blockReason={mainBlockReason}
-            onClear={clearMainBlock}
-            type="error"
-          />
-
-          {offlineQueueLength > 0 && (
-            <div className="mx-4 rounded-lg border-l-4 border-yellow-400 bg-yellow-50 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-5 w-5 rounded-full bg-yellow-400" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-800">
-                    {offlineQueueLength} Nachricht(en) warten auf Übertragung
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <DesktopHeader
+          unreadCount={unreadCount.total_unread}
+          isConnected={isConnected}
+          isReconnecting={isReconnecting}
+          tokenExpiring={tokenExpiring}
+          notificationsEnabled={notificationsEnabled}
+          notificationsSupported={notificationsSupported}
+          onNewMessage={() => setShowNewConversationModal(true)}
+          onOpenSettings={() => setShowSettings(true)}
+          onReconnect={reconnect}
+          messagesEnabled={privacySettings.messages_enabled ?? true}
+        />
 
         <div className="flex-1 overflow-hidden">
           {conversationsLoading ? (
