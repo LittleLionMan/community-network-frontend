@@ -7,6 +7,7 @@ export interface User {
 export interface MessageUser {
   id: number;
   display_name: string;
+  profile_image_url?: string;
 }
 
 export interface Message {
