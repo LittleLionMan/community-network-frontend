@@ -186,7 +186,7 @@ function ProfilePageContent() {
 
   const tabs = [
     { id: 'profile', label: 'Profil', icon: User },
-    { id: 'privacy', label: 'Privacy', icon: Shield },
+    { id: 'privacy', label: 'Privatsphäre', icon: Shield },
     { id: 'activity', label: 'Aktivitäten', icon: Activity },
     { id: 'settings', label: 'Einstellungen', icon: Settings },
   ];
@@ -219,8 +219,8 @@ function ProfilePageContent() {
         </p>
       </div>
 
-      <div className="mb-8 border-b border-gray-200">
-        <div className="flex space-x-8">
+      <div className="mb-8 border-b border-gray-200 dark:border-gray-700">
+        <div className="hidden space-x-8 md:flex">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -229,11 +229,31 @@ function ProfilePageContent() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center border-b-2 px-1 py-2 text-sm font-medium ${
                   activeTab === tab.id
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    ? 'border-indigo-500 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300'
                 }`}
               >
                 <Icon className="mr-2 h-4 w-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 p-2 md:hidden">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex flex-col items-center justify-center rounded-lg border-2 p-3 text-xs font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-600 dark:border-indigo-400 dark:bg-indigo-950 dark:text-indigo-400'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-800'
+                }`}
+              >
+                <Icon className="mb-1 h-5 w-5" />
                 {tab.label}
               </button>
             );
@@ -246,7 +266,7 @@ function ProfilePageContent() {
           {activeTab === 'profile' && (
             <div className="space-y-8">
               <div>
-                <h2 className="mb-4 text-xl font-semibold text-gray-900">
+                <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Profilbild
                 </h2>
                 <ProfileImageUpload
@@ -262,13 +282,13 @@ function ProfilePageContent() {
 
               <div>
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Profil-Informationen
                   </h2>
                   {!isEditing && (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="flex items-center text-indigo-600 hover:text-indigo-800"
+                      className="flex items-center text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
                     >
                       <Edit className="mr-1 h-4 w-4" />
                       Bearbeiten
@@ -305,42 +325,54 @@ function ProfilePageContent() {
 
           {activeTab === 'activity' && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Meine Aktivitäten
               </h2>
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div className="rounded-lg bg-blue-50 p-6">
-                  <h3 className="mb-2 font-medium text-blue-900">Events</h3>
-                  <div className="mb-1 text-3xl font-bold text-blue-600">0</div>
-                  <div className="text-sm text-blue-700">Teilgenommen</div>
-                  <div className="mt-2 text-lg font-semibold text-blue-600">
+                <div className="rounded-lg bg-blue-50 p-6 dark:bg-blue-950">
+                  <h3 className="mb-2 font-medium text-blue-900 dark:text-blue-200">
+                    Events
+                  </h3>
+                  <div className="mb-1 text-3xl font-bold text-blue-600 dark:text-blue-400">
                     0
                   </div>
-                  <div className="text-sm text-blue-700">Organisiert</div>
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    Teilgenommen
+                  </div>
+                  <div className="mt-2 text-lg font-semibold text-blue-600 dark:text-blue-400">
+                    0
+                  </div>
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    Organisiert
+                  </div>
                 </div>
 
-                <div className="rounded-lg bg-green-50 p-6">
-                  <h3 className="mb-2 font-medium text-green-900">Services</h3>
-                  <div className="mb-1 text-3xl font-bold text-green-600">
+                <div className="rounded-lg bg-green-50 p-6 dark:bg-green-950">
+                  <h3 className="mb-2 font-medium text-green-900 dark:text-green-200">
+                    Services
+                  </h3>
+                  <div className="mb-1 text-3xl font-bold text-green-600 dark:text-green-400">
                     0
                   </div>
-                  <div className="text-sm text-green-700">Angeboten</div>
+                  <div className="text-sm text-green-700 dark:text-green-300">
+                    Angeboten
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-lg bg-gray-50 p-4">
-                <div className="mb-1 text-sm text-gray-600">
+              <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+                <div className="mb-1 text-sm text-gray-600 dark:text-gray-400">
                   Community Score
                 </div>
                 <div className="flex items-center">
-                  <div className="mr-3 h-2 flex-1 rounded-full bg-gray-200">
+                  <div className="mr-3 h-2 flex-1 rounded-full bg-gray-200 dark:bg-gray-700">
                     <div
-                      className="h-2 rounded-full bg-indigo-600"
+                      className="h-2 rounded-full bg-indigo-600 dark:bg-indigo-500"
                       style={{ width: `0%` }}
                     />
                   </div>
-                  <span className="text-lg font-semibold text-indigo-600">
+                  <span className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">
                     0/100
                   </span>
                 </div>
@@ -472,35 +504,43 @@ function ProfilePageContent() {
         </div>
 
         <div className="space-y-6">
-          <ProfileCompletion user={user} />
-
-          <div className="rounded-lg bg-indigo-50 p-4">
-            <h3 className="mb-2 font-medium text-indigo-900">Privacy-Tipp</h3>
-            <p className="text-sm text-indigo-800">
-              Du kontrollierst vollständig, welche Informationen andere sehen
-              können. Nutze die Vorschau-Funktion um zu prüfen, wie dein Profil
-              für andere aussieht.
-            </p>
+          <div
+            className={`${activeTab === 'profile' ? 'block' : 'hidden'} lg:block`}
+          >
+            <ProfileCompletion user={user} />
           </div>
+
+          {activeTab === 'privacy' && (
+            <div className="rounded-lg bg-indigo-50 p-4 dark:bg-indigo-950">
+              <h3 className="mb-2 font-medium text-indigo-900 dark:text-indigo-200">
+                Privatsphäre-Tipp
+              </h3>
+              <p className="text-sm text-indigo-800 dark:text-indigo-300">
+                Du kontrollierst vollständig, welche Informationen andere sehen
+                können. Nutze die Vorschau-Funktion um zu prüfen, wie dein
+                Profil für andere aussieht.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       {showPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="mx-4 max-h-[80vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6">
+          <div className="mx-4 max-h-[80vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 Öffentliche Ansicht
               </h2>
               <button
                 onClick={() => setShowPreview(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
-            <div className="mb-4 text-sm text-gray-600">
+            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
               So sehen andere Community-Mitglieder dein Profil:
             </div>
 
