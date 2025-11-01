@@ -772,49 +772,55 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
               onBack={handleBackToList}
             />
 
-            <SwipeableChat onSwipeBack={handleBackToList}>
-              <div
-                ref={messagesContainerRef}
-                className="flex-1 space-y-1 overflow-y-auto p-4"
-              >
-                {hasMoreMessages && (
-                  <div className="py-4 text-center">
-                    <button
-                      onClick={handleLoadMore}
-                      disabled={isLoadingMore}
-                      className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
-                    >
-                      {isLoadingMore ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
-                          <span>Lädt...</span>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <SwipeableChat onSwipeBack={handleBackToList}>
+                <div className="flex h-full flex-col">
+                  <div
+                    ref={messagesContainerRef}
+                    className="flex-1 space-y-1 overflow-y-auto p-4"
+                  >
+                    <div className="space-y-1">
+                      {hasMoreMessages && (
+                        <div className="py-4 text-center">
+                          <button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                          >
+                            {isLoadingMore ? (
+                              <div className="flex items-center space-x-2">
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+                                <span>Lädt...</span>
+                              </div>
+                            ) : (
+                              'Ältere Nachrichten laden'
+                            )}
+                          </button>
                         </div>
-                      ) : (
-                        'Ältere Nachrichten laden'
                       )}
-                    </button>
+                    </div>
+
+                    {messagesWithConsecutiveFlag.map((message) => (
+                      <MessageItem
+                        key={message.id}
+                        message={message}
+                        currentUserId={currentUserId}
+                        onEdit={handleEditMessage}
+                        onDelete={handleDeleteMessage}
+                        onReply={setReplyToMessage}
+                        isConsecutive={message.isConsecutive}
+                      />
+                    ))}
+
+                    {typingUsers.length > 0 && (
+                      <TypingIndicator typingUsers={typingUsers} />
+                    )}
+
+                    <div ref={messagesEndRef} />
                   </div>
-                )}
-
-                {messagesWithConsecutiveFlag.map((message) => (
-                  <MessageItem
-                    key={message.id}
-                    message={message}
-                    currentUserId={currentUserId}
-                    onEdit={handleEditMessage}
-                    onDelete={handleDeleteMessage}
-                    onReply={setReplyToMessage}
-                    isConsecutive={message.isConsecutive}
-                  />
-                ))}
-
-                {typingUsers.length > 0 && (
-                  <TypingIndicator typingUsers={typingUsers} />
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-            </SwipeableChat>
+                </div>
+              </SwipeableChat>
+            </div>
 
             {!targetUserPrivacy.messages_enabled &&
             !targetUserPrivacy.loading ? (

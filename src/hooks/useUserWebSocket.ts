@@ -169,6 +169,7 @@ class ConversationWebSocketManager {
 
 class GlobalWebSocketStateManager {
   private static instance: GlobalWebSocketStateManager | null = null;
+  private initialized = false;
 
   private state: WebSocketConnectionState & { authError?: WebSocketAuthError } =
     {
@@ -187,8 +188,20 @@ class GlobalWebSocketStateManager {
   static getInstance(): GlobalWebSocketStateManager {
     if (!GlobalWebSocketStateManager.instance) {
       GlobalWebSocketStateManager.instance = new GlobalWebSocketStateManager();
+      GlobalWebSocketStateManager.instance.initializeState();
     }
     return GlobalWebSocketStateManager.instance;
+  }
+
+  private initializeState() {
+    if (typeof window === 'undefined' || this.initialized) return;
+
+    setTimeout(() => {
+      if (!this.state.isConnected) {
+        window.dispatchEvent(new CustomEvent('request-websocket-state'));
+      }
+      this.initialized = true;
+    }, 100);
   }
 
   subscribe(

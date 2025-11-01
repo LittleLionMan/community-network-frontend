@@ -14,9 +14,12 @@ export const SwipeableChat: React.FC<SwipeableChatProps> = ({
   enabled = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(
+    null
+  );
   const [touchCurrent, setTouchCurrent] = useState<number | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
+  const [isVerticalScroll, setIsVerticalScroll] = useState(false);
 
   const swipeThreshold = 100;
   const maxSwipeDistance = 300;
@@ -31,40 +34,61 @@ export const SwipeableChat: React.FC<SwipeableChatProps> = ({
       const touch = e.touches[0];
       if (touch.clientX > 50) return;
 
-      setTouchStart(touch.clientX);
-      setIsSwiping(true);
+      setTouchStart({ x: touch.clientX, y: touch.clientY });
+      setIsVerticalScroll(false);
+      setIsSwiping(false);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (touchStart === null) return;
 
       const touch = e.touches[0];
-      const diff = touch.clientX - touchStart;
+      const diffX = touch.clientX - touchStart.x;
+      const diffY = touch.clientY - touchStart.y;
 
-      if (diff > 0) {
-        setTouchCurrent(Math.min(diff, maxSwipeDistance));
+      if (!isSwiping && !isVerticalScroll) {
+        if (Math.abs(diffY) > Math.abs(diffX)) {
+          setIsVerticalScroll(true);
+          return;
+        }
+        if (Math.abs(diffX) > 10 && diffX > 0) {
+          setIsSwiping(true);
+        }
+      }
 
-        if (diff > 10) {
+      if (isVerticalScroll) {
+        return;
+      }
+
+      if (isSwiping && diffX > 0) {
+        setTouchCurrent(Math.min(diffX, maxSwipeDistance));
+
+        if (diffX > 10) {
           e.preventDefault();
         }
       }
     };
 
     const handleTouchEnd = () => {
-      if (touchStart === null || touchCurrent === null) {
-        setIsSwiping(false);
-        setTouchStart(null);
-        setTouchCurrent(null);
+      if (touchStart === null) {
+        reset();
         return;
       }
 
-      const swipeDistance = touchCurrent;
-
-      if (swipeDistance >= swipeThreshold) {
+      if (
+        isSwiping &&
+        touchCurrent !== null &&
+        touchCurrent >= swipeThreshold
+      ) {
         onSwipeBack();
       }
 
+      reset();
+    };
+
+    const reset = () => {
       setIsSwiping(false);
+      setIsVerticalScroll(false);
       setTouchStart(null);
       setTouchCurrent(null);
     };
@@ -76,13 +100,22 @@ export const SwipeableChat: React.FC<SwipeableChatProps> = ({
       passive: false,
     });
     container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchcancel', reset);
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', reset);
     };
-  }, [enabled, touchStart, touchCurrent, onSwipeBack]);
+  }, [
+    enabled,
+    touchStart,
+    touchCurrent,
+    isSwiping,
+    isVerticalScroll,
+    onSwipeBack,
+  ]);
 
   const transform =
     isSwiping && touchCurrent !== null
@@ -97,7 +130,7 @@ export const SwipeableChat: React.FC<SwipeableChatProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full"
+      className="relative h-full w-full overflow-hidden"
       style={{
         transform,
         opacity,
@@ -131,7 +164,7 @@ export const SwipeableChat: React.FC<SwipeableChatProps> = ({
         </div>
       )}
 
-      {children}
+      <div className="h-full w-full">{children}</div>
     </div>
   );
 };

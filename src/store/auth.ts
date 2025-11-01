@@ -35,6 +35,8 @@ export const useAuthStore = create<AuthState>()(
           console.error('Logout error:', error);
         }
 
+        localStorage.removeItem('auth_token');
+
         set({
           user: null,
           isAuthenticated: false,
@@ -79,7 +81,8 @@ export const useAuthStore = create<AuthState>()(
 
       refreshToken: async (): Promise<boolean> => {
         try {
-          await apiClient.auth.refresh();
+          const tokens = await apiClient.auth.refresh();
+          localStorage.setItem('auth_token', tokens.access_token);
           const userData = await apiClient.auth.me();
           set({
             user: userData as User,

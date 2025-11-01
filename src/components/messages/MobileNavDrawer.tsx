@@ -21,6 +21,7 @@ interface MobileNavDrawerProps {
   notificationsSupported: boolean;
   unreadCount: number;
   onOpenSettings: () => void;
+  onReconnect: () => void;
 }
 
 export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
@@ -33,6 +34,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   notificationsSupported,
   unreadCount,
   onOpenSettings,
+  onReconnect,
 }) => {
   if (!isOpen) return null;
 
@@ -88,6 +90,19 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600" />
               )}
             </div>
+
+            {!isConnected && !isReconnecting && (
+              <button
+                onClick={() => {
+                  onReconnect();
+                  onClose();
+                }}
+                className="flex w-full items-center justify-center space-x-2 rounded-lg bg-indigo-600 p-3 text-white hover:bg-indigo-700 active:bg-indigo-800"
+              >
+                <Wifi className="h-4 w-4" />
+                <span className="text-sm font-medium">Neu verbinden</span>
+              </button>
+            )}
 
             {tokenExpiring && (
               <div className="flex items-start space-x-3 rounded-lg bg-orange-50 p-3">

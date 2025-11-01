@@ -703,32 +703,37 @@ export default function MessagesPage() {
           onErrorDismiss={handleErrorDismiss}
         />
 
-        <MobileHeader
-          unreadCount={unreadCount.total_unread}
-          isConnected={isConnected}
-          isReconnecting={isReconnecting}
-          tokenExpiring={tokenExpiring}
-          notificationsEnabled={notificationsEnabled}
-          notificationsSupported={notificationsSupported}
-          onNewMessage={() => setShowNewConversationModal(true)}
-          onOpenSettings={() => setShowSettings(true)}
-          messagesEnabled={privacySettings.messages_enabled ?? true}
-        />
+        <div className="flex-shrink-0">
+          <MobileHeader
+            unreadCount={unreadCount.total_unread}
+            isConnected={isConnected}
+            isReconnecting={isReconnecting}
+            tokenExpiring={tokenExpiring}
+            notificationsEnabled={notificationsEnabled}
+            notificationsSupported={notificationsSupported}
+            onNewMessage={() => setShowNewConversationModal(true)}
+            onOpenSettings={() => setShowSettings(true)}
+            onReconnect={reconnect}
+            messagesEnabled={privacySettings.messages_enabled ?? true}
+          />
+        </div>
 
-        <DesktopHeader
-          unreadCount={unreadCount.total_unread}
-          isConnected={isConnected}
-          isReconnecting={isReconnecting}
-          tokenExpiring={tokenExpiring}
-          notificationsEnabled={notificationsEnabled}
-          notificationsSupported={notificationsSupported}
-          onNewMessage={() => setShowNewConversationModal(true)}
-          onOpenSettings={() => setShowSettings(true)}
-          onReconnect={reconnect}
-          messagesEnabled={privacySettings.messages_enabled ?? true}
-        />
+        <div className="flex-shrink-0">
+          <DesktopHeader
+            unreadCount={unreadCount.total_unread}
+            isConnected={isConnected}
+            isReconnecting={isReconnecting}
+            tokenExpiring={tokenExpiring}
+            notificationsEnabled={notificationsEnabled}
+            notificationsSupported={notificationsSupported}
+            onNewMessage={() => setShowNewConversationModal(true)}
+            onOpenSettings={() => setShowSettings(true)}
+            onReconnect={reconnect}
+            messagesEnabled={privacySettings.messages_enabled ?? true}
+          />
+        </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden">
           {conversationsLoading ? (
             <div className="flex h-full items-center justify-center">
               <div className="text-center">

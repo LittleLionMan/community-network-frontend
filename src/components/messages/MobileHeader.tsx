@@ -13,6 +13,7 @@ interface MobileHeaderProps {
   notificationsSupported: boolean;
   onNewMessage: () => void;
   onOpenSettings: () => void;
+  onReconnect: () => void;
   messagesEnabled: boolean;
 }
 
@@ -25,6 +26,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   notificationsSupported,
   onNewMessage,
   onOpenSettings,
+  onReconnect,
   messagesEnabled,
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -74,6 +76,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
         notificationsSupported={notificationsSupported}
         unreadCount={unreadCount}
         onOpenSettings={onOpenSettings}
+        onReconnect={onReconnect}
       />
     </>
   );

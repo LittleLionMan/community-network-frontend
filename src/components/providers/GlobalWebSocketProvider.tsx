@@ -37,6 +37,17 @@ export function GlobalWebSocketProvider({
 
         userWs = new AuthenticatedWebSocket(`${wsUrl}/api/messages/ws/user`);
 
+        const broadcastState = () => {
+          if (userWs) {
+            const state = userWs.getState();
+            window.dispatchEvent(
+              new CustomEvent('global-websocket-state', {
+                detail: state,
+              })
+            );
+          }
+        };
+
         userWs.addEventListener('connected', () => {
           window.dispatchEvent(
             new CustomEvent('global-websocket-state', {
@@ -85,8 +96,20 @@ export function GlobalWebSocketProvider({
         });
 
         userWs.connect(token);
+        setTimeout(broadcastState, 100);
       } catch (err) {
         console.error('Failed to create global user WebSocket:', err);
+      }
+    };
+
+    const handleStateRequest = () => {
+      if (userWs) {
+        const state = userWs.getState();
+        window.dispatchEvent(
+          new CustomEvent('global-websocket-state', {
+            detail: state,
+          })
+        );
       }
     };
 
@@ -106,6 +129,7 @@ export function GlobalWebSocketProvider({
 
     window.addEventListener('global-websocket-reconnect', handleReconnect);
     window.addEventListener('global-websocket-disconnect', handleDisconnect);
+    window.addEventListener('request-websocket-state', handleStateRequest);
 
     const connectWithDelay = () => {
       const token = localStorage.getItem('auth_token');

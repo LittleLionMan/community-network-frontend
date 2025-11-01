@@ -66,10 +66,12 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
     clearErrors('root');
 
     try {
-      await apiClient.auth.login({
+      const tokens = await apiClient.auth.login({
         email: data.email,
         password: data.password,
       });
+
+      localStorage.setItem('auth_token', tokens.access_token);
 
       const userResponse = (await apiClient.auth.me()) as User;
       login(userResponse);
