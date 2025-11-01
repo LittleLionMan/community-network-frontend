@@ -10,7 +10,8 @@ COPY public ./public
 COPY next.config.ts ./next.config.ts
 COPY tsconfig.json ./tsconfig.json
 COPY tailwind.config.ts ./tailwind.config.ts
-COPY postcss.config.mjs ./postcss.config.mjs
+COPY postcss.config.js ./postcss.config.js
+COPY .env.production ./.env.production
 
 RUN npm run build
 
