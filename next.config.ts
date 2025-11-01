@@ -86,7 +86,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   ...(isProd && {
-    swcMinify: true,
     compiler: {
       removeConsole: {
         exclude: ['error', 'warn'],
