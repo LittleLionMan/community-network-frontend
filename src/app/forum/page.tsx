@@ -61,8 +61,8 @@ export default function ForumPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <div className="flex items-start justify-between">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-900">Agora</h1>
             <p className="mt-2 text-gray-600">
               Diskutiere über die Plattform, Features und Community-Governance
@@ -70,7 +70,7 @@ export default function ForumPage() {
           </div>
 
           {user?.is_admin && (
-            <Button asChild>
+            <Button asChild className="sm:flex-shrink-0">
               <Link
                 href="/forum/admin/categories"
                 className="flex items-center gap-2"

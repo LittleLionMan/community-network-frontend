@@ -10,6 +10,7 @@ import SettingsModal from '@/components/messages/SettingsModal';
 import { MobileHeader } from '@/components/messages/MobileHeader';
 import { DesktopHeader } from '@/components/messages/DesktopHeader';
 import { ToastManager } from '@/components/messages/ToastManager';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import {
   useConversations,
@@ -35,6 +36,7 @@ interface SearchUser {
   id: number;
   display_name: string;
   email: string;
+  profile_image_url?: string | null;
 }
 
 interface UserApiResponse {
@@ -54,6 +56,7 @@ const NewConversationModal = React.memo<{
   onCreateConversation: (data: CreateConversationData) => Promise<void>;
 }>(({ isOpen, onClose, onCreateConversation }) => {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SearchUser | null>(null);
   const [message, setMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
@@ -116,6 +119,7 @@ const NewConversationModal = React.memo<{
           user.first_name && user.last_name
             ? `${user.first_name} ${user.last_name}`
             : user.display_name,
+        profile_image_url: user.profile_image_url,
       }));
 
       setSearchResults(userResults);
@@ -140,6 +144,7 @@ const NewConversationModal = React.memo<{
   useEffect(() => {
     if (!isOpen) {
       setSelectedUserId(null);
+      setSelectedUser(null);
       setMessage('');
       setSearchQuery('');
       setSearchResults([]);
@@ -173,6 +178,7 @@ const NewConversationModal = React.memo<{
                   key={user.id}
                   type="button"
                   onClick={() => {
+                    setSelectedUser(user);
                     setSelectedUserId(user.id);
                     setSearchQuery(user.display_name);
                     setSearchResults([]);
@@ -181,17 +187,42 @@ const NewConversationModal = React.memo<{
                     selectedUserId === user.id ? 'bg-indigo-50' : ''
                   }`}
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-sm font-medium text-white">
-                    {user.display_name.charAt(0).toUpperCase()}
-                  </div>
+                  <ProfileAvatar
+                    user={{
+                      id: user.id,
+                      display_name: user.display_name,
+                      profile_image_url: user.profile_image_url,
+                    }}
+                    size="sm"
+                  />
                   <div>
                     <div className="font-medium text-gray-900">
                       {user.display_name}
                     </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
                   </div>
                 </button>
               ))}
+            </div>
+          )}
+
+          {selectedUser && (
+            <div className="rounded-lg bg-indigo-50 p-3">
+              <div className="flex items-center space-x-3">
+                <ProfileAvatar
+                  user={{
+                    id: selectedUser.id,
+                    display_name: selectedUser.display_name,
+                    profile_image_url: selectedUser.profile_image_url,
+                  }}
+                  size="sm"
+                />
+                <div className="flex-1">
+                  <div className="text-sm text-indigo-600">Ausgewählt:</div>
+                  <div className="font-medium text-indigo-900">
+                    {selectedUser.display_name}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -250,7 +281,7 @@ const NewConversationModal = React.memo<{
           <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
             <div className="p-6">
               <h2 className="mb-4 text-xl font-semibold text-gray-900">
-                Neue Conversation starten
+                Neue Unterhaltung starten
               </h2>
               {modalContent}
             </div>
@@ -262,7 +293,7 @@ const NewConversationModal = React.memo<{
         <BottomSheet
           isOpen={isOpen}
           onClose={onClose}
-          title="Neue Conversation"
+          title="Neue Unterhaltung"
         >
           {modalContent}
         </BottomSheet>

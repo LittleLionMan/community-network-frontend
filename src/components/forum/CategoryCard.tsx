@@ -63,9 +63,9 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
             <p className="mt-1 text-sm text-gray-600">{category.description}</p>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+          <div className="mt-3 flex flex-col gap-2 text-sm text-gray-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
             <div className="flex items-center gap-1">
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4 flex-shrink-0" />
               <span>
                 {category.thread_count}{' '}
                 {category.thread_count === 1 ? 'Thread' : 'Threads'}
@@ -73,8 +73,8 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
             </div>
 
             {displayActivity && displayActivityTime && (
-              <div className="flex items-center gap-2">
-                <span>
+              <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:gap-2 sm:text-sm">
+                <span className="text-gray-500">
                   {category.latest_activity_thread
                     ? 'Letzte Aktivität:'
                     : 'Neueste:'}
@@ -83,15 +83,17 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
                   {displayActivity.title}
                 </span>
                 {displayActivityAuthor && (
-                  <>
-                    <span>von</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">von</span>
                     <ProfileAvatar user={displayActivityAuthor} size="sm" />
-                    <span className="font-medium text-gray-700">
+                    <span className="truncate font-medium text-gray-700">
                       {displayActivityAuthor.display_name}
                     </span>
-                  </>
+                  </div>
                 )}
-                <span>{formatRelative(displayActivityTime)}</span>
+                <span className="text-gray-500">
+                  {formatRelative(displayActivityTime)}
+                </span>
               </div>
             )}
           </div>

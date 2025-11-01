@@ -68,7 +68,9 @@ function ThreadCreatePageContent() {
         </div>
       </div>
 
+      {/* OPTIMIERT: Grid Layout nur auf Desktop (lg:grid-cols-4), auf Mobile volle Breite */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+        {/* Thread Form - volle Breite auf Mobile, 3/4 auf Desktop */}
         <div className="lg:col-span-3">
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <ThreadCreateForm
@@ -82,7 +84,7 @@ function ThreadCreatePageContent() {
           </div>
         </div>
 
-        <div className="lg:col-span-1">
+        <div className="hidden lg:col-span-1 lg:block">
           <div className="sticky top-8 space-y-6">
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
               <div className="flex items-start gap-3">

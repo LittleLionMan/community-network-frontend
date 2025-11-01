@@ -19,8 +19,8 @@ interface PostCardProps {
   canDelete: boolean;
   onQuote?: (post: ForumPost) => void;
   showQuoteButton?: boolean;
-  threadId?: number; // ADDED: To check if it's the bug bounty thread
-  showAchievementButton?: boolean; // ADDED: Control visibility
+  threadId?: number;
+  showAchievementButton?: boolean;
 }
 
 export function PostCard({
@@ -39,29 +39,37 @@ export function PostCard({
     showAchievementButton && user?.is_admin && threadId === 6; // Thread Id anpassen!
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
       {post.has_achievement && (
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
           <CheckCircle className="h-4 w-4" />
           Bestätigter Bug
         </div>
       )}
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <ProfileAvatar user={post.author} size="md" />
-          <div>
-            <div className="font-semibold text-gray-900">
-              {post.author.display_name}
-            </div>
-            <div className="text-sm text-gray-500">
-              {formatAbsolute(post.created_at)}
-              {post.updated_at && <span className="ml-2">(bearbeitet)</span>}
+
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex-shrink-0">
+            <ProfileAvatar user={post.author} size="sm" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="font-semibold text-gray-900">
+                {post.author.display_name}
+              </span>
+              <span className="text-xs text-gray-500 sm:text-sm">
+                {formatAbsolute(post.created_at)}
+              </span>
+              {post.updated_at && (
+                <span className="text-xs text-gray-500">(bearbeitet)</span>
+              )}
             </div>
           </div>
         </div>
 
         {!isEditing && (
-          <div className="flex gap-2">
+          <div className="flex flex-shrink-0 gap-1 sm:gap-2">
             {showQuoteButton && onQuote && (
               <QuoteButton onQuote={() => onQuote(post)} disabled={isEditing} />
             )}

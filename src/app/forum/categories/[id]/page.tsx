@@ -114,8 +114,8 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         <span className="text-gray-900">{category.name}</span>
       </nav>
 
-      <div className="mb-8 flex items-start justify-between">
-        <div>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-gray-900">{category.name}</h1>
           {category.description && (
             <p className="mt-2 text-gray-600">{category.description}</p>
@@ -123,7 +123,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
         </div>
 
         {isAuthenticated && (
-          <Button asChild>
+          <Button asChild className="sm:flex-shrink-0">
             <Link
               href={`/forum/threads/create?category=${categoryId}`}
               className="flex items-center gap-2"
