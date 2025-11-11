@@ -27,22 +27,22 @@ export function QuotedPostDisplay({
 
   const borderColor =
     depth === 0
-      ? 'border-community-500 bg-community-50'
+      ? 'border-community-500 bg-community-50 dark:border-community-500 dark:bg-community-100'
       : depth === 1
-        ? 'border-blue-400 bg-blue-50'
+        ? 'border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-100'
         : depth === 2
-          ? 'border-indigo-400 bg-indigo-50'
+          ? 'border-indigo-400 bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-100'
           : depth === 3
-            ? 'border-purple-400 bg-purple-50'
-            : 'border-gray-300 bg-gray-50';
+            ? 'border-purple-400 bg-purple-50 dark:border-purple-500 dark:bg-purple-100'
+            : 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-200';
 
   return (
     <div className={`mb-3 rounded-lg border-l-4 ${borderColor} p-3`}>
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Quote className="h-3 w-3 text-gray-500" />
+          <Quote className="h-3 w-3 text-gray-500 dark:text-gray-600" />
           <ProfileAvatar user={quotedPost.author} size="sm" />
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-gray-600 dark:text-gray-500">
             <span className="font-medium">
               {quotedPost.author.display_name}
             </span>
@@ -55,7 +55,7 @@ export function QuotedPostDisplay({
           {hasNestedQuote && (
             <button
               onClick={() => setAreNestedQuotesVisible(!areNestedQuotesVisible)}
-              className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800"
+              className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-800 dark:text-gray-500 dark:hover:text-gray-900"
             >
               {areNestedQuotesVisible ? (
                 <>
@@ -72,7 +72,7 @@ export function QuotedPostDisplay({
           {isContentTruncated && (
             <button
               onClick={() => setIsContentExpanded(!isContentExpanded)}
-              className="flex items-center gap-1 text-xs text-community-600 hover:text-community-700"
+              className="flex items-center gap-1 text-xs text-community-600 hover:text-community-700 dark:text-community-700 dark:hover:text-community-800"
             >
               {isContentExpanded ? (
                 <>
@@ -96,7 +96,7 @@ export function QuotedPostDisplay({
       )}
 
       <div
-        className="prose prose-sm max-w-none text-sm text-gray-700"
+        className="max-w-none text-sm text-gray-700 dark:text-gray-600"
         dangerouslySetInnerHTML={{
           __html: isContentExpanded
             ? quotedPost.content

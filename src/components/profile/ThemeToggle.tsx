@@ -11,31 +11,37 @@ export function ThemeToggle() {
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-      applyTheme(savedTheme);
-    } else {
-      applyTheme('system');
-    }
-  }, []);
+    const savedTheme =
+      (localStorage.getItem('theme') as Theme | null) || 'system';
+    setTheme(savedTheme);
+    applyTheme(savedTheme);
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+      if (theme === 'system') {
+        applyTheme('system');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    return () =>
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+  }, [theme]);
 
   const applyTheme = (newTheme: Theme) => {
     const root = document.documentElement;
 
+    root.classList.remove('dark', 'light');
+
     if (newTheme === 'dark') {
       root.classList.add('dark');
     } else if (newTheme === 'light') {
-      root.classList.remove('dark');
+      root.classList.add('light');
     } else {
       const prefersDark = window.matchMedia(
         '(prefers-color-scheme: dark)'
       ).matches;
-      if (prefersDark) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
+      root.classList.add(prefersDark ? 'dark' : 'light');
     }
   };
 
@@ -56,7 +62,7 @@ export function ThemeToggle() {
   ];
 
   return (
-    <div className="rounded-lg border p-4">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
       <h3 className="mb-2 font-medium text-gray-900 dark:text-gray-100">
         Design
       </h3>
@@ -71,21 +77,21 @@ export function ThemeToggle() {
             onClick={() => handleThemeChange(value)}
             className={`flex flex-col items-center justify-center rounded-lg border-2 p-3 transition-all ${
               theme === value
-                ? 'border-indigo-600 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-950'
-                : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                ? 'dark:bg-community-950 border-community-600 bg-community-50 dark:border-community-400'
+                : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500'
             }`}
           >
             <Icon
               className={`mb-2 h-5 w-5 ${
                 theme === value
-                  ? 'text-indigo-600 dark:text-indigo-400'
+                  ? 'text-community-600 dark:text-community-400'
                   : 'text-gray-600 dark:text-gray-400'
               }`}
             />
             <span
               className={`text-sm font-medium ${
                 theme === value
-                  ? 'text-indigo-900 dark:text-indigo-300'
+                  ? 'text-community-900 dark:text-community-300'
                   : 'text-gray-700 dark:text-gray-300'
               }`}
             >

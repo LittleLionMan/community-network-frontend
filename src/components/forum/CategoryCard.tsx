@@ -33,8 +33,8 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
       href={`/forum/categories/${category.id}`}
       className={`block rounded-lg border p-6 transition-all hover:shadow-md ${
         hasUnread
-          ? 'border-community-200 bg-blue-50 dark:border-community-800 dark:bg-blue-950/30'
-          : 'border-gray-200 bg-white'
+          ? 'dark:bg-community-950/50 border-community-300 bg-community-50 dark:border-community-700'
+          : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
       }`}
     >
       <div className="flex items-start gap-4">
@@ -50,7 +50,7 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-600">
               {category.name}
             </h3>
             {hasUnread && (
@@ -60,10 +60,12 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
             )}
           </div>
           {category.description && (
-            <p className="mt-1 text-sm text-gray-600">{category.description}</p>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              {category.description}
+            </p>
           )}
 
-          <div className="mt-3 flex flex-col gap-2 text-sm text-gray-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+          <div className="mt-3 flex flex-col gap-2 text-sm text-gray-500 dark:text-gray-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
             <div className="flex items-center gap-1">
               <MessageSquare className="h-4 w-4 flex-shrink-0" />
               <span>
@@ -74,24 +76,26 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
 
             {displayActivity && displayActivityTime && (
               <div className="flex flex-col gap-1 text-xs sm:flex-row sm:items-center sm:gap-2 sm:text-sm">
-                <span className="text-gray-500">
+                <span className="text-gray-500 dark:text-gray-500">
                   {category.latest_activity_thread
                     ? 'Letzte Aktivität:'
                     : 'Neueste:'}
                 </span>
-                <span className="truncate font-medium text-gray-700">
+                <span className="truncate font-medium text-gray-700 dark:text-gray-300">
                   {displayActivity.title}
                 </span>
                 {displayActivityAuthor && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-gray-500">von</span>
+                    <span className="text-gray-500 dark:text-gray-500">
+                      von
+                    </span>
                     <ProfileAvatar user={displayActivityAuthor} size="sm" />
-                    <span className="truncate font-medium text-gray-700">
+                    <span className="truncate font-medium text-gray-700 dark:text-gray-300">
                       {displayActivityAuthor.display_name}
                     </span>
                   </div>
                 )}
-                <span className="text-gray-500">
+                <span className="text-gray-500 dark:text-gray-500">
                   {formatRelative(displayActivityTime)}
                 </span>
               </div>
@@ -99,7 +103,7 @@ export function CategoryCard({ category, unreadCount = 0 }: CategoryCardProps) {
           </div>
         </div>
 
-        <ArrowRight className="h-5 w-5 flex-shrink-0 text-gray-400" />
+        <ArrowRight className="h-5 w-5 flex-shrink-0 text-gray-400 dark:text-gray-600" />
       </div>
     </Link>
   );

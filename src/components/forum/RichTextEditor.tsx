@@ -50,7 +50,7 @@ export function RichTextEditor({
         HTMLAttributes: {
           rel: 'noopener noreferrer',
           target: '_blank',
-          class: 'text-community-600 hover:underline',
+          class: 'text-community-600 hover:underline dark:text-community-400',
         },
       }),
       TipTapImage.configure({
@@ -65,7 +65,7 @@ export function RichTextEditor({
       Mention.configure({
         HTMLAttributes: {
           class:
-            'mention bg-community-100 text-community-800 rounded px-1 py-0.5 font-medium',
+            'mention bg-community-100 text-community-800 rounded px-1 py-0.5 font-medium dark:bg-community-900 dark:text-community-200',
         },
         suggestion: mentionSuggestion,
       }),
@@ -73,7 +73,7 @@ export function RichTextEditor({
     content,
     editorProps: {
       attributes: {
-        class: `prose prose-sm max-w-none focus:outline-none min-h-[${minHeight}] px-4 py-3`,
+        class: `prose prose-sm max-w-none focus:outline-none min-h-[${minHeight}] px-4 py-3 dark:prose-invert dark:text-gray-100`,
       },
     },
     onUpdate: ({ editor }) => {
@@ -141,33 +141,34 @@ export function RichTextEditor({
   const isLinkActive = editor.isActive('link');
 
   return (
-    <div className="rounded-md border border-gray-300 focus-within:border-community-500 focus-within:ring-2 focus-within:ring-community-500">
-      <div className="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 p-2">
+    <div className="rounded-md border border-gray-300 focus-within:border-community-500 focus-within:ring-2 focus-within:ring-community-500 dark:border-gray-600 dark:focus-within:border-community-400 dark:focus-within:ring-community-400">
+      <div className="flex flex-wrap items-center gap-1 border-b border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
           disabled={
             !editor.can().chain().focus().toggleBold().run() || disabled
           }
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('bold') ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('bold') ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Fett (Ctrl+B)"
         >
-          <Bold className="h-4 w-4" />
+          <Bold className="h-4 w-4 dark:text-gray-300" />
         </button>
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           disabled={
             !editor.can().chain().focus().toggleItalic().run() || disabled
           }
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('italic') ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('italic') ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Kursiv (Ctrl+I)"
         >
-          <Italic className="h-4 w-4" />
+          <Italic className="h-4 w-4 dark:text-gray-300" />
         </button>
         <button
           type="button"
@@ -175,15 +176,15 @@ export function RichTextEditor({
           disabled={
             !editor.can().chain().focus().toggleStrike().run() || disabled
           }
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('strike') ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('strike') ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Durchgestrichen"
         >
-          <Strikethrough className="h-4 w-4" />
+          <Strikethrough className="h-4 w-4 dark:text-gray-300" />
         </button>
 
-        <div className="mx-1 h-6 w-px bg-gray-300" />
+        <div className="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
         <button
           type="button"
@@ -191,71 +192,78 @@ export function RichTextEditor({
             editor.chain().focus().toggleHeading({ level: 2 }).run()
           }
           disabled={disabled}
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('heading', { level: 2 }) ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('heading', { level: 2 })
+              ? 'bg-gray-300 dark:bg-gray-600'
+              : ''
           }`}
           title="Überschrift 2"
         >
-          <Heading2 className="h-4 w-4" />
+          <Heading2 className="h-4 w-4 dark:text-gray-300" />
         </button>
+
         <button
           type="button"
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 3 }).run()
           }
           disabled={disabled}
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('heading', { level: 3 }) ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('heading', { level: 3 })
+              ? 'bg-gray-300 dark:bg-gray-600'
+              : ''
           }`}
           title="Überschrift 3"
         >
-          <Heading3 className="h-4 w-4" />
+          <Heading3 className="h-4 w-4 dark:text-gray-300" />
         </button>
 
-        <div className="mx-1 h-6 w-px bg-gray-300" />
+        <div className="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           disabled={disabled}
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('bulletList') ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('bulletList') ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Aufzählung"
         >
-          <List className="h-4 w-4" />
+          <List className="h-4 w-4 dark:text-gray-300" />
         </button>
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           disabled={disabled}
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('orderedList') ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('orderedList') ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Nummerierte Liste"
         >
-          <ListOrdered className="h-4 w-4" />
+          <ListOrdered className="h-4 w-4 dark:text-gray-300" />
         </button>
 
-        <div className="mx-1 h-6 w-px bg-gray-300" />
+        <div className="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
         <button
           type="button"
           onClick={setLink}
           disabled={disabled}
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            isLinkActive ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            isLinkActive ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Link einfügen (Text markieren, dann klicken)"
         >
-          <Link2 className="h-4 w-4" />
+          <Link2 className="h-4 w-4 dark:text-gray-300" />
         </button>
+
         {isLinkActive && (
           <button
             type="button"
             onClick={removeLink}
             disabled={disabled}
-            className="rounded p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="rounded p-2 text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950"
             title="Link entfernen"
           >
             <Unlink className="h-4 w-4" />
@@ -266,49 +274,51 @@ export function RichTextEditor({
           type="button"
           onClick={addImage}
           disabled={disabled}
-          className="rounded p-2 hover:bg-gray-200 disabled:opacity-50"
+          className="rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700"
           title="Bild einfügen"
         >
-          <ImageIcon className="h-4 w-4" />
+          <ImageIcon className="h-4 w-4 dark:text-gray-300" />
         </button>
 
-        <div className="mx-1 h-6 w-px bg-gray-300" />
+        <div className="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           disabled={disabled}
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('codeBlock') ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('codeBlock') ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Code-Block"
         >
-          <Code className="h-4 w-4" />
+          <Code className="h-4 w-4 dark:text-gray-300" />
         </button>
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           disabled={disabled}
-          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 ${
-            editor.isActive('blockquote') ? 'bg-gray-300' : ''
+          className={`rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700 ${
+            editor.isActive('blockquote') ? 'bg-gray-300 dark:bg-gray-600' : ''
           }`}
           title="Zitat"
         >
-          <Quote className="h-4 w-4" />
+          <Quote className="h-4 w-4 dark:text-gray-300" />
         </button>
 
-        <div className="mx-1 h-6 w-px bg-gray-300" />
+        <div className="mx-1 h-6 w-px bg-gray-300 dark:bg-gray-600" />
 
         <button
           type="button"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           disabled={disabled}
-          className="rounded p-2 hover:bg-gray-200 disabled:opacity-50"
+          className="rounded p-2 hover:bg-gray-200 disabled:opacity-50 dark:hover:bg-gray-700"
           title="Horizontale Linie"
         >
-          <Minus className="h-4 w-4" />
+          <Minus className="h-4 w-4 dark:text-gray-300" />
         </button>
       </div>
+
       <EditorContent editor={editor} />
     </div>
   );

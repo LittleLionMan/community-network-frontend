@@ -54,9 +54,11 @@ export default function HomePage() {
       <div className="mb-12 text-center">
         <h1 className="mb-4 text-4xl font-bold">
           Willkommen auf dem{' '}
-          <span className="text-community-600">Plätzchen</span>
+          <span className="text-community-600 dark:text-community-400">
+            Plätzchen
+          </span>
         </h1>
-        <p className="text-muted-foreground mx-auto max-w-2xl text-xl">
+        <p className="text-muted-foreground mx-auto max-w-2xl text-xl dark:text-gray-400">
           Eine demokratische Plattform für lokale Gemeinschaften
         </p>
       </div>
@@ -64,30 +66,30 @@ export default function HomePage() {
       <div className="mx-auto mb-8 max-w-3xl">
         <button
           onClick={() => setShowIntro(!showIntro)}
-          className="w-full rounded-lg border border-gray-200 bg-white p-4 text-left transition-all hover:shadow-md"
+          className="w-full rounded-lg border border-gray-200 bg-white p-4 text-left transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
         >
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="mb-1 font-semibold text-gray-900">
+              <h3 className="mb-1 font-semibold text-gray-900 dark:text-gray-100">
                 Über diese Plattform
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {showIntro
                   ? 'Klicke um weniger zu sehen'
                   : 'Erfahre mehr über das Projekt und wie du teilnehmen kannst...'}
               </p>
             </div>
             {showIntro ? (
-              <ChevronUp className="ml-4 h-5 w-5 flex-shrink-0 text-gray-400" />
+              <ChevronUp className="ml-4 h-5 w-5 flex-shrink-0 text-gray-400 dark:text-gray-500" />
             ) : (
-              <ChevronDown className="ml-4 h-5 w-5 flex-shrink-0 text-gray-400" />
+              <ChevronDown className="ml-4 h-5 w-5 flex-shrink-0 text-gray-400 dark:text-gray-500" />
             )}
           </div>
         </button>
 
         {showIntro && (
-          <div className="mt-4 space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6">
-            <p className="text-gray-700">
+          <div className="mt-4 space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+            <p className="text-gray-700 dark:text-gray-300">
               Ein Freund hat meine kläglichen Erklärungsversuche zu Sinn und
               Zweck dieser Plattform mit <em>digitaler Na Dann</em>{' '}
               zusammengefasst. Ich finde, das ist ein charmanter Startpunkt. Ein
@@ -121,7 +123,7 @@ export default function HomePage() {
               Alternativen. Das muss aber nicht so sein, solange der soziale,
               digitale Raum nicht zum Selbstzweck verkommt.
             </p>
-            <p className="text-gray-700">
+            <p className="text-gray-700 dark:text-gray-300">
               Diese erste Testversion umfasst drei einfache Kategorien als
               funktionale Grundlage:
               <br /> <strong>Events</strong> dient der Organisation
@@ -180,13 +182,15 @@ export default function HomePage() {
               <Link
                 key={feature.href}
                 href={feature.href}
-                className="group block rounded-lg border-2 border-community-200 bg-white p-6 transition-all hover:border-community-400 hover:shadow-lg"
+                className="group block rounded-lg border-2 border-community-200 bg-white p-6 transition-all hover:border-community-400 hover:shadow-lg dark:border-community-800 dark:bg-gray-800 dark:hover:border-community-600"
               >
-                <Icon className="mb-4 h-10 w-10 text-community-600" />
-                <h3 className="mb-2 text-xl font-semibold text-gray-900">
+                <Icon className="mb-4 h-10 w-10 text-community-600 dark:text-community-400" />
+                <h3 className="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {feature.title}
                 </h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <p className="text-muted-foreground dark:text-gray-400">
+                  {feature.description}
+                </p>
               </Link>
             );
           })}
@@ -194,19 +198,19 @@ export default function HomePage() {
       </div>
 
       <div className="mb-12">
-        <div className="border-t border-gray-200 pt-6">
+        <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
           <div className="mx-auto max-w-md">
             <Link
               href={secondaryFeature.href}
-              className="group block rounded-lg border border-gray-300 bg-gray-50 p-6 transition-all hover:border-gray-400 hover:shadow-md"
+              className="group block rounded-lg border border-gray-300 bg-gray-50 p-6 transition-all hover:border-gray-400 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600"
             >
               <div className="flex items-center gap-4">
-                <MessageSquare className="h-8 w-8 text-gray-600" />
+                <MessageSquare className="h-8 w-8 text-gray-600 dark:text-gray-400" />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                     {secondaryFeature.title}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     {secondaryFeature.description}
                   </p>
                 </div>
@@ -219,16 +223,16 @@ export default function HomePage() {
       <div className="mx-auto mb-12 max-w-4xl">
         <button
           onClick={() => setShowBugBounty(!showBugBounty)}
-          className="w-full rounded-lg border-2 border-yellow-300 bg-yellow-50 p-4 text-left transition-all hover:shadow-md"
+          className="w-full rounded-lg border-2 border-yellow-300 bg-yellow-50 p-4 text-left transition-all hover:shadow-md dark:border-yellow-700 dark:bg-yellow-950"
         >
           <div className="flex items-center justify-between">
             <div className="flex flex-1 items-center gap-3">
-              <Trophy className="h-6 w-6 flex-shrink-0 text-yellow-600" />
+              <Trophy className="h-6 w-6 flex-shrink-0 text-yellow-600 dark:text-yellow-500" />
               <div>
-                <h3 className="mb-1 font-semibold text-gray-900">
+                <h3 className="mb-1 font-semibold text-gray-900 dark:text-gray-100">
                   🐛 Bug Bounty Programm
                 </h3>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   {showBugBounty
                     ? 'Klicke um Details zu verbergen'
                     : 'Hilf dabei die Plattform zu verbessern!'}
@@ -236,26 +240,26 @@ export default function HomePage() {
               </div>
             </div>
             {showBugBounty ? (
-              <ChevronUp className="ml-4 h-5 w-5 flex-shrink-0 text-gray-600" />
+              <ChevronUp className="ml-4 h-5 w-5 flex-shrink-0 text-gray-600 dark:text-gray-400" />
             ) : (
-              <ChevronDown className="ml-4 h-5 w-5 flex-shrink-0 text-gray-600" />
+              <ChevronDown className="ml-4 h-5 w-5 flex-shrink-0 text-gray-600 dark:text-gray-400" />
             )}
           </div>
         </button>
 
         {showBugBounty && (
-          <div className="mt-4 space-y-6 rounded-lg border-2 border-yellow-300 bg-white p-6">
+          <div className="mt-4 space-y-6 rounded-lg border-2 border-yellow-300 bg-white p-6 dark:border-yellow-700 dark:bg-gray-800">
             <div className="space-y-4">
-              <p className="text-gray-700">
+              <p className="text-gray-700 dark:text-gray-300">
                 <strong>Hilf mit!</strong> Während der Beta-Phase suchen wir
                 aktiv nach Bugs, Usability-Problemen und
                 Verbesserungsvorschlägen.
               </p>
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h4 className="mb-2 font-semibold text-blue-900">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-950">
+                <h4 className="mb-2 font-semibold text-blue-900 dark:text-blue-300">
                   So funktioniert es:
                 </h4>
-                <ol className="list-inside list-decimal space-y-1 text-sm text-blue-800">
+                <ol className="list-inside list-decimal space-y-1 text-sm text-blue-800 dark:text-blue-200">
                   <li>Finde einen Bug oder ein Problem auf der Plattform</li>
                   <li>
                     Poste eine detaillierte Beschreibung im Bug Bounty Thread im
@@ -274,9 +278,9 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="border-t pt-6">
-              <h4 className="mb-4 flex items-center gap-2 font-semibold text-gray-900">
-                <Trophy className="h-5 w-5 text-yellow-600" />
+            <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
+              <h4 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
                 Bug Hunter Leaderboard
               </h4>
               <AchievementLeaderboard

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -37,12 +37,59 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
     formState: { errors },
     setError,
     clearErrors,
+    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       rememberMe: true,
     },
   });
+
+  useEffect(() => {
+    const syncAutofillValues = () => {
+      const emailInput = document.querySelector(
+        'input[type="email"]'
+      ) as HTMLInputElement;
+      const passwordInput = document.querySelector(
+        'input[type="password"]'
+      ) as HTMLInputElement;
+
+      if (emailInput?.value) {
+        setValue('email', emailInput.value, { shouldValidate: false });
+      }
+      if (passwordInput?.value) {
+        setValue('password', passwordInput.value, { shouldValidate: false });
+      }
+    };
+
+    const timers = [
+      setTimeout(syncAutofillValues, 100),
+      setTimeout(syncAutofillValues, 300),
+      setTimeout(syncAutofillValues, 500),
+    ];
+
+    const handleAnimationStart = (e: AnimationEvent) => {
+      if (
+        e.animationName === 'mui-auto-fill' ||
+        e.animationName === 'onAutoFillStart'
+      ) {
+        syncAutofillValues();
+      }
+    };
+
+    document.addEventListener(
+      'animationstart',
+      handleAnimationStart as EventListener
+    );
+
+    return () => {
+      timers.forEach(clearTimeout);
+      document.removeEventListener(
+        'animationstart',
+        handleAnimationStart as EventListener
+      );
+    };
+  }, [setValue]);
 
   const handleResendVerification = async () => {
     if (!userEmail) return;
@@ -65,10 +112,22 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
     setShowResendButton(false);
     clearErrors('root');
 
+    const emailInput = document.querySelector(
+      'input[type="email"]'
+    ) as HTMLInputElement;
+    const passwordInput = document.querySelector(
+      'input[type="password"]'
+    ) as HTMLInputElement;
+
+    const finalData = {
+      email: data.email || emailInput?.value || '',
+      password: data.password || passwordInput?.value || '',
+    };
+
     try {
       const tokens = await apiClient.auth.login({
-        email: data.email,
-        password: data.password,
+        email: finalData.email,
+        password: finalData.password,
       });
 
       localStorage.setItem('auth_token', tokens.access_token);
@@ -90,7 +149,7 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
           type: 'manual',
           message: 'E-Mail noch nicht bestätigt - prüfen Sie Ihr Postfach',
         });
-        setUserEmail(data.email);
+        setUserEmail(finalData.email);
         setShowResendButton(true);
       } else if (errorMessage.includes('401')) {
         setError('root', {
