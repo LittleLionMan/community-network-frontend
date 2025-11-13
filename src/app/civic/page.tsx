@@ -24,7 +24,6 @@ export default function CivicDashboard() {
   const { data: recentEvents = [] } = useCivicEvents({
     limit: 3,
     upcoming_only: true,
-    // TODO: Filter by political categories when available
   });
 
   const { data: activePolls = [] } = usePolls({
@@ -55,30 +54,32 @@ export default function CivicDashboard() {
 
       <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-2">
         <div className="group overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-lg">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-                <Calendar className="h-6 w-6" />
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 text-white sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/20 sm:h-12 sm:w-12">
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <div>
-                <h2 className="text-xl font-semibold">Politische Events</h2>
-                <p className="text-blue-100">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold sm:text-xl">
+                  Politische Events
+                </h2>
+                <p className="text-sm text-blue-100">
                   Organisiere und besuche politische Veranstaltungen
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="mb-4 space-y-3">
               {recentEvents.length > 0 ? (
                 recentEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="flex items-center justify-between"
+                    className="flex items-start justify-between gap-2"
                   >
-                    <div>
-                      <h4 className="font-medium text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate font-medium text-gray-900">
                         {event.title}
                       </h4>
                       <p className="text-sm text-gray-600">
@@ -87,7 +88,7 @@ export default function CivicDashboard() {
                         )}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <div className="flex flex-shrink-0 items-center gap-1 text-sm text-gray-500">
                       <Users className="h-4 w-4" />
                       {event.participant_count}
                     </div>
@@ -100,17 +101,25 @@ export default function CivicDashboard() {
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Button asChild className="flex-1">
-                <Link href="/civic/events" className="flex items-center gap-2">
-                  Alle Events
+                <Link
+                  href="/civic/events"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <span>Alle Events</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
 
               {isAuthenticated && (
-                <Button variant="outline" asChild>
-                  <Link href="/civic/events/create">Event erstellen</Link>
+                <Button variant="outline" asChild className="sm:w-auto">
+                  <Link
+                    href="/civic/events/create"
+                    className="whitespace-nowrap"
+                  >
+                    Event erstellen
+                  </Link>
                 </Button>
               )}
             </div>
@@ -118,39 +127,41 @@ export default function CivicDashboard() {
         </div>
 
         <div className="group overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-lg">
-          <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 text-white">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-                <Vote className="h-6 w-6" />
+          <div className="bg-gradient-to-br from-green-500 to-green-600 p-4 text-white sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white/20 sm:h-12 sm:w-12">
+                <Vote className="h-5 w-5 sm:h-6 sm:w-6" />
               </div>
-              <div>
-                <h2 className="text-xl font-semibold">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold sm:text-xl">
                   Community-Abstimmungen
                 </h2>
-                <p className="text-green-100">
+                <p className="text-sm text-green-100">
                   Stimme ab und gestalte Entscheidungen mit
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="mb-4 space-y-3">
               {activePolls.length > 0 ? (
                 activePolls.map((poll) => (
                   <div
                     key={poll.id}
-                    className="flex items-center justify-between"
+                    className="flex items-start justify-between gap-2"
                   >
-                    <div>
-                      <h4 className="font-medium text-gray-900">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="line-clamp-2 font-medium text-gray-900">
                         {poll.question.length > 50
                           ? `${poll.question.slice(0, 50)}...`
                           : poll.question}
                       </h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <BarChart3 className="h-4 w-4" />
-                        {poll.total_votes} Stimmen
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <BarChart3 className="h-4 w-4" />
+                          {poll.total_votes} Stimmen
+                        </span>
                         {poll.ends_at && (
                           <span className="text-gray-400">
                             • endet{' '}
@@ -159,7 +170,7 @@ export default function CivicDashboard() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-shrink-0 items-center gap-1">
                       {poll.user_vote ? (
                         <CheckCircle className="h-5 w-5 text-green-500" />
                       ) : (
@@ -173,17 +184,25 @@ export default function CivicDashboard() {
               )}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Button asChild className="flex-1">
-                <Link href="/civic/polls" className="flex items-center gap-2">
-                  Alle Abstimmungen
+                <Link
+                  href="/civic/polls"
+                  className="flex items-center justify-center gap-2"
+                >
+                  <span>Alle Abstimmungen</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
 
               {isAuthenticated && (
-                <Button variant="outline" asChild>
-                  <Link href="/civic/polls/create">Abstimmung erstellen</Link>
+                <Button variant="outline" asChild className="sm:w-auto">
+                  <Link
+                    href="/civic/polls/create"
+                    className="whitespace-nowrap"
+                  >
+                    Abstimmung erstellen
+                  </Link>
                 </Button>
               )}
             </div>
@@ -248,7 +267,7 @@ export default function CivicDashboard() {
             Registriere dich, um Events zu erstellen, an Abstimmungen
             teilzunehmen und aktiv die Zukunft deiner Community mitzugestalten.
           </p>
-          <div className="flex justify-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button asChild>
               <Link href="/auth/register">Registrieren</Link>
             </Button>

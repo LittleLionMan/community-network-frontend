@@ -232,7 +232,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
           >
             {message.reply_to && (
               <div
-                className={`mb-1 text-xs text-gray-500 ${isOwnMessage ? 'text-right' : 'text-left'}`}
+                className={`mb-1 text-xs text-gray-500 dark:text-gray-400 ${isOwnMessage ? 'text-right' : 'text-left'}`}
               >
                 <div className="flex items-center space-x-1">
                   <Reply className="h-3 w-3" />
@@ -248,13 +248,13 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
               className={`relative rounded-2xl px-4 py-2 ${
                 isOwnMessage
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
+                  : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
               } ${message.is_deleted ? 'italic opacity-60' : ''} ${
                 isSubmitting ? 'opacity-50' : ''
               }`}
             >
               {!isOwnMessage && !isConsecutive && (
-                <div className="mb-1 text-xs font-medium text-gray-600">
+                <div className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">
                   {message.sender.display_name}
                 </div>
               )}
@@ -298,7 +298,9 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
 
               <div
                 className={`mt-1 flex items-center justify-between text-xs ${
-                  isOwnMessage ? 'text-indigo-200' : 'text-gray-500'
+                  isOwnMessage
+                    ? 'text-indigo-200'
+                    : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 <span>
@@ -326,12 +328,12 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
               !message.is_deleted &&
               !isSubmitting && (
                 <div
-                  className={`absolute top-0 ${isOwnMessage ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} flex items-center space-x-1 rounded-lg border bg-white p-1 shadow-lg`}
+                  className={`absolute top-0 ${isOwnMessage ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} flex items-center space-x-1 rounded-lg border bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-gray-800`}
                 >
                   {onReply && (
                     <button
                       onClick={() => onReply(message)}
-                      className="rounded p-1 text-gray-600 hover:bg-gray-100"
+                      className="rounded p-1 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                       title="Antworten"
                     >
                       <Reply className="h-4 w-4" />
@@ -341,7 +343,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
                   {canEdit && (
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="rounded p-1 text-gray-600 hover:bg-gray-100"
+                      className="rounded p-1 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                       title="Bearbeiten"
                     >
                       <Edit3 className="h-4 w-4" />
@@ -351,7 +353,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
                   {canDelete && (
                     <button
                       onClick={handleDelete}
-                      className="rounded p-1 text-red-600 hover:bg-red-100"
+                      className="rounded p-1 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900"
                       title="Löschen"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -454,23 +456,23 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
     }, []);
 
     return (
-      <div className="border-t bg-white p-4">
+      <div className="border-t bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
         {replyToMessage && (
-          <div className="mb-3 flex items-center justify-between rounded-lg bg-gray-50 p-3">
+          <div className="mb-3 flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700">
             <div className="flex items-center space-x-2">
-              <Reply className="h-4 w-4 text-gray-500" />
+              <Reply className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               <div>
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-gray-900 dark:text-white">
                   Antwort an {replyToMessage.sender.display_name}
                 </div>
-                <div className="max-w-xs truncate text-sm text-gray-600">
+                <div className="max-w-xs truncate text-sm text-gray-600 dark:text-gray-300">
                   {replyToMessage.content}
                 </div>
               </div>
             </div>
             <button
               onClick={onCancelReply}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
               <X className="h-4 w-4" />
             </button>
@@ -486,7 +488,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
               onKeyDown={handleKeyPress}
               placeholder={placeholder}
               disabled={disabled || isSending}
-              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+              className="w-full resize-none rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:disabled:bg-gray-800"
               rows={1}
               style={{ minHeight: '44px', maxHeight: '120px' }}
               maxLength={2000}
@@ -496,7 +498,7 @@ const MessageInput: React.FC<MessageInputProps> = React.memo(
           <button
             onClick={handleSend}
             disabled={!content.trim() || disabled || isSending}
-            className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-600"
           >
             {isSending ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -531,7 +533,7 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = React.memo(
     };
 
     return (
-      <div className="px-4 py-2 text-sm italic text-gray-500">
+      <div className="px-4 py-2 text-sm italic text-gray-500 dark:text-gray-400">
         <div className="flex items-center space-x-2">
           <div className="flex space-x-1">
             <div
@@ -582,12 +584,12 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
     const participantName = otherParticipant?.user.display_name || 'Unbekannt';
 
     return (
-      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center space-x-3">
           {showBackButton && onBack && (
             <button
               onClick={onBack}
-              className="mr-2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 lg:hidden"
+              className="mr-2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200 lg:hidden"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -603,7 +605,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
           />
 
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               {participantName}
             </h2>
           </div>
@@ -613,7 +615,7 @@ const ConversationHeader: React.FC<ConversationHeaderProps> = React.memo(
           {onClose && (
             <button
               onClick={onClose}
-              className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 lg:hidden"
+              className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200 lg:hidden"
             >
               <X className="h-5 w-5" />
             </button>
@@ -733,8 +735,8 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
   }, [isLoadingMore, hasMoreMessages, onLoadMoreMessages]);
 
   return (
-    <div className="relative flex h-full bg-gray-50">
-      <div className="hidden w-80 flex-col border-r border-gray-200 bg-white md:flex">
+    <div className="relative flex h-full bg-gray-50 dark:bg-gray-900">
+      <div className="hidden w-80 flex-col border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 md:flex">
         <ConversationList
           conversations={conversations}
           currentUserId={currentUserId}
@@ -744,7 +746,7 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
       </div>
 
       <div
-        className={`absolute inset-0 w-full bg-white transition-transform duration-300 md:hidden ${
+        className={`absolute inset-0 w-full bg-white transition-transform duration-300 dark:bg-gray-800 md:hidden ${
           showMobileConversationList ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -777,7 +779,7 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
                 <div className="flex h-full flex-col">
                   <div
                     ref={messagesContainerRef}
-                    className="flex-1 space-y-1 overflow-y-auto p-4"
+                    className="flex-1 space-y-1 overflow-y-auto bg-white p-4 dark:bg-gray-900"
                   >
                     <div className="space-y-1">
                       {hasMoreMessages && (
@@ -785,7 +787,7 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
                           <button
                             onClick={handleLoadMore}
                             disabled={isLoadingMore}
-                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50 dark:text-indigo-400 dark:hover:text-indigo-300"
                           >
                             {isLoadingMore ? (
                               <div className="flex items-center space-x-2">
@@ -824,24 +826,24 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
 
             {!targetUserPrivacy.messages_enabled &&
             !targetUserPrivacy.loading ? (
-              <div className="border-t bg-gray-50 p-4">
-                <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6">
+              <div className="border-t bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 dark:border-gray-600">
                   <div className="text-center">
                     <MessageCircle className="mx-auto h-8 w-8 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
                       Nachrichten deaktiviert
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                       Dieser Nutzer hat private Nachrichten deaktiviert.
                     </p>
                   </div>
                 </div>
               </div>
             ) : targetUserPrivacy.loading ? (
-              <div className="border-t bg-gray-50 p-4">
+              <div className="border-t bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
                 <div className="flex items-center justify-center">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600"></div>
-                  <span className="ml-2 text-sm text-gray-600">
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">
                     Prüfe Verfügbarkeit...
                   </span>
                 </div>
@@ -858,13 +860,13 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
             )}
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-gray-500">
+          <div className="flex flex-1 items-center justify-center text-gray-500 dark:text-gray-400">
             <div className="text-center">
-              <MessageCircle className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-              <h2 className="mb-2 text-xl font-medium text-gray-900">
+              <MessageCircle className="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" />
+              <h2 className="mb-2 text-xl font-medium text-gray-900 dark:text-white">
                 Wähle eine Conversation
               </h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 Wähle eine Conversation aus der Liste oder starte eine neue
               </p>
             </div>

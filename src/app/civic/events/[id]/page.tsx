@@ -160,50 +160,75 @@ export default function CivicEventDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <Button variant="ghost" asChild>
+      <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" asChild className="w-fit">
           <Link href="/civic/events" className="flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Zurück zu politischen Events
+            <span className="hidden sm:inline">
+              Zurück zu politischen Events
+            </span>
+            <span className="sm:hidden">Zurück</span>
           </Link>
         </Button>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleShare}>
+        {canEdit && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="flex-1 sm:flex-initial"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="ml-2 sm:hidden">Teilen</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="flex-1 sm:flex-initial"
+            >
+              <Link href={`/civic/events/${eventId}/edit`}>
+                <Edit className="h-4 w-4" />
+                <span className="ml-2 sm:hidden">Bearbeiten</span>
+              </Link>
+            </Button>
+
+            <EventDeleteButton
+              event={{
+                id: event.id,
+                title: event.title,
+                creator: {
+                  id: event.creator.id,
+                },
+                participant_count: event.participant_count,
+              }}
+              onSuccess={() => router.push('/civic/events')}
+              eventType="civic"
+              variant="button"
+              size="sm"
+            />
+          </div>
+        )}
+
+        {!canEdit && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            className="w-full sm:w-auto"
+          >
             <Share2 className="h-4 w-4" />
+            <span className="ml-2">Teilen</span>
           </Button>
-
-          {canEdit && (
-            <>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/civic/events/${eventId}/edit`}>
-                  <Edit className="h-4 w-4" />
-                </Link>
-              </Button>
-
-              <EventDeleteButton
-                event={{
-                  id: event.id,
-                  title: event.title,
-                  creator: {
-                    id: event.creator.id,
-                  },
-                  participant_count: event.participant_count,
-                }}
-                onSuccess={() => router.push('/civic/events')}
-                eventType="civic"
-                variant="button"
-                size="sm"
-              />
-            </>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
         <div className="flex items-start gap-3">
           <Megaphone className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-          <div>
+          <div className="min-w-0">
             <h3 className="font-medium text-blue-900">
               Politisches Community-Event
             </h3>
@@ -219,7 +244,7 @@ export default function CivicEventDetailPage({
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <div>
-            <div className="mb-3 flex items-center gap-2">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
                 🏛️ Politisches Event
               </span>
@@ -241,20 +266,22 @@ export default function CivicEventDetailPage({
               )}
             </div>
 
-            <h1 className="mb-3 text-3xl font-bold text-gray-900">
+            <h1 className="mb-3 text-2xl font-bold text-gray-900 sm:text-3xl">
               {event.title}
             </h1>
 
             <div className="flex items-center gap-2 text-gray-600">
               <ProfileAvatar user={event.creator} size="sm" />
-              <span>Organisiert von {event.creator.display_name}</span>
+              <span className="text-sm sm:text-base">
+                Organisiert von {event.creator.display_name}
+              </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 rounded-lg bg-gray-50 p-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 rounded-lg bg-gray-50 p-4 sm:p-6 md:grid-cols-2">
             <div className="flex items-start gap-3">
               <Calendar className="mt-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-              <div>
+              <div className="min-w-0">
                 <div className="font-medium text-gray-900">{dateText}</div>
                 <div className="text-sm text-gray-600">{timeText} Uhr</div>
               </div>
@@ -263,16 +290,18 @@ export default function CivicEventDetailPage({
             {event.location && (
               <div className="flex items-start gap-3">
                 <MapPin className="mt-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-                <div>
+                <div className="min-w-0">
                   <div className="font-medium text-gray-900">Ort</div>
-                  <div className="text-sm text-gray-600">{event.location}</div>
+                  <div className="break-words text-sm text-gray-600">
+                    {event.location}
+                  </div>
                 </div>
               </div>
             )}
 
             <div className="flex items-start gap-3">
               <Clock className="mt-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-              <div>
+              <div className="min-w-0">
                 <div className="font-medium text-gray-900">Anmeldung</div>
                 <div
                   className={`text-sm ${isDeadlinePassed ? 'text-red-600' : 'text-gray-600'}`}
@@ -289,7 +318,7 @@ export default function CivicEventDetailPage({
 
             <div className="flex items-start gap-3">
               <Users className="mt-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-              <div>
+              <div className="min-w-0">
                 <div className="font-medium text-gray-900">Teilnehmer</div>
                 <div className="text-sm text-gray-600">
                   {event.max_participants
@@ -301,7 +330,7 @@ export default function CivicEventDetailPage({
 
             <div className="flex items-start gap-3">
               <Clock className="mt-1 h-5 w-5 flex-shrink-0 text-gray-400" />
-              <div>
+              <div className="min-w-0">
                 <div className="font-medium text-gray-900">Erstellt</div>
                 <div className="text-sm text-gray-600">
                   {format(parseISO(event.created_at), 'dd.MM.yyyy', {
@@ -339,7 +368,7 @@ export default function CivicEventDetailPage({
         <div className="lg:col-span-1">
           <div className="sticky top-8 space-y-6">
             {!isPastEvent && (
-              <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
                 <h3 className="mb-4 font-semibold text-gray-900">
                   An politischem Event teilnehmen
                 </h3>
@@ -357,7 +386,7 @@ export default function CivicEventDetailPage({
                   />
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-center text-gray-600">
+                    <p className="text-center text-sm text-gray-600 sm:text-base">
                       Du musst angemeldet sein, um an politischen Events
                       teilzunehmen.
                     </p>
@@ -374,7 +403,7 @@ export default function CivicEventDetailPage({
               </div>
             )}
 
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
               <h3 className="mb-4 font-semibold text-gray-900">
                 Event Details
               </h3>
@@ -421,19 +450,6 @@ export default function CivicEventDetailPage({
                   <span className="text-xs font-medium">#{event.id}</span>
                 </div>
               </div>
-            </div>
-
-            <div className="rounded-lg border border-blue-200 bg-white p-6">
-              <h3 className="mb-4 font-semibold text-gray-900">
-                Mehr politische Events
-              </h3>
-              <p className="mb-4 text-sm text-gray-600">
-                Entdecke weitere politische Veranstaltungen und engagiere dich
-                in deiner Community.
-              </p>
-              <Button variant="outline" asChild className="w-full">
-                <Link href="/civic/events">Alle politischen Events</Link>
-              </Button>
             </div>
           </div>
         </div>

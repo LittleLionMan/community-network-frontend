@@ -157,7 +157,7 @@ const NewConversationModal = React.memo<{
     <>
       <div className="space-y-4">
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Empfänger suchen
           </label>
           <div className="relative">
@@ -167,12 +167,12 @@ const NewConversationModal = React.memo<{
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Name oder Email eingeben..."
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
             />
           </div>
 
           {searchResults.length > 0 && (
-            <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-gray-200">
+            <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-800">
               {searchResults.map((user) => (
                 <button
                   key={user.id}
@@ -183,8 +183,10 @@ const NewConversationModal = React.memo<{
                     setSearchQuery(user.display_name);
                     setSearchResults([]);
                   }}
-                  className={`flex w-full items-center space-x-3 p-3 text-left hover:bg-gray-50 ${
-                    selectedUserId === user.id ? 'bg-indigo-50' : ''
+                  className={`flex w-full items-center space-x-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    selectedUserId === user.id
+                      ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                      : ''
                   }`}
                 >
                   <ProfileAvatar
@@ -196,7 +198,7 @@ const NewConversationModal = React.memo<{
                     size="sm"
                   />
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-gray-900 dark:text-white">
                       {user.display_name}
                     </div>
                   </div>
@@ -206,7 +208,7 @@ const NewConversationModal = React.memo<{
           )}
 
           {selectedUser && (
-            <div className="rounded-lg bg-indigo-50 p-3">
+            <div className="mt-2 rounded-lg bg-indigo-50 p-3 dark:bg-indigo-900/30">
               <div className="flex items-center space-x-3">
                 <ProfileAvatar
                   user={{
@@ -217,8 +219,10 @@ const NewConversationModal = React.memo<{
                   size="sm"
                 />
                 <div className="flex-1">
-                  <div className="text-sm text-indigo-600">Ausgewählt:</div>
-                  <div className="font-medium text-indigo-900">
+                  <div className="text-sm text-indigo-600 dark:text-indigo-400">
+                    Ausgewählt:
+                  </div>
+                  <div className="font-medium text-indigo-900 dark:text-indigo-300">
                     {selectedUser.display_name}
                   </div>
                 </div>
@@ -227,19 +231,25 @@ const NewConversationModal = React.memo<{
           )}
 
           {isSearching && (
-            <div className="mt-2 text-sm text-gray-500">Suche...</div>
+            <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Suche...
+            </div>
           )}
         </div>
 
-        {selectedUserId && (
-          <div className="rounded-lg bg-indigo-50 p-3">
-            <div className="text-sm text-indigo-600">Ausgewählt:</div>
-            <div className="font-medium text-indigo-900">{searchQuery}</div>
+        {selectedUserId && !selectedUser && (
+          <div className="rounded-lg bg-indigo-50 p-3 dark:bg-indigo-900/30">
+            <div className="text-sm text-indigo-600 dark:text-indigo-400">
+              Ausgewählt:
+            </div>
+            <div className="font-medium text-indigo-900 dark:text-indigo-300">
+              {searchQuery}
+            </div>
           </div>
         )}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Erste Nachricht
           </label>
           <textarea
@@ -247,7 +257,7 @@ const NewConversationModal = React.memo<{
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Schreibe eine Nachricht..."
             rows={3}
-            className="w-full rounded-lg border border-gray-300 p-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-300 bg-white p-3 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
             disabled={isBlocked}
           />
         </div>
@@ -255,7 +265,7 @@ const NewConversationModal = React.memo<{
         <div className="flex justify-end space-x-3 pt-4">
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             disabled={isLoading}
           >
             Abbrechen
@@ -265,7 +275,7 @@ const NewConversationModal = React.memo<{
             disabled={
               !selectedUserId || !message.trim() || isLoading || isBlocked
             }
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:disabled:bg-gray-600"
           >
             {isLoading ? 'Erstelle...' : 'Konversation starten'}
           </button>
@@ -278,9 +288,9 @@ const NewConversationModal = React.memo<{
     <>
       <div className="hidden md:block">
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-gray-800">
             <div className="p-6">
-              <h2 className="mb-4 text-xl font-semibold text-gray-900">
+              <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
                 Neue Unterhaltung starten
               </h2>
               {modalContent}
@@ -683,10 +693,10 @@ export default function MessagesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-gray-900">
         <div className="text-center">
           <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
-          <p className="text-gray-600">Lade...</p>
+          <p className="text-gray-600 dark:text-gray-300">Lade...</p>
         </div>
       </div>
     );
@@ -694,12 +704,12 @@ export default function MessagesPage() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-gray-900">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Nicht angemeldet
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             Bitte melde dich an um Nachrichten zu sehen.
           </p>
           <button
@@ -715,7 +725,7 @@ export default function MessagesPage() {
 
   return (
     <UnifiedErrorBoundary>
-      <div className="flex h-[calc(100vh-4rem)] flex-col">
+      <div className="flex h-[calc(100vh-4rem)] flex-col bg-white dark:bg-gray-900">
         <ToastManager
           authError={
             authError && !isErrorDismissed(getErrorId(authError))
@@ -766,22 +776,24 @@ export default function MessagesPage() {
 
         <div className="min-h-0 flex-1 overflow-hidden">
           {conversationsLoading ? (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full items-center justify-center bg-white dark:bg-gray-900">
               <div className="text-center">
                 <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div>
-                <p className="text-gray-600">Lade Conversations...</p>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Lade Conversations...
+                </p>
               </div>
             </div>
           ) : (
             <UnifiedErrorBoundary
               fallback={
-                <div className="flex h-full items-center justify-center">
+                <div className="flex h-full items-center justify-center bg-white dark:bg-gray-900">
                   <div className="w-full max-w-md text-center">
-                    <div className="rounded-lg bg-white p-6 shadow-lg">
-                      <h2 className="mb-2 text-xl font-semibold text-gray-900">
+                    <div className="rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
+                      <h2 className="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
                         Interface-Fehler
                       </h2>
-                      <p className="mb-4 text-gray-600">
+                      <p className="mb-4 text-gray-600 dark:text-gray-300">
                         Das Nachrichten-Interface konnte nicht geladen werden.
                       </p>
                       <button

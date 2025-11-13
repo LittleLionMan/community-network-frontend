@@ -159,22 +159,6 @@ export function CivicEventEditForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-        <div className="flex items-start gap-3">
-          <Megaphone className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-          <div>
-            <h3 className="font-medium text-blue-900">
-              Politisches Event bearbeiten
-            </h3>
-            <p className="mt-1 text-sm text-blue-800">
-              Du bearbeitest ein Event mit politischem oder gesellschaftlichem
-              Fokus. Bitte achte weiterhin auf eine sachliche, respektvolle
-              Beschreibung.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div>
         <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
           <FileText className="h-4 w-4" />
@@ -318,7 +302,11 @@ export function CivicEventEditForm({
         <textarea
           {...register('description')}
           rows={8}
-          className="bg-background flex w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          style={{
+            backgroundColor: 'var(--background)',
+            color: 'var(--foreground)',
+          }}
+          className="flex w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Beschreibe dein politisches Event ausführlich:
 - Welches Thema wird behandelt?
 - Wer ist die Zielgruppe?
@@ -356,11 +344,11 @@ export function CivicEventEditForm({
       </div>
 
       <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Button
             type="submit"
             disabled={isSubmitting || !isDirty}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -381,7 +369,7 @@ export function CivicEventEditForm({
               variant="outline"
               onClick={handleReset}
               disabled={isSubmitting}
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2"
             >
               <Trash2 className="h-4 w-4" />
               Zurücksetzen
@@ -395,6 +383,7 @@ export function CivicEventEditForm({
             variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             Abbrechen
           </Button>

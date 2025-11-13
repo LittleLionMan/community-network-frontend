@@ -53,24 +53,24 @@ export const ConversationListItem: React.FC<ConversationListItemProps> =
     }, [conversation.last_message]);
 
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`flex w-full items-center space-x-3 border-b border-gray-100 p-3 text-left transition-colors hover:bg-gray-50 active:bg-gray-100 sm:p-4 ${
+      <div
+        className={`flex w-full cursor-pointer items-center space-x-3 border-b border-gray-100 p-3 transition-colors hover:bg-gray-50 active:bg-gray-100 sm:p-4 ${
           isSelected ? 'border-indigo-200 bg-indigo-50' : ''
         }`}
       >
-        <ProfileAvatar
-          user={{
-            id: otherParticipant?.user.id,
-            display_name: participantName,
-            profile_image_url: otherParticipant?.user.profile_image_url,
-          }}
-          size="md"
-          className="flex-shrink-0"
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <ProfileAvatar
+            user={{
+              id: otherParticipant?.user.id,
+              display_name: participantName,
+              profile_image_url: otherParticipant?.user.profile_image_url,
+            }}
+            size="md"
+            className="flex-shrink-0"
+          />
+        </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1" onClick={onClick}>
           <div className="flex items-center justify-between gap-2">
             <h3
               className={`truncate text-sm font-medium sm:text-base ${
@@ -123,7 +123,7 @@ export const ConversationListItem: React.FC<ConversationListItemProps> =
             )}
           </div>
         )}
-      </button>
+      </div>
     );
   });
 

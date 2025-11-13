@@ -79,7 +79,7 @@ export default function EventsPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold">Community Events</h1>
         </div>
 
@@ -106,7 +106,7 @@ export default function EventsPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold">Community Events</h1>
         </div>
 
@@ -129,19 +129,24 @@ export default function EventsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Community Events</h1>
-          <p className="mt-1 text-gray-600">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            Community Events
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 sm:text-base">
             Entdecke Events in deiner Community
           </p>
         </div>
 
         {isAuthenticated && (
-          <Button asChild className="flex items-center gap-2">
-            <Link href="/events/create">
+          <Button asChild className="w-full flex-shrink-0 sm:w-auto">
+            <Link
+              href="/events/create"
+              className="flex items-center justify-center gap-2"
+            >
               <Plus className="h-4 w-4" />
-              Event erstellen
+              <span className="whitespace-nowrap">Event erstellen</span>
             </Link>
           </Button>
         )}
@@ -221,6 +226,7 @@ export default function EventsPage() {
               event={event}
               variant={viewMode === 'grid' ? 'card' : 'list'}
               showJoinButton={isAuthenticated}
+              eventType="regular"
             />
           ))}
         </div>

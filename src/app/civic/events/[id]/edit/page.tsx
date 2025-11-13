@@ -246,18 +246,6 @@ export default function CivicEventEditPage({
                 </li>
               </ul>
             </div>
-
-            <div className="rounded-lg border border-blue-200 bg-white p-6">
-              <h3 className="mb-4 font-medium text-gray-900">Mehr Aktionen</h3>
-              <div className="space-y-2">
-                <Button variant="outline" asChild className="w-full">
-                  <Link href="/civic/events">Alle politischen Events</Link>
-                </Button>
-                <Button variant="outline" asChild className="w-full">
-                  <Link href="/civic">Civic Dashboard</Link>
-                </Button>
-              </div>
-            </div>
           </div>
         </div>
       </div>

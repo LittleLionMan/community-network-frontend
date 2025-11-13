@@ -235,3 +235,99 @@
       0 4px 6px -2px rgba(0, 0, 0, 0.3) !important;
   }
 }
+
+@layer components {
+  .react-datepicker-wrapper,
+  .react-datepicker__input-container {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .react-datepicker__input-container input {
+    width: 100% !important;
+  }
+
+  @media (max-width: 640px) {
+    .custom-datepicker-calendar {
+      font-size: 0.875rem !important;
+    }
+
+    .custom-datepicker-popper {
+      z-index: 9999 !important;
+      max-width: 95vw !important;
+    }
+
+    .react-datepicker {
+      display: flex !important;
+      flex-direction: column !important;
+      max-width: 90vw !important;
+    }
+
+    .react-datepicker__month-container {
+      width: 100% !important;
+    }
+
+    .react-datepicker__time-container {
+      width: 100% !important;
+      border-left: none !important;
+      border-top: 1px solid #e5e7eb !important;
+    }
+
+    .react-datepicker__time-container .react-datepicker__time {
+      background: white !important;
+    }
+
+    .react-datepicker__time-container
+      .react-datepicker__time
+      .react-datepicker__time-box {
+      width: 100% !important;
+      margin: 0 !important;
+    }
+
+    .react-datepicker__time-list {
+      height: 150px !important;
+      overflow-y: auto !important;
+      padding: 0 !important;
+    }
+
+    .react-datepicker__time-list-item {
+      padding: 10px !important;
+      font-size: 0.875rem !important;
+    }
+
+    .react-datepicker__header {
+      padding-top: 8px !important;
+    }
+
+    .react-datepicker__current-month {
+      font-size: 0.875rem !important;
+      padding: 4px 0 !important;
+    }
+
+    .react-datepicker__day-name,
+    .react-datepicker__day {
+      width: 2rem !important;
+      line-height: 2rem !important;
+      margin: 0.166rem !important;
+      font-size: 0.75rem !important;
+    }
+
+    .react-datepicker__navigation {
+      top: 8px !important;
+    }
+  }
+
+  .dark .react-datepicker__time-container {
+    border-color: #475569 !important;
+  }
+
+  .dark .react-datepicker__time-container .react-datepicker__time {
+    background: #1e293b !important;
+  }
+
+  @media (max-width: 640px) {
+    .dark .react-datepicker__time-container {
+      border-top-color: #475569 !important;
+    }
+  }
+}

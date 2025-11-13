@@ -27,6 +27,7 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { unreadCount } = useGlobalUnreadCount();
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,6 +36,13 @@ export function Header() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setShowDropdown(false);
+      }
+
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowMobileMenu(false);
       }
     }
 
@@ -100,7 +108,6 @@ export function Header() {
           </nav>
         </div>
 
-        {/* Mobile Logo - Left Side */}
         <div className="flex items-center md:hidden">
           <Link className="flex items-center space-x-2" href="/">
             <span className="font-bold">Plätzchen</span>
@@ -108,7 +115,6 @@ export function Header() {
         </div>
 
         <div className="flex flex-1 items-center justify-end space-x-2 md:justify-end">
-          {/* Mobile: Messages, Notifications and Menu - Right Side */}
           {isAuthenticated && user && (
             <div className="flex items-center gap-1 md:hidden">
               <Link href="/messages" className="relative">
@@ -267,9 +273,8 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {showMobileMenu && (
-        <div className="border-t bg-white md:hidden">
+        <div ref={mobileMenuRef} className="border-t bg-white md:hidden">
           <nav className="container flex flex-col space-y-1 py-4">
             <Link
               href="/events"

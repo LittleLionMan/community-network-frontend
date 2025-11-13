@@ -9,11 +9,9 @@ import { Input } from '@/components/ui/input';
 import { useCreateCivicEvent } from '@/hooks/useEvents';
 import { toast } from '@/components/ui/toast';
 import {
-  CalendarDays,
   MapPin,
   Users,
   FileText,
-  Clock,
   Save,
   RefreshCw,
   Megaphone,
@@ -174,8 +172,7 @@ export function CivicEventCreateForm({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-            <CalendarDays className="h-4 w-4" />
+          <label className="mb-2 block text-sm font-medium text-gray-700">
             Startdatum & Zeit *
           </label>
           <Controller
@@ -199,8 +196,7 @@ export function CivicEventCreateForm({
         </div>
 
         <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Clock className="h-4 w-4" />
+          <label className="mb-2 block text-sm font-medium text-gray-700">
             Enddatum & Zeit (optional)
           </label>
           <Controller
@@ -285,7 +281,11 @@ export function CivicEventCreateForm({
         <textarea
           {...register('description')}
           rows={8}
-          className="bg-background flex w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          style={{
+            backgroundColor: 'var(--background)',
+            color: 'var(--foreground)',
+          }}
+          className="flex w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Beschreibe dein politisches Event ausführlich:
 - Welches Thema wird behandelt?
 - Wer ist die Zielgruppe?

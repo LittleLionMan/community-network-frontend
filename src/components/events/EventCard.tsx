@@ -28,12 +28,14 @@ interface EventCardProps {
   };
   variant?: 'card' | 'list';
   showJoinButton?: boolean;
+  eventType?: 'regular' | 'civic';
 }
 
 export function EventCard({
   event,
   variant = 'card',
   showJoinButton = true,
+  eventType = 'regular',
 }: EventCardProps) {
   const eventDate = parseISO(event.start_datetime);
 
@@ -54,12 +56,15 @@ export function EventCard({
     return `${event.participant_count} Teilnehmer`;
   };
 
+  const eventLink =
+    eventType === 'civic' ? `/civic/events/${event.id}` : `/events/${event.id}`;
+
   if (variant === 'list') {
     return (
       <div className="border-b border-gray-200 py-4">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <Link href={`/events/${event.id}`} className="group block">
+            <Link href={eventLink} className="group block">
               <h3 className="font-semibold text-gray-900 transition-colors group-hover:text-community-600">
                 {event.title}
               </h3>
@@ -131,7 +136,7 @@ export function EventCard({
           )}
         </div>
 
-        <Link href={`/events/${event.id}`} className="group block">
+        <Link href={eventLink} className="group block">
           <h3 className="mb-2 font-semibold text-gray-900 transition-colors group-hover:text-community-600">
             {event.title}
           </h3>

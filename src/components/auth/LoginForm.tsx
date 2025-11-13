@@ -181,8 +181,10 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
   return (
     <div className={className}>
       <div className="mb-8 text-center">
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">Anmelden</h1>
-        <p className="text-gray-600">
+        <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
+          Anmelden
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300">
           Willkommen zurück! Melden Sie sich in Ihrem Account an.
         </p>
       </div>
@@ -214,7 +216,7 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
               onClick={togglePasswordVisibility}
               disabled={isSubmitting}
               aria-label={
@@ -234,11 +236,11 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
           <label className="flex items-center">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-community-600 focus:ring-community-500"
+              className="h-4 w-4 rounded border-gray-300 text-community-600 focus:ring-community-500 dark:border-gray-600 dark:bg-gray-700"
               disabled={isSubmitting}
               {...register('rememberMe')}
             />
-            <span className="ml-2 text-sm text-gray-600">
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">
               Angemeldet bleiben
             </span>
           </label>
@@ -252,8 +254,8 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
         </div>
 
         {errors.root && (
-          <div className="rounded-md bg-red-50 p-3">
-            <div className="text-center text-sm text-red-600">
+          <div className="rounded-md bg-red-50 p-3 dark:bg-red-900/20">
+            <div className="text-center text-sm text-red-600 dark:text-red-400">
               {errors.root.message}
             </div>
             {showResendButton && (
@@ -262,7 +264,7 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
                   type="button"
                   onClick={handleResendVerification}
                   disabled={isResending}
-                  className="text-sm text-blue-600 underline hover:text-blue-500 disabled:opacity-50"
+                  className="text-sm text-blue-600 underline hover:text-blue-500 disabled:opacity-50 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   {isResending ? 'Wird gesendet...' : 'E-Mail erneut senden'}
                 </button>
@@ -283,11 +285,11 @@ export function LoginForm({ redirectTo, className }: LoginFormProps) {
         </Button>
 
         <div className="text-center">
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 dark:text-gray-300">
             Noch kein Account?{' '}
             <Link
               href="/auth/register"
-              className="font-medium text-community-600 hover:text-community-500 focus:underline focus:outline-none"
+              className="font-medium text-community-600 hover:text-community-500 focus:underline focus:outline-none dark:text-community-400 dark:hover:text-community-300"
             >
               Jetzt registrieren
             </Link>

@@ -1,7 +1,6 @@
 import { forwardRef } from 'react';
 import DatePicker from 'react-datepicker';
 import { de } from 'date-fns/locale';
-import { Calendar } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 
 interface DateTimePickerProps {
@@ -26,7 +25,7 @@ export const DateTimePicker = forwardRef<DatePicker, DateTimePickerProps>(
     ref
   ) => {
     return (
-      <div className="relative">
+      <div className="relative w-full">
         <DatePicker
           ref={ref}
           selected={value}
@@ -39,13 +38,15 @@ export const DateTimePicker = forwardRef<DatePicker, DateTimePickerProps>(
           placeholderText={placeholder}
           minDate={minDate}
           disabled={disabled}
-          className={`w-full rounded-md border px-3 py-2 pr-10 ${
+          className={`w-full rounded-md border ${
             error ? 'border-red-300' : 'border-gray-300'
-          } focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500`}
+          } bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400`}
+          wrapperClassName="w-full"
+          calendarClassName="custom-datepicker-calendar"
+          popperClassName="custom-datepicker-popper"
+          showPopperArrow={false}
+          popperPlacement="bottom-start"
         />
-        <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-          <Calendar className="h-4 w-4 text-gray-400" />
-        </div>
       </div>
     );
   }

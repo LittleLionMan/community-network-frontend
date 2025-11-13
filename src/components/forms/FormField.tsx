@@ -39,11 +39,14 @@ export function FormField({
     <div className={cn('space-y-2', className)}>
       <label
         htmlFor={fieldId}
-        className="block text-sm font-medium text-gray-700"
+        className="block text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         {label}
         {required && (
-          <span className="ml-1 text-red-500" aria-label="Pflichtfeld">
+          <span
+            className="ml-1 text-red-500 dark:text-red-400"
+            aria-label="Pflichtfeld"
+          >
             *
           </span>
         )}
@@ -54,7 +57,7 @@ export function FormField({
       {error && (
         <div
           id={errorId}
-          className="flex items-center gap-2 text-sm text-red-600"
+          className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400"
           role="alert"
           aria-live="polite"
         >
@@ -66,7 +69,7 @@ export function FormField({
       {success && !error && (
         <div
           id={successId}
-          className="flex items-center gap-2 text-sm text-green-600"
+          className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400"
           aria-live="polite"
         >
           <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
