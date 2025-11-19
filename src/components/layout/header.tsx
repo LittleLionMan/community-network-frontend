@@ -65,7 +65,7 @@ export function Header() {
 
   return (
     <header className="bg-background/95 sticky top-0 z-50 w-full border-b backdrop-blur">
-      <div className="container flex h-16 max-w-screen-2xl items-center">
+      <div className="container flex h-16 max-w-screen-2xl items-center px-4 sm:px-6 lg:px-8">
         <div className="mr-4 hidden md:flex">
           <Link className="mr-6 flex items-center space-x-2" href="/">
             <span className="font-bold">Plätzchen</span>
@@ -187,17 +187,19 @@ export function Header() {
                 </button>
 
                 {showDropdown && (
-                  <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border bg-white py-1 shadow-lg">
-                    <div className="border-b px-4 py-2">
-                      <div className="font-medium text-gray-900">
+                  <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                    <div className="border-b px-4 py-2 dark:border-gray-700">
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
                         {user.display_name}
                       </div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {user.email}
+                      </div>
                     </div>
 
                     <Link
                       href="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                       onClick={() => setShowDropdown(false)}
                     >
                       <User className="mr-3 h-4 w-4" />
@@ -206,7 +208,7 @@ export function Header() {
 
                     <Link
                       href="/forum/my/threads"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                       onClick={() => setShowDropdown(false)}
                     >
                       <MessageSquare className="mr-3 h-4 w-4" />
@@ -215,7 +217,7 @@ export function Header() {
 
                     <Link
                       href="/services/my/"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                       onClick={() => setShowDropdown(false)}
                     >
                       <PocketKnife className="mr-3 h-4 w-4" />
@@ -224,7 +226,7 @@ export function Header() {
 
                     <Link
                       href="/messages"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                       onClick={() => setShowDropdown(false)}
                     >
                       <MessageCircle className="mr-3 h-4 w-4" />
@@ -240,18 +242,18 @@ export function Header() {
 
                     <Link
                       href="/profile?tab=settings"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                       onClick={() => setShowDropdown(false)}
                     >
                       <Settings className="mr-3 h-4 w-4" />
                       Einstellungen
                     </Link>
 
-                    <div className="my-1 border-t"></div>
+                    <div className="my-1 border-t dark:border-gray-700"></div>
 
                     <button
                       onClick={handleLogout}
-                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       <LogOut className="mr-3 h-4 w-4" />
                       Abmelden
@@ -274,32 +276,35 @@ export function Header() {
       </div>
 
       {showMobileMenu && (
-        <div ref={mobileMenuRef} className="border-t bg-white md:hidden">
+        <div
+          ref={mobileMenuRef}
+          className="border-t bg-white dark:border-gray-700 dark:bg-gray-800 md:hidden"
+        >
           <nav className="container flex flex-col space-y-1 py-4">
             <Link
               href="/events"
-              className="rounded-md px-4 py-2 text-sm font-medium text-community-700 transition-colors hover:bg-gray-100"
+              className="rounded-md px-4 py-2 text-sm font-medium text-community-700 transition-colors hover:bg-gray-100 dark:text-community-400 dark:hover:bg-gray-700"
               onClick={closeMobileMenu}
             >
               Events
             </Link>
             <Link
               href="/services"
-              className="rounded-md px-4 py-2 text-sm font-medium text-community-700 transition-colors hover:bg-gray-100"
+              className="rounded-md px-4 py-2 text-sm font-medium text-community-700 transition-colors hover:bg-gray-100 dark:text-community-400 dark:hover:bg-gray-700"
               onClick={closeMobileMenu}
             >
               Services
             </Link>
             <Link
               href="/civic"
-              className="rounded-md px-4 py-2 text-sm font-medium text-community-700 transition-colors hover:bg-gray-100"
+              className="rounded-md px-4 py-2 text-sm font-medium text-community-700 transition-colors hover:bg-gray-100 dark:text-community-400 dark:hover:bg-gray-700"
               onClick={closeMobileMenu}
             >
               Civic
             </Link>
             <Link
               href="/forum"
-              className="rounded-md px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
+              className="rounded-md px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
               onClick={closeMobileMenu}
             >
               Agora
@@ -308,7 +313,7 @@ export function Header() {
             {isAuthenticated && user?.is_admin && (
               <Link
                 href="/admin"
-                className="flex items-center rounded-md px-4 py-2 text-sm transition-colors hover:bg-gray-100"
+                className="flex items-center rounded-md px-4 py-2 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
                 onClick={closeMobileMenu}
               >
                 <Shield className="mr-2 h-4 w-4" />
@@ -316,13 +321,13 @@ export function Header() {
               </Link>
             )}
 
-            <div className="my-2 border-t"></div>
+            <div className="my-2 border-t dark:border-gray-700"></div>
 
             {isAuthenticated && user ? (
               <>
                 <Link
                   href="/profile"
-                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={closeMobileMenu}
                 >
                   <User className="mr-3 h-4 w-4" />
@@ -331,7 +336,7 @@ export function Header() {
 
                 <Link
                   href="/forum/my/threads"
-                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={closeMobileMenu}
                 >
                   <MessageSquare className="mr-3 h-4 w-4" />
@@ -340,7 +345,7 @@ export function Header() {
 
                 <Link
                   href="/services/my/"
-                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={closeMobileMenu}
                 >
                   <PocketKnife className="mr-3 h-4 w-4" />
@@ -349,7 +354,7 @@ export function Header() {
 
                 <Link
                   href="/profile?tab=settings"
-                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  className="flex items-center rounded-md px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                   onClick={closeMobileMenu}
                 >
                   <Settings className="mr-3 h-4 w-4" />
@@ -358,7 +363,7 @@ export function Header() {
 
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center rounded-md px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100"
+                  className="flex w-full items-center rounded-md px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   <LogOut className="mr-3 h-4 w-4" />
                   Abmelden

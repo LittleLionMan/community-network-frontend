@@ -46,6 +46,7 @@ export const DateTimePicker = forwardRef<DatePicker, DateTimePickerProps>(
           popperClassName="custom-datepicker-popper"
           showPopperArrow={false}
           popperPlacement="bottom-start"
+          enableTabLoop={false}
         />
       </div>
     );

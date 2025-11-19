@@ -80,7 +80,11 @@ export default function CivicEventsPage() {
       });
     }
 
-    return filtered;
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.start_datetime).getTime();
+      const dateB = new Date(b.start_datetime).getTime();
+      return dateB - dateA;
+    });
   }, [events, searchQuery, timeFilter]);
 
   if (isLoading) {

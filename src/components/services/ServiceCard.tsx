@@ -68,8 +68,8 @@ export function ServiceCard({
 
   const getServiceTypeColor = (isOffering: boolean) => {
     return isOffering
-      ? 'bg-green-100 text-green-800'
-      : 'bg-blue-100 text-blue-800';
+      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+      : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
   };
 
   const getServiceTypeText = (isOffering: boolean) => {
@@ -133,7 +133,7 @@ export function ServiceCard({
 
   if (variant === 'list') {
     return (
-      <div className="border-b border-gray-200 py-4">
+      <div className="border-b border-gray-200 py-4 dark:border-gray-700">
         <div className="flex gap-4">
           {service.service_image_url && (
             <div className="flex-shrink-0">
@@ -158,16 +158,16 @@ export function ServiceCard({
                   href={`/services/${service.id}`}
                   className="group mt-2 block"
                 >
-                  <h3 className="font-semibold text-gray-900 transition-colors group-hover:text-community-600">
+                  <h3 className="font-semibold text-gray-900 transition-colors group-hover:text-community-600 dark:text-gray-100 dark:group-hover:text-community-400">
                     {service.title}
                   </h3>
                 </Link>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   {truncateDescription(service.description)}
                 </p>
 
-                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     <span>{formatCreatedAt(service.created_at)}</span>
@@ -191,12 +191,12 @@ export function ServiceCard({
                 <div className="mt-2 flex items-center gap-2">
                   <ProfileAvatar user={service.user} size="sm" />
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
                       {service.user.display_name}
                     </span>
                     {service.user.email_verified && (
                       <span title="Email verifiziert">
-                        <CheckCircle className="h-3 w-3 text-green-500" />
+                        <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
                       </span>
                     )}
                   </div>
@@ -221,7 +221,7 @@ export function ServiceCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-md">
+    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
       {service.service_image_url && (
         <div className="relative h-48 w-full">
           <img
@@ -229,9 +229,9 @@ export function ServiceCard({
             alt={service.title}
             className="h-full w-full object-cover"
           />
-          <div className="absolute left-3 top-3">
+          <div className="absolute left-2 top-2">
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getServiceTypeColor(service.is_offering)}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm ${getServiceTypeColor(service.is_offering)}`}
             >
               {getServiceTypeText(service.is_offering)}
             </span>
@@ -251,29 +251,29 @@ export function ServiceCard({
         )}
 
         <Link href={`/services/${service.id}`} className="group block">
-          <h3 className="mb-2 font-semibold text-gray-900 transition-colors group-hover:text-community-600">
+          <h3 className="mb-2 font-semibold text-gray-900 transition-colors group-hover:text-community-600 dark:text-gray-100 dark:group-hover:text-community-400">
             {service.title}
           </h3>
         </Link>
 
-        <p className="mb-4 line-clamp-3 text-sm text-gray-600">
+        <p className="mb-4 line-clamp-3 text-sm text-gray-600 dark:text-gray-400">
           {service.description}
         </p>
 
         <div className="mb-4 space-y-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
             <Clock className="h-3 w-3 flex-shrink-0" />
             <span>{formatCreatedAt(service.created_at)}</span>
           </div>
 
           {!service.user.location_private && service.user.location && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
               <MapPin className="h-3 w-3 flex-shrink-0" />
               <span className="truncate">{service.user.location}</span>
             </div>
           )}
 
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
             <Calendar className="h-3 w-3 flex-shrink-0" />
             <span>
               Mitglied seit {formatMemberSince(service.user.created_at)}
@@ -281,16 +281,16 @@ export function ServiceCard({
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <ProfileAvatar user={service.user} size="sm" />
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="truncate text-sm text-gray-600 dark:text-gray-400">
                 {service.user.display_name}
               </span>
               {service.user.email_verified && (
-                <span title="Email verifiziert">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                <span title="Email verifiziert" className="flex-shrink-0">
+                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />
                 </span>
               )}
             </div>
@@ -300,10 +300,10 @@ export function ServiceCard({
             <Button
               size="sm"
               onClick={handleExpressInterest}
-              className="flex items-center gap-2"
+              className="flex flex-shrink-0 items-center gap-2"
             >
               <MessageCircle className="h-4 w-4" />
-              Interesse
+              <span className="hidden sm:inline">Interesse</span>
             </Button>
           )}
         </div>

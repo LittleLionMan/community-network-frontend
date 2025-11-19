@@ -268,7 +268,7 @@ export function ServiceCreateForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
-        <label className="mb-3 block text-sm font-medium text-gray-700">
+        <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
           Was möchtest du erstellen? *
         </label>
         <div className="grid grid-cols-2 gap-4">
@@ -277,8 +277,8 @@ export function ServiceCreateForm({
             onClick={() => setValue('is_offering', true)}
             className={`flex items-center justify-center rounded-lg border-2 p-4 transition-colors ${
               isOffering
-                ? 'border-green-500 bg-green-50 text-green-700'
-                : 'border-gray-200 bg-white text-gray-600 hover:border-green-300'
+                ? 'border-green-500 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-950 dark:text-green-300'
+                : 'border-gray-200 bg-white text-gray-600 hover:border-green-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-green-700'
             }`}
           >
             <HandHeart className="mr-3 h-6 w-6" />
@@ -293,8 +293,8 @@ export function ServiceCreateForm({
             onClick={() => setValue('is_offering', false)}
             className={`flex items-center justify-center rounded-lg border-2 p-4 transition-colors ${
               !isOffering
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-600 dark:bg-blue-950 dark:text-blue-300'
+                : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-blue-700'
             }`}
           >
             <Eye className="mr-3 h-6 w-6" />
@@ -307,7 +307,7 @@ export function ServiceCreateForm({
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <FileText className="h-4 w-4" />
           Titel *
         </label>
@@ -331,12 +331,14 @@ export function ServiceCreateForm({
           error={!!errors.title}
         />
         {errors.title && (
-          <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {errors.title.message}
+          </p>
         )}
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Camera className="h-4 w-4" />
           Bild (optional)
         </label>
@@ -357,13 +359,13 @@ export function ServiceCreateForm({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6">
+          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 dark:border-gray-600">
             <div className="text-center">
-              <Upload className="mx-auto h-8 w-8 text-gray-400" />
+              <Upload className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500" />
               <div className="mt-2">
                 <label
                   htmlFor="service-image"
-                  className="cursor-pointer rounded-md bg-white font-medium text-community-600 hover:text-community-500"
+                  className="cursor-pointer rounded-md bg-white font-medium text-community-600 hover:text-community-500 dark:bg-gray-800 dark:text-community-400"
                 >
                   Bild hochladen
                 </label>
@@ -375,14 +377,16 @@ export function ServiceCreateForm({
                   onChange={handleImageChange}
                 />
               </div>
-              <p className="text-xs text-gray-500">PNG, JPG bis zu 5MB</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                PNG, JPG bis zu 5MB
+              </p>
             </div>
           </div>
         )}
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <FileText className="h-4 w-4" />
           Beschreibung *
         </label>
@@ -399,7 +403,7 @@ export function ServiceCreateForm({
             },
           })}
           rows={6}
-          className="bg-background flex w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
           placeholder={
             isOffering
               ? 'Beschreibe deinen Service ausführlich. Was bietest du an? Welche Erfahrung hast du? Was kostet es?'
@@ -407,17 +411,17 @@ export function ServiceCreateForm({
           }
         />
         {errors.description && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
             {errors.description.message}
           </p>
         )}
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Mindestens 10 Zeichen, maximal 2000 Zeichen
         </p>
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Euro className="h-4 w-4" />
           Preis (optional)
         </label>
@@ -430,8 +434,8 @@ export function ServiceCreateForm({
                 onClick={() => setValue('price_type', option.value)}
                 className={`rounded-md border px-3 py-2 text-sm transition-colors ${
                   priceType === option.value
-                    ? 'border-community-500 bg-community-50 text-community-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    ? 'dark:bg-community-950 border-community-500 bg-community-50 text-community-700 dark:border-community-600 dark:text-community-300'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-500'
                 }`}
               >
                 {option.label}
@@ -451,14 +455,16 @@ export function ServiceCreateForm({
                 })}
                 className="w-32"
               />
-              <span className="text-sm text-gray-500">EUR</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                EUR
+              </span>
             </div>
           )}
         </div>
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Clock className="h-4 w-4" />
           Geschätzte Dauer (optional)
         </label>
@@ -474,21 +480,23 @@ export function ServiceCreateForm({
             })}
             className="w-32"
           />
-          <span className="text-sm text-gray-500">Stunden</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Stunden
+          </span>
         </div>
         {errors.estimated_duration_hours && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
             {errors.estimated_duration_hours.message}
           </p>
         )}
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <MapPin className="h-4 w-4" />
           Mögliche Treffpunkte (optional)
         </label>
-        <p className="mb-3 text-sm text-gray-600">
+        <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
           Gib alternative Orte an, wo der Service stattfinden kann. Z.B. bei
           dir, beim anderen, oder an neutralen Orten.
         </p>
@@ -532,12 +540,12 @@ export function ServiceCreateForm({
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           Bevorzugter Kontakt
         </label>
         <select
           {...register('contact_method')}
-          className="bg-background flex h-10 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2"
+          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="message">Nachrichten</option>
           <option value="phone">Telefon</option>
@@ -546,7 +554,7 @@ export function ServiceCreateForm({
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           Antwortzeit (optional)
         </label>
         <div className="flex items-center gap-2">
@@ -561,14 +569,16 @@ export function ServiceCreateForm({
             })}
             className="w-32"
           />
-          <span className="text-sm text-gray-500">Stunden</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Stunden
+          </span>
         </div>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Wie schnell antwortest du normalerweise auf Anfragen?
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row">
+      <div className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-700 sm:flex-row">
         <Button
           type="submit"
           disabled={isSubmitting}

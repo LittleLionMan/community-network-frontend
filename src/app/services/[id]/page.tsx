@@ -238,8 +238,10 @@ export default function ServiceDetailPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <RefreshCw className="mx-auto mb-4 h-8 w-8 animate-spin text-community-600" />
-            <p className="text-gray-600">Service wird geladen...</p>
+            <RefreshCw className="mx-auto mb-4 h-8 w-8 animate-spin text-community-600 dark:text-community-400" />
+            <p className="text-gray-600 dark:text-gray-400">
+              Service wird geladen...
+            </p>
           </div>
         </div>
       </div>
@@ -258,10 +260,10 @@ export default function ServiceDetailPage() {
 
         <div className="py-12 text-center">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-          <h3 className="mb-2 text-lg font-semibold text-gray-900">
+          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
             Service nicht gefunden
           </h3>
-          <p className="mb-4 text-gray-600">
+          <p className="mb-4 text-gray-600 dark:text-gray-400">
             {error || 'Der angeforderte Service konnte nicht gefunden werden.'}
           </p>
           <Button asChild>
@@ -275,8 +277,8 @@ export default function ServiceDetailPage() {
   const isOwnService = user?.id === currentService.user.id;
   const canEdit = isAuthenticated && (isOwnService || user?.is_admin);
   const serviceTypeColor = currentService.is_offering
-    ? 'bg-green-100 text-green-800'
-    : 'bg-blue-100 text-blue-800';
+    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
   const serviceTypeText = currentService.is_offering ? 'Bietet an' : 'Sucht';
 
   return (
@@ -290,7 +292,7 @@ export default function ServiceDetailPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
         <div className="lg:col-span-3">
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
             {currentService.service_image_url && (
               <div className="relative h-64 w-full md:h-80">
                 <img
@@ -316,7 +318,7 @@ export default function ServiceDetailPage() {
               </div>
             )}
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {!currentService.service_image_url && (
                 <div className="mb-6 flex items-start justify-between">
                   <span
@@ -325,7 +327,7 @@ export default function ServiceDetailPage() {
                     {serviceTypeText}
                   </span>
                   {currentService.is_completed && (
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
+                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-200">
                       <CheckCircle className="mr-1 h-4 w-4" />
                       Abgeschlossen
                     </span>
@@ -333,98 +335,108 @@ export default function ServiceDetailPage() {
                 </div>
               )}
 
-              <div className="mb-6 flex items-start justify-between">
-                <div className="flex-1">
-                  <h1 className="mb-2 text-3xl font-bold text-gray-900">
-                    {currentService.title}
-                  </h1>
+              <div className="mb-6">
+                <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">
+                      {currentService.title}
+                    </h1>
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        Erstellt am {formatDate(currentService.created_at)}
-                      </span>
-                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 dark:text-gray-400 sm:gap-4 sm:text-sm">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          Erstellt am {formatDate(currentService.created_at)}
+                        </span>
+                      </div>
 
-                    <div className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
-                      <span>{currentService.view_count} Aufrufe</span>
-                    </div>
+                      <div className="flex items-center gap-1">
+                        <Eye className="h-4 w-4" />
+                        <span>{currentService.view_count} Aufrufe</span>
+                      </div>
 
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      <span>
-                        {currentService.interest_count} Interessent
-                        {currentService.interest_count !== 1 ? 'en' : ''}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        <span>
+                          {currentService.interest_count} Interessent
+                          {currentService.interest_count !== 1 ? 'en' : ''}
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  {canEdit && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/services/${currentService.id}/edit`}>
+                          <Edit3 className="h-4 w-4" />
+                        </Link>
+                      </Button>
+
+                      <ServiceDeleteButton
+                        service={{
+                          id: currentService.id,
+                          title: currentService.title,
+                          user: {
+                            id: currentService.user.id,
+                          },
+                          interest_count: currentService.interest_count,
+                        }}
+                        onSuccess={() => router.push('/services')}
+                        size="sm"
+                      />
+                    </div>
+                  )}
                 </div>
-
-                {canEdit && (
-                  <>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/services/${currentService.id}/edit`}>
-                        <Edit3 className="h-4 w-4" />
-                      </Link>
-                    </Button>
-
-                    <ServiceDeleteButton
-                      service={{
-                        id: currentService.id,
-                        title: currentService.title,
-                        user: {
-                          id: currentService.user.id,
-                        },
-                        interest_count: currentService.interest_count,
-                      }}
-                      onSuccess={() => router.push('/services')}
-                      size="sm"
-                    />
-                  </>
-                )}
               </div>
 
               <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-                  <Euro className="h-5 w-5 text-gray-600" />
+                <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
+                  <Euro className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Preis</p>
-                    <p className="text-sm text-gray-600">{getPriceDisplay()}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Preis
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {getPriceDisplay()}
+                    </p>
                   </div>
                 </div>
 
                 {currentService.estimated_duration_hours && (
-                  <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-                    <Clock className="h-5 w-5 text-gray-600" />
+                  <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
+                    <Clock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Dauer</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Dauer
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {getDurationDisplay()}
                       </p>
                     </div>
                   </div>
                 )}
 
-                <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-                  <MessageCircle className="h-5 w-5 text-gray-600" />
+                <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
+                  <MessageCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Kontakt</p>
-                    <p className="text-sm capitalize text-gray-600">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Kontakt
+                    </p>
+                    <p className="text-sm capitalize text-gray-600 dark:text-gray-400">
                       {currentService.contact_method}
                     </p>
                   </div>
                 </div>
 
                 {currentService.response_time_hours && (
-                  <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-                    <Clock className="h-5 w-5 text-gray-600" />
+                  <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
+                    <Clock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         Antwortzeit
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         ca. {getResponseTimeDisplay()}
                       </p>
                     </div>
@@ -435,7 +447,7 @@ export default function ServiceDetailPage() {
               {currentService.meeting_locations &&
                 currentService.meeting_locations.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-gray-900">
+                    <h3 className="mb-3 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
                       <MapPin className="h-5 w-5" />
                       Mögliche Treffpunkte
                     </h3>
@@ -444,7 +456,7 @@ export default function ServiceDetailPage() {
                         (location, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-800"
+                            className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                           >
                             {location}
                           </span>
@@ -455,44 +467,48 @@ export default function ServiceDetailPage() {
                 )}
 
               <div className="mb-6">
-                <h3 className="mb-3 font-semibold text-gray-900">
+                <h3 className="mb-3 font-semibold text-gray-900 dark:text-gray-100">
                   Beschreibung
                 </h3>
-                <div className="prose prose-sm max-w-none">
-                  <p className="whitespace-pre-wrap text-gray-700">
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <p className="whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                     {currentService.description}
                   </p>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="mb-4 font-semibold text-gray-900">Anbieter</h3>
+              <div className="border-t border-gray-200 pt-6 dark:border-gray-700">
+                <h3 className="mb-4 font-semibold text-gray-900 dark:text-gray-100">
+                  Anbieter
+                </h3>
                 <div className="flex items-start gap-4">
                   <ProfileAvatar user={currentService.user} size="lg" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-gray-900">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
                         {currentService.user.display_name}
                       </h4>
                       {currentService.user.email_verified && (
                         <span title="Email verifiziert">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />
                         </span>
                       )}
                     </div>
 
                     {currentService.user.created_at ? (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         Mitglied seit{' '}
                         {formatMemberSince(currentService.user.created_at)}
                       </p>
                     ) : (
-                      <p className="text-sm text-gray-600">Mitglied</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Mitglied
+                      </p>
                     )}
 
                     {!currentService.user.location_private &&
                       currentService.user.location && (
-                        <p className="mt-1 flex items-center gap-1 text-sm text-gray-600">
+                        <p className="mt-1 flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
                           <MapPin className="h-3 w-3" />
                           {currentService.user.location}
                         </p>
@@ -504,7 +520,7 @@ export default function ServiceDetailPage() {
               {!isOwnService &&
                 isAuthenticated &&
                 !currentService.is_completed && (
-                  <div className="mt-6 border-t border-gray-200 pt-6">
+                  <div className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
                     <Button
                       onClick={handleExpressInterest}
                       className="flex w-full items-center gap-2 sm:w-auto"
@@ -516,9 +532,9 @@ export default function ServiceDetailPage() {
                 )}
 
               {!isAuthenticated && (
-                <div className="mt-6 border-t border-gray-200 pt-6">
-                  <div className="rounded-lg bg-blue-50 p-4">
-                    <p className="text-center text-sm text-blue-800">
+                <div className="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700">
+                  <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950">
+                    <p className="text-center text-sm text-blue-800 dark:text-blue-200">
                       <Link
                         href="/auth/login"
                         className="font-medium underline"

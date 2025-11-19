@@ -33,6 +33,10 @@ export function VotingInterface({
   const isRemoving = removeVote.isPending;
   const isProcessing = isVoting || isRemoving;
 
+  const getVoteText = (count: number) => {
+    return count === 1 ? '1 Stimme' : `${count} Stimmen`;
+  };
+
   const handleVote = async (optionId: number) => {
     if (!isAuthenticated) {
       toast.error(
@@ -96,44 +100,64 @@ export function VotingInterface({
               key={option.id}
               className={`relative overflow-hidden rounded-lg border transition-all ${
                 isSelected
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-blue-500 bg-blue-50 dark:border-blue-600 dark:bg-blue-950'
+                  : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600'
               }`}
             >
               <button
                 onClick={() => handleVote(option.id)}
                 disabled={isProcessing}
-                className="w-full p-4 text-left transition-colors hover:bg-gray-50 disabled:cursor-not-allowed"
+                className="w-full p-4 text-left transition-colors hover:bg-gray-50 disabled:cursor-not-allowed dark:hover:bg-gray-700/50"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div
-                      className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                      className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 ${
                         isSelected
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
+                          ? 'border-blue-500 bg-blue-500 dark:border-blue-600 dark:bg-blue-600'
+                          : 'border-gray-300 dark:border-gray-600'
                       }`}
                     >
                       {isSelected && (
                         <CheckCircle className="h-3 w-3 text-white" />
                       )}
                     </div>
-                    <span className="font-medium text-gray-900">
+                    <span
+                      className={`min-w-0 break-words font-medium ${
+                        isSelected
+                          ? 'text-blue-900 dark:text-blue-100'
+                          : 'text-gray-900 dark:text-gray-100'
+                      }`}
+                    >
                       {option.text}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <span>{option.vote_count} Stimmen</span>
-                    <span>({percentage.toFixed(1)}%)</span>
+                  <div
+                    className={`flex flex-shrink-0 flex-col items-end gap-0.5 text-xs sm:text-sm ${
+                      isSelected
+                        ? 'text-blue-700 dark:text-blue-300'
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    <span className="whitespace-nowrap">
+                      {getVoteText(option.vote_count)}
+                    </span>
+                    <span className="whitespace-nowrap">
+                      ({percentage.toFixed(1)}%)
+                    </span>
                   </div>
                 </div>
               </button>
 
               {poll.total_votes > 0 && (
-                <div className="h-1 bg-gray-100">
+                <div className="h-1 bg-gray-100 dark:bg-gray-700">
                   <div
-                    className="h-full bg-blue-500 transition-all duration-300"
+                    className={`h-full transition-all duration-300 ${
+                      isSelected
+                        ? 'bg-blue-500 dark:bg-blue-600'
+                        : 'bg-blue-400 dark:bg-blue-500'
+                    }`}
                     style={{ width: `${percentage}%` }}
                   />
                 </div>

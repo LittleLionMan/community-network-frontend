@@ -146,16 +146,15 @@ export function ServiceEditForm({
   ];
 
   const contactOptions = [
-    { value: 'message' as const, label: 'Nachrichten' },
-    { value: 'phone' as const, label: 'Telefon' },
-    { value: 'email' as const, label: 'E-Mail' },
+    { value: 'message' as const, label: 'Nachrichten', icon: MessageCircle },
+    { value: 'phone' as const, label: 'Telefon', icon: null },
+    { value: 'email' as const, label: 'E-Mail', icon: null },
   ];
 
   const onSubmit = async (data: ServiceEditFormData) => {
     setIsSubmitting(true);
 
     try {
-      // Clean numeric fields - convert empty strings to undefined
       const cleanPrice =
         data.price_amount && data.price_amount > 0
           ? data.price_amount
@@ -182,7 +181,6 @@ export function ServiceEditForm({
         is_active: data.is_active,
       };
 
-      // Handle image upload/deletion
       if (data.service_image) {
         updateData.service_image = data.service_image;
       } else if (imageDeleted && service.service_image_url) {
@@ -247,7 +245,7 @@ export function ServiceEditForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
-        <label className="mb-3 block text-sm font-medium text-gray-700">
+        <label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
           Service Typ *
         </label>
         <div className="grid grid-cols-2 gap-4">
@@ -257,8 +255,8 @@ export function ServiceEditForm({
             disabled={hasInterests}
             className={`flex items-center justify-center rounded-lg border-2 p-4 transition-colors ${
               isOffering
-                ? 'border-green-500 bg-green-50 text-green-700'
-                : 'border-gray-200 bg-white text-gray-600 hover:border-green-300'
+                ? 'border-green-500 bg-green-50 text-green-700 dark:border-green-600 dark:bg-green-950 dark:text-green-300'
+                : 'border-gray-200 bg-white text-gray-600 hover:border-green-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'
             } ${hasInterests ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             <HandHeart className="mr-3 h-6 w-6" />
@@ -274,8 +272,8 @@ export function ServiceEditForm({
             disabled={hasInterests}
             className={`flex items-center justify-center rounded-lg border-2 p-4 transition-colors ${
               !isOffering
-                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300'
+                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-600 dark:bg-blue-950 dark:text-blue-300'
+                : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400'
             } ${hasInterests ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             <Eye className="mr-3 h-6 w-6" />
@@ -286,7 +284,7 @@ export function ServiceEditForm({
           </button>
         </div>
         {hasInterests && (
-          <p className="mt-2 text-xs text-yellow-600">
+          <p className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
             ⚠️ Service-Typ kann nicht geändert werden, da bereits Interessenten
             vorhanden sind.
           </p>
@@ -294,7 +292,7 @@ export function ServiceEditForm({
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <FileText className="h-4 w-4" />
           Titel *
         </label>
@@ -318,12 +316,14 @@ export function ServiceEditForm({
           error={!!errors.title}
         />
         {errors.title && (
-          <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {errors.title.message}
+          </p>
         )}
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Camera className="h-4 w-4" />
           Bild (optional)
         </label>
@@ -344,13 +344,13 @@ export function ServiceEditForm({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6">
+          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 dark:border-gray-600">
             <div className="text-center">
-              <Upload className="mx-auto h-8 w-8 text-gray-400" />
+              <Upload className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500" />
               <div className="mt-2">
                 <label
                   htmlFor="service-image"
-                  className="cursor-pointer rounded-md bg-white font-medium text-community-600 hover:text-community-500"
+                  className="cursor-pointer rounded-md bg-white font-medium text-community-600 hover:text-community-500 dark:bg-gray-800 dark:text-community-400"
                 >
                   Bild hochladen
                 </label>
@@ -362,14 +362,16 @@ export function ServiceEditForm({
                   onChange={handleImageChange}
                 />
               </div>
-              <p className="text-xs text-gray-500">PNG, JPG bis zu 5MB</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                PNG, JPG bis zu 5MB
+              </p>
             </div>
           </div>
         )}
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <FileText className="h-4 w-4" />
           Beschreibung *
         </label>
@@ -386,7 +388,7 @@ export function ServiceEditForm({
             },
           })}
           rows={6}
-          className="bg-background flex w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
           placeholder={
             isOffering
               ? 'Beschreibe deinen Service ausführlich. Was bietest du an? Welche Erfahrung hast du? Was kostet es?'
@@ -394,17 +396,17 @@ export function ServiceEditForm({
           }
         />
         {errors.description && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
             {errors.description.message}
           </p>
         )}
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Mindestens 10 Zeichen, maximal 2000 Zeichen
         </p>
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Euro className="h-4 w-4" />
           Preis (optional)
         </label>
@@ -417,8 +419,8 @@ export function ServiceEditForm({
                 onClick={() => setValue('price_type', option.value)}
                 className={`rounded-md border px-3 py-2 text-sm transition-colors ${
                   priceType === option.value
-                    ? 'border-community-500 bg-community-50 text-community-700'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    ? 'dark:bg-community-950 border-community-500 bg-community-50 text-community-700 dark:border-community-600 dark:text-community-300'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
                 }`}
               >
                 {option.label}
@@ -438,14 +440,16 @@ export function ServiceEditForm({
                 })}
                 className="w-32"
               />
-              <span className="text-sm text-gray-500">EUR</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                EUR
+              </span>
             </div>
           )}
         </div>
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Clock className="h-4 w-4" />
           Geschätzte Dauer (optional)
         </label>
@@ -461,21 +465,23 @@ export function ServiceEditForm({
             })}
             className="w-32"
           />
-          <span className="text-sm text-gray-500">Stunden</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Stunden
+          </span>
         </div>
         {errors.estimated_duration_hours && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
             {errors.estimated_duration_hours.message}
           </p>
         )}
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <MapPin className="h-4 w-4" />
           Mögliche Treffpunkte (optional)
         </label>
-        <p className="mb-3 text-sm text-gray-600">
+        <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
           Gib alternative Orte an, wo der Service stattfinden kann.
         </p>
 
@@ -518,11 +524,11 @@ export function ServiceEditForm({
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <MessageCircle className="h-4 w-4" />
           Bevorzugter Kontakt
         </label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {contactOptions.map((option) => (
             <button
               key={option.value}
@@ -530,8 +536,8 @@ export function ServiceEditForm({
               onClick={() => setValue('contact_method', option.value)}
               className={`rounded-md border px-3 py-2 text-sm transition-colors ${
                 watch('contact_method') === option.value
-                  ? 'border-community-500 bg-community-50 text-community-700'
-                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                  ? 'dark:bg-community-950 border-community-500 bg-community-50 text-community-700 dark:border-community-600 dark:text-community-300'
+                  : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
               }`}
             >
               {option.label}
@@ -541,7 +547,7 @@ export function ServiceEditForm({
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Clock className="h-4 w-4" />
           Antwortzeit (optional)
         </label>
@@ -557,40 +563,42 @@ export function ServiceEditForm({
             })}
             className="w-32"
           />
-          <span className="text-sm text-gray-500">Stunden</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Stunden
+          </span>
         </div>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Wie schnell antwortest du normalerweise auf Anfragen?
         </p>
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           Service Status
         </label>
         <div className="flex items-center">
           <input
             type="checkbox"
             {...register('is_active')}
-            className="mr-2 h-4 w-4 rounded border-gray-300 text-community-600 focus:ring-community-500"
+            className="mr-2 h-4 w-4 rounded border-gray-300 text-community-600 focus:ring-community-500 dark:border-gray-600 dark:bg-gray-800"
           />
-          <span className="text-sm text-gray-700">
+          <span className="text-sm text-gray-700 dark:text-gray-300">
             Service ist aktiv und sichtbar für andere
           </span>
         </div>
         {!isActive && (
-          <p className="mt-1 text-xs text-yellow-600">
+          <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
             Deaktivierte Services sind für andere Nutzer nicht sichtbar.
           </p>
         )}
       </div>
 
-      <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
-        <div className="flex gap-3">
+      <div className="flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-700">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Button
             type="submit"
             disabled={isSubmitting || !isDirty}
-            className="flex items-center gap-2"
+            className="flex w-full items-center justify-center gap-2 sm:w-auto"
           >
             {isSubmitting ? (
               <>
@@ -611,7 +619,7 @@ export function ServiceEditForm({
               variant="outline"
               onClick={handleReset}
               disabled={isSubmitting}
-              className="flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 sm:w-auto"
             >
               <Trash2 className="h-4 w-4" />
               Zurücksetzen
@@ -625,6 +633,7 @@ export function ServiceEditForm({
             variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             Abbrechen
           </Button>
@@ -632,8 +641,8 @@ export function ServiceEditForm({
       </div>
 
       {!isDirty && (
-        <div className="rounded-lg bg-blue-50 p-4">
-          <p className="text-sm text-blue-700">
+        <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950">
+          <p className="text-sm text-blue-700 dark:text-blue-200">
             ✓ Alle Änderungen wurden gespeichert. Du kannst weitere Anpassungen
             vornehmen oder zur Service-Ansicht zurückkehren.
           </p>

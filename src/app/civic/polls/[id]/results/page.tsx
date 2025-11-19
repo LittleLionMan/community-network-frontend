@@ -81,52 +81,67 @@ export default function PollResultsPage({ params }: PollResultsPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <Button variant="ghost" asChild>
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" asChild className="w-full sm:w-auto">
           <Link
             href={`/civic/polls/${pollId}`}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2 sm:justify-start"
           >
             <ArrowLeft className="h-4 w-4" />
             Zurück zur Abstimmung
           </Link>
         </Button>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4" />
-            Exportieren
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            className="flex-1 sm:flex-none"
+          >
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportieren</span>
           </Button>
-          <Button variant="outline" size="sm">
-            <Share2 className="h-4 w-4" />
-            Teilen
+          <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+            <Share2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Teilen</span>
           </Button>
         </div>
       </div>
 
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-gray-900">
-          Abstimmungsergebnisse
+        <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">
+          Ergebnis
         </h1>
-        <h2 className="text-xl text-gray-700">{poll.question}</h2>
-
-        <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
-          <span>
-            Erstellt am{' '}
-            {format(parseISO(poll.created_at), 'dd.MM.yyyy', { locale: de })}
-          </span>
-          {poll.ends_at && (
+        <h2 className="mb-4 text-lg text-gray-700 dark:text-gray-300 sm:text-xl">
+          {poll.question}
+        </h2>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">Erstellt am</span>
             <span>
-              • Beendet am{' '}
-              {format(parseISO(poll.ends_at), 'dd.MM.yyyy', { locale: de })}
+              {format(parseISO(poll.created_at), 'dd.MM.yyyy', { locale: de })}
             </span>
+          </div>
+          {poll.ends_at && (
+            <>
+              <span className="hidden sm:inline">•</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">Beendet am</span>
+                <span>
+                  {format(parseISO(poll.ends_at), 'dd.MM.yyyy', { locale: de })}
+                </span>
+              </div>
+            </>
           )}
-          <span>
-            •{' '}
-            {poll.poll_type === 'admin'
-              ? 'Community-Abstimmung'
-              : 'Thread-Poll'}
-          </span>
+          <span className="hidden sm:inline">•</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">Typ</span>
+            <span>
+              {poll.poll_type === 'admin'
+                ? 'Community-Abstimmung'
+                : 'Thread-Poll'}
+            </span>
+          </div>
         </div>
       </div>
 

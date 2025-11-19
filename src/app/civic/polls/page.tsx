@@ -51,7 +51,13 @@ export default function PollsPage() {
       );
     }
 
-    if (statusFilter === 'ended') {
+    if (statusFilter === 'active') {
+      filtered = filtered.filter(
+        (poll) =>
+          poll.is_active &&
+          (!poll.ends_at || new Date(poll.ends_at) > new Date())
+      );
+    } else if (statusFilter === 'ended') {
       filtered = filtered.filter(
         (poll) =>
           !poll.is_active ||
@@ -65,7 +71,7 @@ export default function PollsPage() {
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold">Community-Abstimmungen</h1>
         </div>
 
@@ -91,7 +97,7 @@ export default function PollsPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-bold">Community-Abstimmungen</h1>
         </div>
 
@@ -115,21 +121,24 @@ export default function PollsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
             Community-Abstimmungen
           </h1>
-          <p className="mt-1 text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 sm:text-base">
             Nimm an Abstimmungen teil und gestalte deine Community mit
           </p>
         </div>
 
         {isAuthenticated && (
-          <Button asChild className="flex items-center gap-2">
-            <Link href="/civic/polls/create">
+          <Button asChild className="w-full flex-shrink-0 sm:w-auto">
+            <Link
+              href="/civic/polls/create"
+              className="flex items-center justify-center gap-2"
+            >
               <Plus className="h-4 w-4" />
-              Abstimmung erstellen
+              <span className="whitespace-nowrap">Abstimmung erstellen</span>
             </Link>
           </Button>
         )}
@@ -149,7 +158,9 @@ export default function PollsPage() {
 
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-600">Filter:</span>
+            <span className="hidden text-sm text-gray-600 sm:inline">
+              Filter:
+            </span>
           </div>
         </div>
 
@@ -201,7 +212,7 @@ export default function PollsPage() {
             <RefreshCw
               className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`}
             />
-            Aktualisieren
+            <span className="hidden sm:inline">Aktualisieren</span>
           </Button>
         </div>
       )}

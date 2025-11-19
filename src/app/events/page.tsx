@@ -73,7 +73,11 @@ export default function EventsPage() {
       });
     }
 
-    return filtered;
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.start_datetime).getTime();
+      const dateB = new Date(b.start_datetime).getTime();
+      return dateB - dateA;
+    });
   }, [events, searchQuery, timeFilter]);
 
   if (isLoading) {
@@ -87,14 +91,14 @@ export default function EventsPage() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="animate-pulse rounded-lg border border-gray-200 bg-white p-4"
+              className="animate-pulse rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
             >
-              <div className="mb-3 h-4 w-1/3 rounded bg-gray-200"></div>
-              <div className="mb-4 h-6 w-3/4 rounded bg-gray-200"></div>
+              <div className="mb-3 h-4 w-1/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+              <div className="mb-4 h-6 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
               <div className="space-y-2">
-                <div className="h-4 w-1/2 rounded bg-gray-200"></div>
-                <div className="h-4 w-2/3 rounded bg-gray-200"></div>
-                <div className="h-4 w-1/2 rounded bg-gray-200"></div>
+                <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="h-4 w-2/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
               </div>
             </div>
           ))}
@@ -112,10 +116,10 @@ export default function EventsPage() {
 
         <div className="py-12 text-center">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-          <h3 className="mb-2 text-lg font-semibold text-gray-900">
+          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
             Fehler beim Laden der Events
           </h3>
-          <p className="mb-4 text-gray-600">
+          <p className="mb-4 text-gray-600 dark:text-gray-400">
             Die Events konnten nicht geladen werden. Bitte versuche es erneut.
           </p>
           <Button onClick={() => refetch()} className="flex items-center gap-2">
@@ -131,10 +135,10 @@ export default function EventsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 sm:text-3xl">
             Community Events
           </h1>
-          <p className="mt-1 text-sm text-gray-600 sm:text-base">
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 sm:text-base">
             Entdecke Events in deiner Community
           </p>
         </div>
@@ -187,11 +191,11 @@ export default function EventsPage() {
         <div className="py-12 text-center">
           {events.length === 0 ? (
             <>
-              <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-              <h3 className="mb-2 text-lg font-semibold text-gray-900">
+              <Calendar className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-500" />
+              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Noch keine Events
               </h3>
-              <p className="mb-4 text-gray-600">
+              <p className="mb-4 text-gray-600 dark:text-gray-400">
                 Es wurden noch keine Events erstellt. Sei der Erste!
               </p>
               {isAuthenticated && (
@@ -202,11 +206,11 @@ export default function EventsPage() {
             </>
           ) : (
             <>
-              <Search className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-              <h3 className="mb-2 text-lg font-semibold text-gray-900">
+              <Search className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-500" />
+              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Keine Events gefunden
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 Keine Events entsprechen deinen Filterkriterien.
               </p>
             </>

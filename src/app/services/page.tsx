@@ -47,9 +47,6 @@ export default function ServicesPage() {
   const filteredServices = useMemo(() => {
     const filtered = services;
 
-    // Additional client-side filtering can go here if needed
-    // For now, most filtering is done server-side via the API
-
     return filtered;
   }, [services]);
 
@@ -68,14 +65,14 @@ export default function ServicesPage() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="animate-pulse rounded-lg border border-gray-200 bg-white p-4"
+              className="animate-pulse rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
             >
-              <div className="mb-3 h-4 w-1/3 rounded bg-gray-200"></div>
-              <div className="mb-4 h-6 w-3/4 rounded bg-gray-200"></div>
+              <div className="mb-3 h-4 w-1/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+              <div className="mb-4 h-6 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
               <div className="space-y-2">
-                <div className="h-4 w-1/2 rounded bg-gray-200"></div>
-                <div className="h-4 w-2/3 rounded bg-gray-200"></div>
-                <div className="h-4 w-1/2 rounded bg-gray-200"></div>
+                <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="h-4 w-2/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div className="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
               </div>
             </div>
           ))}
@@ -93,10 +90,10 @@ export default function ServicesPage() {
 
         <div className="py-12 text-center">
           <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-          <h3 className="mb-2 text-lg font-semibold text-gray-900">
+          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
             Fehler beim Laden der Services
           </h3>
-          <p className="mb-4 text-gray-600">
+          <p className="mb-4 text-gray-600 dark:text-gray-400">
             Die Services konnten nicht geladen werden. Bitte versuche es erneut.
           </p>
           <Button onClick={() => refetch()} className="flex items-center gap-2">
@@ -110,16 +107,21 @@ export default function ServicesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Service Exchange</h1>
-          <p className="mt-1 text-gray-600">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Service Exchange
+          </h1>
+          <p className="mt-1 text-gray-600 dark:text-gray-400">
             Biete und suche Services in deiner Community
           </p>
         </div>
 
         {isAuthenticated && (
-          <Button asChild className="flex items-center gap-2">
+          <Button
+            asChild
+            className="flex w-full items-center justify-center gap-2 md:w-auto md:flex-shrink-0"
+          >
             <Link href="/services/create">
               <Plus className="h-4 w-4" />
               Service erstellen
@@ -130,48 +132,48 @@ export default function ServicesPage() {
 
       {stats && (
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <HandHeart className="h-8 w-8 text-community-600" />
+                <HandHeart className="h-8 w-8 text-community-600 dark:text-community-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Aktive Services
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {stats.total_active_services}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <TrendingUp className="h-8 w-8 text-green-600" />
+                <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Wird angeboten
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {stats.services_offered}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Search className="h-8 w-8 text-blue-600" />
+                <Search className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Wird gesucht
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {stats.services_requested}
                 </p>
               </div>
@@ -216,11 +218,11 @@ export default function ServicesPage() {
         <div className="py-12 text-center">
           {services.length === 0 ? (
             <>
-              <HandHeart className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-              <h3 className="mb-2 text-lg font-semibold text-gray-900">
+              <HandHeart className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-600" />
+              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Noch keine Services
               </h3>
-              <p className="mb-4 text-gray-600">
+              <p className="mb-4 text-gray-600 dark:text-gray-400">
                 Es wurden noch keine Services erstellt. Sei der Erste!
               </p>
               {isAuthenticated && (
@@ -231,11 +233,11 @@ export default function ServicesPage() {
             </>
           ) : (
             <>
-              <Search className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-              <h3 className="mb-2 text-lg font-semibold text-gray-900">
+              <Search className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-600" />
+              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Keine Services gefunden
               </h3>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 Keine Services entsprechen deinen Filterkriterien.
               </p>
             </>

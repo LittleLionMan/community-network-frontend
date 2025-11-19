@@ -149,7 +149,7 @@ export function EventEditForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <FileText className="h-4 w-4" />
           Titel *
         </label>
@@ -159,18 +159,20 @@ export function EventEditForm({
           error={!!errors.title}
         />
         {errors.title && (
-          <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {errors.title.message}
+          </p>
         )}
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <Tag className="h-4 w-4" />
           Kategorie *
         </label>
         <select
           {...register('category_id', { valueAsNumber: true })}
-          className="bg-background flex h-10 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="">Kategorie auswählen</option>
           {categories?.map((category) => (
@@ -180,7 +182,7 @@ export function EventEditForm({
           ))}
         </select>
         {errors.category_id && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
             {errors.category_id.message}
           </p>
         )}
@@ -188,7 +190,7 @@ export function EventEditForm({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <CalendarDays className="h-4 w-4" />
             Startdatum & Zeit *
           </label>
@@ -206,12 +208,12 @@ export function EventEditForm({
             )}
           />
           {errors.start_datetime && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">
               {errors.start_datetime.message}
             </p>
           )}
           {hasParticipants && (
-            <p className="mt-1 text-xs text-yellow-600">
+            <p className="mt-1 text-xs text-yellow-600 dark:text-yellow-400">
               ⚠️ Bei bereits angemeldeten Teilnehmern solltest du das Datum nur
               in Notfällen ändern.
             </p>
@@ -219,7 +221,7 @@ export function EventEditForm({
         </div>
 
         <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <Clock className="h-4 w-4" />
             Enddatum & Zeit (optional)
           </label>
@@ -241,7 +243,7 @@ export function EventEditForm({
             )}
           />
           {errors.end_datetime && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">
               {errors.end_datetime.message}
             </p>
           )}
@@ -250,7 +252,7 @@ export function EventEditForm({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <MapPin className="h-4 w-4" />
             Ort (optional)
           </label>
@@ -260,14 +262,14 @@ export function EventEditForm({
             error={!!errors.location}
           />
           {errors.location && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">
               {errors.location.message}
             </p>
           )}
         </div>
 
         <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <Users className="h-4 w-4" />
             Max. Teilnehmer (optional)
           </label>
@@ -288,12 +290,12 @@ export function EventEditForm({
             error={!!errors.max_participants}
           />
           {errors.max_participants && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">
               {errors.max_participants.message}
             </p>
           )}
           {hasParticipants && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Minimum: {event.participant_count} (bereits angemeldet)
             </p>
           )}
@@ -301,32 +303,32 @@ export function EventEditForm({
       </div>
 
       <div>
-        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
           <FileText className="h-4 w-4" />
           Beschreibung *
         </label>
         <textarea
           {...register('description')}
           rows={6}
-          className="bg-background flex w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-community-500 focus:outline-none focus:ring-2 focus:ring-community-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-400"
           placeholder="Beschreibe dein Event ausführlich. Was erwartet die Teilnehmer? Was sollen sie mitbringen? Gibt es besondere Hinweise?"
         />
         {errors.description && (
-          <p className="mt-1 text-sm text-red-600">
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
             {errors.description.message}
           </p>
         )}
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Mindestens 10 Zeichen, maximal 2000 Zeichen
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 border-t pt-6 sm:flex-row sm:justify-between">
-        <div className="flex gap-3">
+      <div className="flex flex-col gap-3 border-t pt-6">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Button
             type="submit"
             disabled={isSubmitting || categoriesLoading || !isDirty}
-            className="flex items-center gap-2"
+            className="flex w-full items-center justify-center gap-2 sm:w-auto"
           >
             {isSubmitting ? (
               <>
@@ -347,7 +349,7 @@ export function EventEditForm({
               variant="outline"
               onClick={handleReset}
               disabled={isSubmitting}
-              className="flex items-center gap-2"
+              className="flex w-full items-center justify-center gap-2 sm:w-auto"
             >
               <Trash2 className="h-4 w-4" />
               Zurücksetzen
@@ -361,6 +363,7 @@ export function EventEditForm({
             variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             Abbrechen
           </Button>
@@ -368,8 +371,8 @@ export function EventEditForm({
       </div>
 
       {!isDirty && (
-        <div className="rounded-lg bg-blue-50 p-4">
-          <p className="text-sm text-blue-700">
+        <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
             ✓ Alle Änderungen wurden gespeichert. Du kannst weitere Anpassungen
             vornehmen oder zur Event-Ansicht zurückkehren.
           </p>
