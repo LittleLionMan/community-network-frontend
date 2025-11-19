@@ -80,8 +80,8 @@ export function NotificationDropdown() {
         className={cn(
           'relative flex items-center justify-center rounded-md p-2 transition-colors',
           isOpen
-            ? 'bg-gray-100 text-gray-900'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100'
+            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100'
         )}
         aria-label="Benachrichtigungen"
       >
@@ -94,9 +94,11 @@ export function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-96 rounded-md border bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b px-4 py-3">
-            <h3 className="font-semibold text-gray-900">Benachrichtigungen</h3>
+        <div className="fixed inset-x-4 top-16 z-50 rounded-md border bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 sm:absolute sm:inset-x-auto sm:right-0 sm:w-96">
+          <div className="flex items-center justify-between border-b px-4 py-3 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+              Benachrichtigungen
+            </h3>
             {unreadCount > 0 && (
               <Button
                 variant="ghost"
