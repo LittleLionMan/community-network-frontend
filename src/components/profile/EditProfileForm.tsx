@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { Save, Loader2, Check, X, AlertCircle } from 'lucide-react';
 import type { User } from '@/types';
 import { apiClient } from '@/lib/api';
+import { LocationInput } from '@/components/books/LocationInput';
 
 interface ProfileFormData {
   display_name: string;
@@ -279,18 +280,28 @@ export function EditProfileForm({
         <label className="mb-1 block text-sm font-medium text-gray-700">
           Standort
         </label>
-        <input
-          type="text"
+        <LocationInput
           value={formData.location}
-          onChange={(e) => handleChange('location', e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          maxLength={200}
-          placeholder="z.B. München, Bayern"
+          onChange={(value) => handleChange('location', value)}
+          onValidated={(isValid, district) => {
+            if (!isValid && formData.location.length >= 3) {
+              setErrors((prev) => ({
+                ...prev,
+                location: 'Standort konnte nicht gefunden werden',
+              }));
+            } else {
+              setErrors((prev) => ({
+                ...prev,
+                location: undefined,
+              }));
+            }
+          }}
+          error={!!errors.location}
           disabled={isLoading}
         />
-        <p className="mt-1 text-sm text-gray-500">
-          Hilft bei lokalen Events und Services
-        </p>
+        {errors.location && (
+          <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+        )}
       </div>
 
       <div className="flex space-x-4">

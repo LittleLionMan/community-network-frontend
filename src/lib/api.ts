@@ -225,6 +225,92 @@ export interface UserVotingStats {
   engagement_level: 'inactive' | 'low' | 'moderate' | 'high';
 }
 
+export interface Book {
+  id: number;
+  isbn_13: string;
+  isbn_10?: string;
+  title: string;
+  description?: string;
+  authors: string[];
+  publisher?: string;
+  published_date?: string;
+  language: string;
+  page_count?: number;
+  categories: string[];
+  cover_image_url?: string;
+  thumbnail_url?: string;
+  created_at: string;
+}
+
+export interface BookOffer {
+  id: number;
+  book_id: number;
+  owner_id: number;
+  condition: 'new' | 'like_new' | 'good' | 'acceptable';
+  condition_label?: string;
+  notes?: string;
+  user_comment?: string;
+  location_district?: string;
+  distance_km?: number;
+  is_available: boolean;
+  created_at: string;
+  updated_at?: string;
+  reserved_until?: string;
+  reserved_by_user_id?: number;
+  custom_cover_image_url?: string;
+  book?: Book;
+  owner?: {
+    id: number;
+    display_name: string;
+    profile_image_url?: string;
+    email_verified: boolean;
+    created_at: string;
+  };
+  all_user_comments?: Array<{
+    user: {
+      id: number;
+      display_name: string;
+      profile_image_url?: string;
+    };
+    comment: string;
+    created_at: string;
+    condition: string;
+    condition_label: string;
+  }>;
+}
+
+export interface BookOfferCreate {
+  isbn: string;
+  condition: 'new' | 'like_new' | 'good' | 'acceptable';
+  notes?: string;
+  user_comment?: string;
+  custom_location?: string;
+}
+
+export interface BookOfferUpdate {
+  condition?: 'new' | 'like_new' | 'good' | 'acceptable';
+  notes?: string;
+  user_comment?: string;
+  custom_location?: string;
+  is_available?: boolean;
+}
+
+export interface BookStats {
+  total_books: number;
+  total_offers: number;
+  available_offers: number;
+  my_offers?: number;
+  my_available?: number;
+}
+
+export interface LocationValidation {
+  valid: boolean;
+  district?: string;
+  lat?: number;
+  lon?: number;
+  message: string;
+}
+
 class ApiError extends Error {
   public status: number;
   public detail: unknown;
@@ -1148,6 +1234,82 @@ class ApiClient {
         `/api/discussions/my/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
       );
     },
+  };
+
+  location = {
+    validate: (location: string) =>
+      this.request<LocationValidation>('/api/location/validate', {
+        method: 'POST',
+        body: JSON.stringify({ location }),
+      }),
+  };
+
+  books = {
+    searchByISBN: (isbn: string) =>
+      this.request<Book>(`/api/books/search?isbn=${encodeURIComponent(isbn)}`),
+
+    getMarketplace: (filters?: {
+      search?: string;
+      condition?: string[];
+      language?: string;
+      category?: string;
+      max_distance_km?: number;
+      district?: string;
+      has_comments?: boolean;
+      skip?: number;
+      limit?: number;
+    }) => {
+      const params = new URLSearchParams();
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            if (Array.isArray(value)) {
+              value.forEach((v) => params.append(key, v.toString()));
+            } else {
+              params.append(key, value.toString());
+            }
+          }
+        });
+      }
+      return this.request<BookOffer[]>(
+        `/api/books/marketplace${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    getMyOffers: (statusFilter?: 'active' | 'reserved' | 'completed') => {
+      const params = new URLSearchParams();
+      if (statusFilter) params.append('status_filter', statusFilter);
+      return this.request<BookOffer[]>(
+        `/api/books/offers/my${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    createOffer: (data: BookOfferCreate) =>
+      this.request<BookOffer>('/api/books/offers', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    updateOffer: (offerId: number, data: BookOfferUpdate) =>
+      this.request<BookOffer>(`/api/books/offers/${offerId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deleteOffer: (offerId: number) =>
+      this.request(`/api/books/offers/${offerId}`, {
+        method: 'DELETE',
+      }),
+
+    deleteOfferComment: (offerId: number) =>
+      this.request(`/api/books/offers/${offerId}/comment`, {
+        method: 'DELETE',
+      }),
+
+    getOffer: (offerId: number) =>
+      this.request<BookOffer>(`/api/books/offers/${offerId}`),
+
+    getStats: () => this.request<BookStats>('/api/books/stats'),
   };
 
   notifications = {
