@@ -1249,6 +1249,7 @@ class ApiClient {
       this.request<Book>(`/api/books/search?isbn=${encodeURIComponent(isbn)}`),
 
     getMarketplace: (filters?: {
+      book_id?: number;
       search?: string;
       condition?: string[];
       language?: string;
@@ -1262,7 +1263,7 @@ class ApiClient {
       const params = new URLSearchParams();
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
+          if (value !== undefined && value !== null && value !== '') {
             if (Array.isArray(value)) {
               value.forEach((v) => params.append(key, v.toString()));
             } else {

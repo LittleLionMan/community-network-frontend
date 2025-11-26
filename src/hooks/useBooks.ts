@@ -5,6 +5,7 @@ import { apiClient, BookOfferCreate, BookOfferUpdate } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 
 export function useMarketplace(filters?: {
+  book_id?: number;
   search?: string;
   condition?: string[];
   language?: string;

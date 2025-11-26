@@ -28,6 +28,7 @@ export interface ServiceUpdateData {
 
 export interface Service {
   id: number;
+  slug?: string;
   title: string;
   description: string;
   is_offering: boolean;
@@ -35,6 +36,7 @@ export interface Service {
   created_at: string;
   updated_at?: string;
   service_image_url?: string;
+  service_type?: 'user_service' | 'platform_feature';
   meeting_locations?: string[];
   view_count: number;
   interest_count: number;
