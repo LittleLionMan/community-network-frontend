@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, BookOpen, AlertCircle, Check } from 'lucide-react';
+import { Loader2, BookOpen, AlertCircle, Check, Camera } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,9 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { LocationInput } from '@/components/books/LocationInput';
+import { ISBNScanner } from '@/components/books/ISBNScanner';
 import { useBookSearch, useCreateOffer } from '@/hooks/useBooks';
 import { useAuthStore } from '@/store/auth';
 import { toast } from '@/components/ui/toast';
+import { getBookCoverUrl } from '@/lib/book-utils';
 
 interface AddBookModalProps {
   isOpen: boolean;
@@ -32,6 +34,7 @@ export function AddBookModal({
   const [step, setStep] = useState<'isbn' | 'details'>('isbn');
   const [isbn, setIsbn] = useState('');
   const [isIsbnValid, setIsIsbnValid] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [condition, setCondition] = useState<
     'new' | 'like_new' | 'good' | 'acceptable'
   >('good');
@@ -49,20 +52,6 @@ export function AddBookModal({
   const createOffer = useCreateOffer();
 
   const userHasLocation = Boolean(user?.location);
-
-  // ← NEU: Helper für Cover-URL
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-  const getCoverUrl = (url?: string | null) => {
-    if (!url) {
-      return null; // Kein Placeholder, wird im JSX gehandled
-    }
-    if (url.startsWith('/uploads/')) {
-      return `${API_BASE_URL}${url}`;
-    }
-    return url;
-  };
 
   useEffect(() => {
     const cleaned = isbn.replace(/[^0-9X]/gi, '').toUpperCase();
@@ -167,13 +156,25 @@ export function AddBookModal({
               <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 ISBN (10 oder 13 Ziffern)
               </label>
-              <Input
-                type="text"
-                placeholder="z.B. 9783446246249"
-                value={isbn}
-                onChange={(e) => setIsbn(e.target.value)}
-                error={isbn.length > 0 && !isIsbnValid}
-              />
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="z.B. 9783446246249"
+                  value={isbn}
+                  onChange={(e) => setIsbn(e.target.value)}
+                  error={isbn.length > 0 && !isIsbnValid}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowScanner(true)}
+                  className="shrink-0"
+                  title="ISBN scannen"
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </div>
               {isbn.length > 0 && !isIsbnValid && (
                 <p className="mt-1 text-sm text-red-600">
                   ISBN muss 10 oder 13 Ziffern haben
@@ -190,9 +191,9 @@ export function AddBookModal({
             {!isSearching && book && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
                 <div className="flex gap-4">
-                  {getCoverUrl(book.cover_image_url) ? (
+                  {getBookCoverUrl(book.cover_image_url) ? (
                     <img
-                      src={getCoverUrl(book.cover_image_url)!}
+                      src={getBookCoverUrl(book.cover_image_url)!}
                       alt={book.title}
                       className="h-32 w-24 rounded object-cover shadow-md"
                     />
@@ -234,9 +235,9 @@ export function AddBookModal({
           <div className="space-y-4">
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
               <div className="flex gap-4">
-                {getCoverUrl(book.cover_image_url) ? (
+                {getBookCoverUrl(book.cover_image_url) ? (
                   <img
-                    src={getCoverUrl(book.cover_image_url)!}
+                    src={getBookCoverUrl(book.cover_image_url)!}
                     alt={book.title}
                     className="h-24 w-16 rounded object-cover shadow-md"
                   />
@@ -391,6 +392,16 @@ export function AddBookModal({
           )}
         </div>
       </DialogContent>
+
+      {showScanner && (
+        <ISBNScanner
+          onScan={(scannedIsbn) => {
+            setIsbn(scannedIsbn);
+            setShowScanner(false);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </Dialog>
   );
 }

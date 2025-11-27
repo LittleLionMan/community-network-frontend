@@ -3,22 +3,29 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, BookOfferCreate, BookOfferUpdate } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 export function useMarketplace(filters?: {
   book_id?: number;
   search?: string;
   condition?: string[];
-  language?: string;
-  category?: string;
+  language?: string[];
+  category?: string[];
   max_distance_km?: number;
-  district?: string;
+  district?: string[];
   has_comments?: boolean;
-  skip?: number;
-  limit?: number;
 }) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['books', 'marketplace', filters],
-    queryFn: () => apiClient.books.getMarketplace(filters),
+    queryFn: ({ pageParam = 0 }) =>
+      apiClient.books.getMarketplace({
+        ...filters,
+        skip: pageParam,
+        limit: 20,
+      }),
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.skip + lastPage.limit : undefined,
+    initialPageParam: 0,
     staleTime: 30000,
   });
 }
@@ -37,6 +44,14 @@ export function useBookStats() {
     queryKey: ['books', 'stats'],
     queryFn: () => apiClient.books.getStats(),
     staleTime: 60000,
+  });
+}
+
+export function useFilterOptions() {
+  return useQuery({
+    queryKey: ['books', 'filter-options'],
+    queryFn: () => apiClient.books.getFilterOptions(),
+    staleTime: 600000,
   });
 }
 

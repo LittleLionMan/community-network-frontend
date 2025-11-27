@@ -242,6 +242,14 @@ export interface Book {
   created_at: string;
 }
 
+export interface PaginatedBookOffers {
+  items: BookOffer[];
+  total: number;
+  skip: number;
+  limit: number;
+  has_more: boolean;
+}
+
 export interface BookOffer {
   id: number;
   book_id: number;
@@ -301,6 +309,12 @@ export interface BookStats {
   available_offers: number;
   my_offers?: number;
   my_available?: number;
+}
+
+export interface BookFilterOptions {
+  districts: string[];
+  categories: string[];
+  languages: string[];
 }
 
 export interface LocationValidation {
@@ -1252,10 +1266,10 @@ class ApiClient {
       book_id?: number;
       search?: string;
       condition?: string[];
-      language?: string;
-      category?: string;
+      language?: string[];
+      category?: string[];
       max_distance_km?: number;
-      district?: string;
+      district?: string[];
       has_comments?: boolean;
       skip?: number;
       limit?: number;
@@ -1272,7 +1286,7 @@ class ApiClient {
           }
         });
       }
-      return this.request<BookOffer[]>(
+      return this.request<PaginatedBookOffers>(
         `/api/books/marketplace${params.toString() ? '?' + params.toString() : ''}`
       );
     },
@@ -1311,6 +1325,9 @@ class ApiClient {
       this.request<BookOffer>(`/api/books/offers/${offerId}`),
 
     getStats: () => this.request<BookStats>('/api/books/stats'),
+
+    getFilterOptions: () =>
+      this.request<BookFilterOptions>('/api/books/filters/options'),
   };
 
   notifications = {

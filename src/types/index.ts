@@ -6,6 +6,11 @@ export interface User {
   last_name?: string;
   bio?: string;
   location?: string;
+  location_lat?: number;
+  location_lon?: number;
+  location_district?: string;
+  book_credits_remaining: number;
+  book_credits_last_reset?: string;
   is_active: boolean;
   is_admin: boolean;
   created_at: string;

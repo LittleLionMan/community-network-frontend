@@ -19,12 +19,18 @@ export default function BuechereckePage() {
   );
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
 
-  const [filters, setFilters] = useState({
-    search: undefined as string | undefined,
-    condition: [] as string[],
-    language: undefined as string | undefined,
-    category: undefined as string | undefined,
-    max_distance_km: undefined as number | undefined,
+  const [filters, setFilters] = useState<{
+    search?: string;
+    condition?: string[];
+    language?: string[];
+    category?: string[];
+    district?: string[];
+    has_comments?: boolean;
+  }>({
+    condition: [],
+    language: [],
+    category: [],
+    district: [],
     has_comments: false,
   });
 
@@ -34,18 +40,35 @@ export default function BuechereckePage() {
 
   const userHasLocation = Boolean(user?.location);
 
-  const { data: marketplaceOffers = [], isLoading: isLoadingMarketplace } =
-    useMarketplace({
-      search: filters.search,
-      condition: filters.condition.length > 0 ? filters.condition : undefined,
-      language: filters.language,
-      category: filters.category,
-      max_distance_km:
-        userHasLocation && filters.max_distance_km
-          ? filters.max_distance_km
-          : undefined,
-      has_comments: filters.has_comments || undefined,
-    });
+  const {
+    data: marketplaceData,
+    isLoading: isLoadingMarketplace,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useMarketplace({
+    search: filters.search,
+    condition:
+      filters.condition && filters.condition.length > 0
+        ? filters.condition
+        : undefined,
+    language:
+      filters.language && filters.language.length > 0
+        ? filters.language
+        : undefined,
+    category:
+      filters.category && filters.category.length > 0
+        ? filters.category
+        : undefined,
+    district:
+      filters.district && filters.district.length > 0
+        ? filters.district
+        : undefined,
+    has_comments: filters.has_comments || undefined,
+  });
+
+  const marketplaceOffers =
+    marketplaceData?.pages.flatMap((page) => page.items) ?? [];
 
   const { data: myOffers = [], isLoading: isLoadingMyOffers } =
     useMyOffers(myBooksStatusFilter);
@@ -55,26 +78,28 @@ export default function BuechereckePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 p-8 shadow-xl backdrop-blur-sm dark:from-amber-900 dark:to-orange-900">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 p-4 shadow-xl backdrop-blur-sm dark:from-amber-900 dark:to-orange-900 md:mb-8 md:p-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
             <div>
-              <div className="mb-2 flex items-center gap-3">
-                <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
-                  <BookOpen className="h-8 w-8 text-white" />
+              <div className="mb-2 flex items-center gap-2 md:gap-3">
+                <div className="rounded-full bg-white/20 p-1.5 backdrop-blur-sm md:p-2">
+                  <BookOpen className="h-6 w-6 text-white md:h-8 md:w-8" />
                 </div>
-                <h1 className="text-3xl font-bold text-white">Bücherecke</h1>
+                <h1 className="text-2xl font-bold text-white md:text-3xl">
+                  Bücherecke
+                </h1>
               </div>
-              <p className="text-amber-100">
+              <p className="text-sm text-amber-100 md:text-base">
                 Teile deine Bücher mit der Community
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               {isAuthenticated && user && <CreditBadge user={user} />}
               {isAuthenticated && (
                 <Button
                   onClick={() => setIsAddBookModalOpen(true)}
-                  className="flex items-center gap-2 bg-white text-amber-700 hover:bg-amber-50"
+                  className="flex items-center justify-center gap-2 bg-white text-amber-700 hover:bg-amber-50"
                 >
                   <Plus className="h-4 w-4" />
                   Buch anbieten
@@ -85,7 +110,7 @@ export default function BuechereckePage() {
         </div>
 
         {stats && (
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="mb-4 hidden grid-cols-1 gap-4 sm:grid sm:grid-cols-3 md:mb-8">
             <Card className="border-amber-200 bg-white/80 backdrop-blur-sm dark:border-amber-800 dark:bg-gray-800/80">
               <div className="p-6">
                 <div className="flex items-center">
@@ -183,27 +208,50 @@ export default function BuechereckePage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-                  {marketplaceOffers.map((offer) => (
-                    <BookCard
-                      key={offer.id}
-                      offer={offer}
-                      variant="marketplace"
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                    {marketplaceOffers.map((offer) => (
+                      <BookCard
+                        key={offer.id}
+                        offer={offer}
+                        variant="marketplace"
+                      />
+                    ))}
+                  </div>
+
+                  {hasNextPage && (
+                    <div className="mt-8 text-center">
+                      <Button
+                        onClick={() => fetchNextPage()}
+                        disabled={isFetchingNextPage}
+                        variant="outline"
+                        className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:border-amber-500 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                      >
+                        {isFetchingNextPage ? (
+                          <>
+                            <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+                            Lädt...
+                          </>
+                        ) : (
+                          <>Mehr Bücher laden</>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </TabsContent>
 
             {isAuthenticated && (
               <TabsContent value="my-books" className="p-6">
-                <div className="mb-4 flex items-center gap-2">
+                <div className="mb-4 flex gap-2 overflow-x-auto pb-2">
                   <Button
                     variant={
                       myBooksStatusFilter === undefined ? 'default' : 'outline'
                     }
                     size="sm"
                     onClick={() => setMyBooksStatusFilter(undefined)}
+                    className="shrink-0 px-3 text-xs"
                   >
                     Alle
                   </Button>
@@ -213,6 +261,7 @@ export default function BuechereckePage() {
                     }
                     size="sm"
                     onClick={() => setMyBooksStatusFilter('active')}
+                    className="shrink-0 px-3 text-xs"
                   >
                     Aktiv
                   </Button>
@@ -222,6 +271,7 @@ export default function BuechereckePage() {
                     }
                     size="sm"
                     onClick={() => setMyBooksStatusFilter('reserved')}
+                    className="shrink-0 px-3 text-xs"
                   >
                     Reserviert
                   </Button>
@@ -233,6 +283,7 @@ export default function BuechereckePage() {
                     }
                     size="sm"
                     onClick={() => setMyBooksStatusFilter('completed')}
+                    className="shrink-0 px-3 text-xs"
                   >
                     Abgeschlossen
                   </Button>

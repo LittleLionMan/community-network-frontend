@@ -1,34 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Globe, Tag, MapPin, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import { MultiSelect } from '@/components/books/MultiSelect';
+import { useFilterOptions } from '@/hooks/useBooks';
 
 interface BookFiltersProps {
   filters: {
     search?: string;
-    condition: string[];
-    language?: string;
-    category?: string;
-    max_distance_km?: number;
-    has_comments: boolean;
+    condition?: string[];
+    language?: string[];
+    category?: string[];
+    district?: string[];
+    has_comments?: boolean;
   };
   onFilterChange: (filters: BookFiltersProps['filters']) => void;
   userHasLocation: boolean;
 }
 
-export function BookFilters({
-  filters,
-  onFilterChange,
-  userHasLocation,
-}: BookFiltersProps) {
+const CONDITION_OPTIONS = [
+  { value: 'new', label: 'Neu' },
+  { value: 'like_new', label: 'Wie neu' },
+  { value: 'good', label: 'Gut' },
+  { value: 'acceptable', label: 'Akzeptabel' },
+];
+
+export function BookFilters({ filters, onFilterChange }: BookFiltersProps) {
   const [searchInput, setSearchInput] = useState(filters.search || '');
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
     null
   );
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const { data: filterOptions, isLoading: isLoadingOptions } =
+    useFilterOptions();
 
   useEffect(() => {
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -49,15 +57,12 @@ export function BookFilters({
   }, [searchInput]);
 
   const handleConditionToggle = (condition: string) => {
-    const newConditions = filters.condition.includes(condition)
-      ? filters.condition.filter((c) => c !== condition)
-      : [...filters.condition, condition];
+    const currentConditions = filters.condition || [];
+    const newConditions = currentConditions.includes(condition)
+      ? currentConditions.filter((c) => c !== condition)
+      : [...currentConditions, condition];
 
     onFilterChange({ ...filters, condition: newConditions });
-  };
-
-  const handleDistanceChange = (value: number[]) => {
-    onFilterChange({ ...filters, max_distance_km: value[0] });
   };
 
   const handleReset = () => {
@@ -65,122 +70,161 @@ export function BookFilters({
     onFilterChange({
       search: undefined,
       condition: [],
-      language: undefined,
-      category: undefined,
-      max_distance_km: undefined,
+      language: [],
+      category: [],
+      district: [],
       has_comments: false,
     });
   };
 
-  const hasActiveFilters =
-    filters.search ||
-    filters.condition.length > 0 ||
-    filters.language ||
-    filters.category ||
-    filters.max_distance_km ||
-    filters.has_comments;
+  const activeFilterCount = [
+    filters.search ? 1 : 0,
+    filters.condition?.length || 0,
+    filters.language?.length || 0,
+    filters.category?.length || 0,
+    filters.district?.length || 0,
+    filters.has_comments ? 1 : 0,
+  ].reduce((a, b) => a + b, 0);
 
-  const conditionOptions = [
-    { value: 'new', label: 'Neu' },
-    { value: 'like_new', label: 'Wie neu' },
-    { value: 'good', label: 'Gut' },
-    { value: 'acceptable', label: 'Akzeptabel' },
-  ];
+  const hasActiveFilters = activeFilterCount > 0;
 
   return (
-    <div className="mb-6 rounded-lg border border-amber-200 bg-white/50 p-4 backdrop-blur-sm dark:border-amber-800 dark:bg-gray-800/50">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div className="relative lg:col-span-2">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Titel, Autor, ISBN..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-10"
+    <div className="mb-4 rounded-lg border border-amber-200 bg-white/50 p-3 backdrop-blur-sm dark:border-amber-800 dark:bg-gray-800/50">
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 md:cursor-default"
+        >
+          Filter
+          <ChevronDown
+            className={`h-4 w-4 transition-transform md:hidden ${
+              isExpanded ? 'rotate-180' : ''
+            }`}
           />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="has-comments"
-            checked={filters.has_comments}
-            onCheckedChange={(checked) =>
-              onFilterChange({ ...filters, has_comments: !!checked })
-            }
-          />
-          <label
-            htmlFor="has-comments"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            Nur mit Rezensionen
-          </label>
-        </div>
-      </div>
-
-      <div className="mt-4">
-        <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-          Zustand
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {conditionOptions.map((option) => (
-            <label
-              key={option.value}
-              className="flex cursor-pointer items-center gap-2"
-            >
-              <Checkbox
-                checked={filters.condition.includes(option.value)}
-                onCheckedChange={() => handleConditionToggle(option.value)}
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {option.label}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {userHasLocation && (
-        <div className="mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Max. Distanz
-            </p>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {filters.max_distance_km || 50} km
-            </span>
-          </div>
-          <Slider
-            value={[filters.max_distance_km || 50]}
-            onValueChange={handleDistanceChange}
-            min={1}
-            max={50}
-            step={1}
-            className="w-full"
-          />
-        </div>
-      )}
-
-      {!userHasLocation && (
-        <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">
-          💡 Füge einen Standort in deinem Profil hinzu, um die
-          Distanz-Filterung zu nutzen
-        </p>
-      )}
-
-      {hasActiveFilters && (
-        <div className="mt-4 flex justify-end">
+        </button>
+        {hasActiveFilters && (
           <Button
             variant="outline"
             size="sm"
             onClick={handleReset}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1.5 border-amber-600 px-2 py-1 text-xs text-amber-700 hover:bg-amber-50 dark:border-amber-500 dark:text-amber-400 dark:hover:bg-amber-900/20"
           >
-            <X className="h-4 w-4" />
-            Filter zurücksetzen
+            <X className="h-3 w-3" />
+            <span className="hidden sm:inline">Reset</span>({activeFilterCount})
           </Button>
+        )}
+      </div>
+
+      <div className={`mt-3 space-y-3 ${!isExpanded ? 'hidden md:block' : ''}`}>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="relative lg:col-span-2">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Titel, Autor, ISBN..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="has-comments"
+              checked={filters.has_comments}
+              onCheckedChange={(checked) =>
+                onFilterChange({ ...filters, has_comments: !!checked })
+              }
+            />
+            <label
+              htmlFor="has-comments"
+              className="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Nur mit Rezensionen
+            </label>
+          </div>
         </div>
-      )}
+
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-gray-700 dark:text-gray-300">
+            Zustand
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {CONDITION_OPTIONS.map((option) => (
+              <label
+                key={option.value}
+                className="flex cursor-pointer items-center gap-1.5"
+              >
+                <Checkbox
+                  checked={(filters.condition || []).includes(option.value)}
+                  onCheckedChange={() => handleConditionToggle(option.value)}
+                />
+                <span className="text-xs text-gray-700 dark:text-gray-300">
+                  {option.label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {!isLoadingOptions && filterOptions && (
+          <div className="grid gap-3 md:grid-cols-3">
+            <MultiSelect
+              label="Sprache"
+              icon={<Globe className="h-4 w-4" />}
+              options={filterOptions.languages}
+              selected={filters.language || []}
+              onChange={(selected) =>
+                onFilterChange({
+                  ...filters,
+                  language: selected.length > 0 ? selected : undefined,
+                })
+              }
+              placeholder="Alle Sprachen"
+              maxDisplayed={2}
+            />
+
+            <MultiSelect
+              label="Kategorie"
+              icon={<Tag className="h-4 w-4" />}
+              options={filterOptions.categories}
+              selected={filters.category || []}
+              onChange={(selected) =>
+                onFilterChange({
+                  ...filters,
+                  category: selected.length > 0 ? selected : undefined,
+                })
+              }
+              placeholder="Alle Kategorien"
+              maxDisplayed={1}
+            />
+
+            <MultiSelect
+              label="Stadtteil"
+              icon={<MapPin className="h-4 w-4" />}
+              options={filterOptions.districts}
+              selected={filters.district || []}
+              onChange={(selected) =>
+                onFilterChange({
+                  ...filters,
+                  district: selected.length > 0 ? selected : undefined,
+                })
+              }
+              placeholder="Alle Stadtteile"
+              maxDisplayed={1}
+            />
+          </div>
+        )}
+
+        {isLoadingOptions && (
+          <div className="mt-4 flex items-center justify-center py-4">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-600 border-t-transparent"></div>
+            <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+              Lade Filter-Optionen...
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

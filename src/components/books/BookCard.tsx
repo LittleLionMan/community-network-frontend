@@ -9,20 +9,7 @@ import { BookOffer } from '@/lib/api';
 import { useDeleteOffer } from '@/hooks/useBooks';
 import { EditBookModal } from './EditBookModal';
 import { DeleteBookModal } from './DeleteBookModal';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-const getCoverUrl = (url?: string | null): string | null => {
-  if (!url) {
-    return null;
-  }
-
-  if (url.startsWith('/uploads/')) {
-    return `${API_BASE_URL}${url}`;
-  }
-
-  return url;
-};
+import { getBookCoverUrl, CONDITION_LABELS } from '@/lib/book-utils';
 
 interface BookCardProps {
   offer: BookOffer;
@@ -35,16 +22,9 @@ export function BookCard({ offer, variant }: BookCardProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const deleteOffer = useDeleteOffer();
 
-  const coverUrl = getCoverUrl(
+  const coverUrl = getBookCoverUrl(
     offer.custom_cover_image_url || offer.book?.cover_image_url
   );
-
-  const conditionLabels = {
-    new: 'Neu',
-    like_new: 'Wie neu',
-    good: 'Gut',
-    acceptable: 'Akzeptabel',
-  };
 
   const handleDeleteConfirm = async () => {
     try {
@@ -53,16 +33,6 @@ export function BookCard({ offer, variant }: BookCardProps) {
     } catch (error) {
       console.error('Delete failed:', error);
     }
-  };
-
-  const getStatusBadge = () => {
-    if (offer.reserved_until) {
-      return <Badge variant="warning">Reserviert</Badge>;
-    }
-    if (!offer.is_available) {
-      return <Badge variant="secondary">Abgeschlossen</Badge>;
-    }
-    return <Badge variant="success">Aktiv</Badge>;
   };
 
   if (variant === 'marketplace') {
@@ -95,33 +65,35 @@ export function BookCard({ offer, variant }: BookCardProps) {
               <h3 className="mb-1 line-clamp-2 text-sm font-semibold">
                 {offer.book?.title}
               </h3>
-              <p className="mb-2 text-xs text-gray-300">
+              <p className="mb-2 truncate text-xs text-gray-300">
                 {offer.book?.authors.join(', ')}
               </p>
 
               <div className="mb-2 flex items-center gap-2 text-xs">
-                <Badge
-                  variant="secondary"
-                  className="bg-amber-600/80 text-white"
-                >
-                  {conditionLabels[offer.condition]}
-                </Badge>
-                {offer.distance_km && (
-                  <div className="flex items-center gap-1 text-gray-200">
+                {offer.location_district && (
+                  <div className="flex items-center gap-1 text-amber-200">
                     <MapPin className="h-3 w-3" />
-                    <span>{offer.distance_km.toFixed(1)} km</span>
+                    <span className="truncate">{offer.location_district}</span>
                   </div>
                 )}
               </div>
-
-              {offer.all_user_comments &&
-                offer.all_user_comments.length > 0 && (
-                  <div className="flex items-center gap-1 text-xs text-amber-200">
-                    <MessageSquare className="h-3 w-3" />
-                    <span>{offer.all_user_comments.length} Rezensionen</span>
-                  </div>
-                )}
+              <Badge variant="secondary" className="bg-amber-600/80 text-white">
+                {CONDITION_LABELS[offer.condition]}
+              </Badge>
+              {offer.distance_km && (
+                <div className="flex items-center gap-1 text-gray-200">
+                  <MapPin className="h-3 w-3" />
+                  <span>{offer.distance_km.toFixed(1)} km</span>
+                </div>
+              )}
             </div>
+
+            {offer.all_user_comments && offer.all_user_comments.length > 0 && (
+              <div className="flex items-center gap-1 text-xs text-amber-200">
+                <MessageSquare className="h-3 w-3" />
+                <span>{offer.all_user_comments.length} Rezensionen</span>
+              </div>
+            )}
           </div>
         </div>
       </Link>
@@ -148,53 +120,55 @@ export function BookCard({ offer, variant }: BookCardProps) {
             )}
           </div>
 
-          <div className="absolute right-2 top-2">{getStatusBadge()}</div>
+          <div className="absolute right-2 top-2">
+            <Badge
+              variant={
+                offer.reserved_until
+                  ? 'warning'
+                  : !offer.is_available
+                    ? 'secondary'
+                    : 'success'
+              }
+              className="px-1.5 py-0.5 text-[10px]"
+            >
+              {offer.reserved_until
+                ? 'Reserv.'
+                : !offer.is_available
+                  ? 'Abgesch.'
+                  : 'Aktiv'}
+            </Badge>
+          </div>
 
           <div
             className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${
               isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <div className="absolute bottom-0 left-0 right-0 p-3">
-              <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-white">
+            <div className="absolute bottom-0 left-0 right-0 p-2">
+              <h3 className="mb-0.5 line-clamp-1 text-xs font-semibold text-white md:line-clamp-2 md:text-sm">
                 {offer.book?.title}
               </h3>
-              <p className="mb-2 text-xs text-gray-300">
+              <p className="mb-3 line-clamp-1 text-[10px] text-gray-300 md:text-xs">
                 {offer.book?.authors.join(', ')}
               </p>
 
-              <div className="mb-3 flex items-center gap-2 text-xs">
-                <Badge
-                  variant="secondary"
-                  className="bg-amber-600/80 text-white"
-                >
-                  {conditionLabels[offer.condition]}
-                </Badge>
-                {offer.location_district && (
-                  <div className="flex items-center gap-1 text-gray-200">
-                    <MapPin className="h-3 w-3" />
-                    <span>{offer.location_district}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="flex-1 border-white/20 bg-white/10 text-white hover:bg-white/20"
+                  className="flex-1 border-white/20 bg-white/10 px-2 py-1 text-white hover:bg-white/20"
                   onClick={(e) => {
                     e.preventDefault();
                     setIsEditModalOpen(true);
                   }}
                 >
-                  <Edit className="mr-1 h-3 w-3" />
-                  Edit
+                  <Edit className="h-3 w-3 md:mr-1" />
+                  <span className="hidden md:inline">Edit</span>
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-red-400/20 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                  className="border-red-400/20 bg-red-500/10 px-2 py-1 text-red-300 hover:bg-red-500/20"
                   onClick={(e) => {
                     e.preventDefault();
                     setIsDeleteModalOpen(true);
