@@ -79,6 +79,7 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: `prose prose-sm max-w-none focus:outline-none min-h-[${minHeight}] px-4 py-3 dark:prose-invert dark:text-gray-100`,
+        style: 'font-size: 16px',
       },
     },
     onUpdate: ({ editor }) => {

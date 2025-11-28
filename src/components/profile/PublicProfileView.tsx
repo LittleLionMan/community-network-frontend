@@ -3,9 +3,9 @@
 import { User, MapPin, Calendar, Check } from 'lucide-react';
 import { MessageCircle } from 'lucide-react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import type { User as UserType } from '@/types';
+import { useAuthStore } from '@/store/auth';
 
 interface PublicProfileViewProps {
   user: Partial<UserType>;
@@ -74,21 +74,21 @@ const SendMessageModal: React.FC<SendMessageModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+      <div className="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-gray-800">
         <div className="p-6">
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
             Nachricht an {recipientName}
           </h2>
 
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSend} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Nachricht
               </label>
               <textarea
@@ -96,7 +96,7 @@ const SendMessageModal: React.FC<SendMessageModalProps> = ({
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Schreibe eine Nachricht..."
                 rows={4}
-                className="w-full rounded-lg border border-gray-300 p-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-gray-300 bg-white p-3 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 required
                 disabled={isLoading}
               />
@@ -106,7 +106,7 @@ const SendMessageModal: React.FC<SendMessageModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                 disabled={isLoading}
               >
                 Abbrechen
@@ -134,6 +134,7 @@ export function PublicProfileView({
 }: PublicProfileViewProps) {
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showMessageSuccess, setShowMessageSuccess] = useState(false);
+  const { isAuthenticated } = useAuthStore();
 
   const handleMessageSuccess = () => {
     setShowMessageSuccess(true);
@@ -219,7 +220,7 @@ export function PublicProfileView({
           </div>
         )}
 
-        {!isPreview && user.id && !isOwnProfile && (
+        {!isPreview && user.id && !isOwnProfile && isAuthenticated && (
           <div className="space-y-3 border-t pt-6">
             <button
               onClick={() => setShowMessageModal(true)}
