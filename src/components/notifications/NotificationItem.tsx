@@ -1,7 +1,5 @@
 'use client';
 
-// src/components/notifications/NotificationItem.tsx
-
 import { MessageSquare, AtSign, Quote } from 'lucide-react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import type { Notification } from '@/types/notification';
@@ -46,14 +44,11 @@ function getRelativeTime(dateString: string): string {
 }
 
 function stripHtml(html: string): string {
-  // Create a temporary DOM element
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
 
-  // Get text content (strips all HTML tags)
   const text = tmp.textContent || tmp.innerText || '';
 
-  // Clean up extra whitespace
   return text.replace(/\s+/g, ' ').trim();
 }
 
@@ -96,8 +91,9 @@ export function NotificationItem({
     <button
       onClick={() => onClick(notification)}
       className={cn(
-        'w-full px-4 py-3 text-left transition-colors hover:bg-gray-50',
-        !is_read && 'border-l-4 border-l-blue-500 bg-blue-50'
+        'w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700',
+        !is_read &&
+          'border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30'
       )}
     >
       <div className="flex gap-3">
@@ -114,18 +110,27 @@ export function NotificationItem({
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-start gap-2">
             {getIcon()}
-            <p className={cn('text-sm', !is_read && 'font-semibold')}>
+            <p
+              className={cn(
+                'text-sm text-gray-900 dark:text-gray-100',
+                !is_read && 'font-semibold'
+              )}
+            >
               {getMessage()}
             </p>
           </div>
 
-          <p className="mb-1 text-xs text-gray-600">
+          <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">
             in: <span className="font-medium">{data.thread_title}</span>
           </p>
 
-          <p className="mb-2 text-sm text-gray-700">{cleanPreview}</p>
+          <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
+            {cleanPreview}
+          </p>
 
-          <p className="text-xs text-gray-500">{relativeTime}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">
+            {relativeTime}
+          </p>
         </div>
       </div>
     </button>
