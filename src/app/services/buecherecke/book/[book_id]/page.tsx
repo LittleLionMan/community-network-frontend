@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
   ArrowLeft,
   BookOpen,
@@ -13,14 +14,15 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useMarketplace } from '@/hooks/useBooks';
 import { useAuthStore } from '@/store/auth';
 import { BookOffer } from '@/lib/api';
+import { RequestBookModal } from '@/components/books/RequestBookModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const conditionLabels = {
+const conditionLabels: Record<BookOffer['condition'], string> = {
   new: 'Neu',
   like_new: 'Wie neu',
   good: 'Gut',
@@ -45,10 +47,11 @@ export default function BookDetailPage() {
   const { user } = useAuthStore();
   const bookId = Number(params.book_id);
 
-  const { data: offers = [], isLoading } = useMarketplace({
+  const { data: marketplaceData, isLoading } = useMarketplace({
     book_id: bookId,
   });
 
+  const offers = marketplaceData?.pages.flatMap((page) => page.items) ?? [];
   const book = offers[0]?.book;
 
   if (isLoading) {
@@ -92,7 +95,6 @@ export default function BookDetailPage() {
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8">
-      {/* Back Button */}
       <Button
         variant="ghost"
         onClick={() => router.back()}
@@ -102,9 +104,7 @@ export default function BookDetailPage() {
         Zurück zur Übersicht
       </Button>
 
-      {/* Book Header */}
       <div className="mb-8 grid gap-8 md:grid-cols-[300px_1fr]">
-        {/* Cover */}
         <div className="flex items-center justify-center md:justify-start">
           {coverUrl ? (
             <img
@@ -119,7 +119,6 @@ export default function BookDetailPage() {
           )}
         </div>
 
-        {/* Book Info */}
         <div>
           <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
             {book.title}
@@ -167,7 +166,7 @@ export default function BookDetailPage() {
                 Kategorien:
               </p>
               <div className="flex flex-wrap gap-2">
-                {book.categories.map((category, idx) => (
+                {book.categories.map((category: string, idx: number) => (
                   <Badge key={idx} variant="secondary">
                     {category}
                   </Badge>
@@ -189,7 +188,6 @@ export default function BookDetailPage() {
         </div>
       </div>
 
-      {/* Available Offers */}
       <div className="mb-8">
         <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
           Verfügbare Angebote ({offers.length})
@@ -217,7 +215,6 @@ export default function BookDetailPage() {
         )}
       </div>
 
-      {/* All Reviews */}
       {offers.some(
         (o) => o.all_user_comments && o.all_user_comments.length > 0
       ) && (
@@ -278,77 +275,93 @@ function OfferCard({
   offer: BookOffer;
   currentUserId?: number;
 }) {
+  const [showRequestModal, setShowRequestModal] = useState(false);
   const isOwnOffer = currentUserId === offer.owner_id;
 
   return (
-    <Card className="transition-shadow hover:shadow-lg">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            {offer.owner?.profile_image_url ? (
-              <img
-                src={offer.owner.profile_image_url}
-                alt={offer.owner.display_name}
-                className="h-12 w-12 rounded-full"
-              />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-                <User className="h-6 w-6 text-amber-600" />
+    <>
+      <Card className="transition-shadow hover:shadow-lg">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              {offer.owner?.profile_image_url ? (
+                <img
+                  src={offer.owner.profile_image_url}
+                  alt={offer.owner.display_name}
+                  className="h-12 w-12 rounded-full"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                  <User className="h-6 w-6 text-amber-600" />
+                </div>
+              )}
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">
+                  {offer.owner?.display_name}
+                </p>
+                <Badge
+                  variant="secondary"
+                  className="mt-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                >
+                  {conditionLabels[offer.condition]}
+                </Badge>
+              </div>
+            </div>
+            {isOwnOffer && (
+              <Badge
+                variant="outline"
+                className="border-blue-300 text-blue-700"
+              >
+                Dein Angebot
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 space-y-2 text-sm">
+            {offer.location_district && (
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <MapPin className="h-4 w-4" />
+                <span>{offer.location_district}</span>
               </div>
             )}
-            <div>
-              <p className="font-semibold text-gray-900 dark:text-gray-100">
-                {offer.owner?.display_name}
+            {offer.distance_km !== null && offer.distance_km !== undefined && (
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <MapPin className="h-4 w-4" />
+                <span>{offer.distance_km.toFixed(1)} km entfernt</span>
+              </div>
+            )}
+          </div>
+
+          {offer.user_comment && (
+            <div className="mb-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+              <div className="mb-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <MessageSquare className="h-4 w-4" />
+                <span>Kommentar:</span>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {offer.user_comment}
               </p>
-              <Badge
-                variant="secondary"
-                className="mt-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-              >
-                {conditionLabels[offer.condition]}
-              </Badge>
-            </div>
-          </div>
-          {isOwnOffer && (
-            <Badge variant="outline" className="border-blue-300 text-blue-700">
-              Dein Angebot
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4 space-y-2 text-sm">
-          {offer.location_district && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <MapPin className="h-4 w-4" />
-              <span>{offer.location_district}</span>
             </div>
           )}
-          {offer.distance_km !== null && offer.distance_km !== undefined && (
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <MapPin className="h-4 w-4" />
-              <span>{offer.distance_km.toFixed(1)} km entfernt</span>
-            </div>
-          )}
-        </div>
 
-        {offer.user_comment && (
-          <div className="mb-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-            <div className="mb-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <MessageSquare className="h-4 w-4" />
-              <span>Kommentar:</span>
-            </div>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-              {offer.user_comment}
-            </p>
-          </div>
-        )}
+          {!isOwnOffer && (
+            <Button
+              className="w-full bg-amber-600 hover:bg-amber-700"
+              onClick={() => setShowRequestModal(true)}
+            >
+              Anfrage senden
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
-        {!isOwnOffer && (
-          <Button className="w-full bg-amber-600 hover:bg-amber-700">
-            Anfrage senden
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+      {showRequestModal && offer.book && (
+        <RequestBookModal
+          bookOffer={offer}
+          onClose={() => setShowRequestModal(false)}
+        />
+      )}
+    </>
   );
 }

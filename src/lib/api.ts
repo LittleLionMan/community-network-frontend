@@ -45,6 +45,17 @@ import type {
   UserAchievementStats,
   AchievementCreate,
 } from '@/types/achievement';
+import type {
+  TransactionProposeTimeRequest,
+  TransactionData,
+  TransactionCreateRequest,
+  TransactionAcceptRequest,
+  TransactionRejectRequest,
+  TransactionConfirmTimeRequest,
+  TransactionCancelRequest,
+  TransactionConfirmHandoverRequest,
+  TransactionHistoryItem,
+} from '@/types/transactions';
 
 import { useAuthStore } from '@/store/auth';
 import { extendApiClientWithAdmin } from './admin-api';
@@ -1328,6 +1339,88 @@ class ApiClient {
 
     getFilterOptions: () =>
       this.request<BookFilterOptions>('/api/books/filters/options'),
+  };
+
+  transactions = {
+    create: (providerId: number, data: TransactionCreateRequest) => {
+      const params = new URLSearchParams();
+      params.append('provider_id', providerId.toString());
+      return this.request<TransactionData>(
+        `/api/transactions?${params.toString()}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      );
+    },
+
+    accept: (transactionId: number, data: TransactionAcceptRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/accept`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    reject: (transactionId: number, data: TransactionRejectRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/reject`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    proposeTime: (transactionId: number, data: TransactionProposeTimeRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/propose-time`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    confirmTime: (transactionId: number, data: TransactionConfirmTimeRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/confirm-time`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    confirmHandover: (
+      transactionId: number,
+      data: TransactionConfirmHandoverRequest
+    ) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/confirm-handover`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    cancel: (transactionId: number, data: TransactionCancelRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/cancel`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    getById: (transactionId: number) =>
+      this.request<TransactionData>(`/api/transactions/${transactionId}`),
+
+    getUserTransactions: (status?: string, limit: number = 50) => {
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (status) params.append('status', status);
+      return this.request<TransactionHistoryItem[]>(
+        `/api/transactions?${params.toString()}`
+      );
+    },
   };
 
   notifications = {
