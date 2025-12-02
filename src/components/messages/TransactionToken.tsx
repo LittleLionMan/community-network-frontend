@@ -15,12 +15,18 @@ import {
   LucideIcon,
 } from 'lucide-react';
 import { TransactionData } from '@/types/transactions';
-import { apiClient } from '@/lib/api';
-import { toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  useAcceptTransaction,
+  useRejectTransaction,
+  useProposeTime,
+  useConfirmTime,
+  useConfirmHandover,
+  useCancelTransaction,
+} from '@/hooks/useTransactions';
 
 interface TransactionTokenProps {
   transaction: TransactionData;
@@ -74,78 +80,76 @@ export function TransactionToken({
   currentUserId,
   onUpdate,
 }: TransactionTokenProps) {
-  const [loading, setLoading] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showProposeTimeModal, setShowProposeTimeModal] = useState(false);
   const [showConfirmTimeModal, setShowConfirmTimeModal] = useState(false);
+
+  const acceptMutation = useAcceptTransaction();
+  const rejectMutation = useRejectTransaction();
+  const proposeTimeMutation = useProposeTime();
+  const confirmTimeMutation = useConfirmTime();
+  const confirmHandoverMutation = useConfirmHandover();
+  const cancelMutation = useCancelTransaction();
+
+  const isLoading =
+    acceptMutation.isPending ||
+    rejectMutation.isPending ||
+    proposeTimeMutation.isPending ||
+    confirmTimeMutation.isPending ||
+    confirmHandoverMutation.isPending ||
+    cancelMutation.isPending;
 
   const statusInfo = statusConfig[transaction.status];
   const StatusIcon = statusInfo.icon;
   const isProvider = currentUserId === transaction.provider.id;
 
-  const handleAction = async (
-    action: () => Promise<TransactionData>,
-    successMessage: string
-  ) => {
-    setLoading(true);
-    try {
-      const updated = await action();
-      onUpdate?.(updated);
-      toast.success('Erfolg', successMessage);
-    } catch (error) {
-      toast.error(
-        'Fehler',
-        error instanceof Error ? error.message : 'Aktion fehlgeschlagen'
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleAccept = async () => {
+    const result = await acceptMutation.mutateAsync({
+      transactionId: transaction.transaction_id,
+    });
+    onUpdate?.(result);
   };
 
-  const handleAccept = () =>
-    handleAction(
-      () => apiClient.transactions.accept(transaction.transaction_id, {}),
-      'Anfrage akzeptiert'
-    );
+  const handleReject = async (reason: string) => {
+    const result = await rejectMutation.mutateAsync({
+      transactionId: transaction.transaction_id,
+      data: { reason },
+    });
+    onUpdate?.(result);
+  };
 
-  const handleReject = (reason: string) =>
-    handleAction(
-      () =>
-        apiClient.transactions.reject(transaction.transaction_id, { reason }),
-      'Anfrage abgelehnt'
-    );
+  const handleProposeTime = async (proposedTime: Date) => {
+    const result = await proposeTimeMutation.mutateAsync({
+      transactionId: transaction.transaction_id,
+      data: { proposed_time: proposedTime.toISOString() },
+    });
+    onUpdate?.(result);
+  };
 
-  const handleProposeTime = (proposedTime: Date) =>
-    handleAction(
-      () =>
-        apiClient.transactions.proposeTime(transaction.transaction_id, {
-          proposed_time: proposedTime.toISOString(),
-        }),
-      'Termin vorgeschlagen'
-    );
+  const handleConfirmTime = async (
+    confirmedTime: string,
+    exactAddress: string
+  ) => {
+    const result = await confirmTimeMutation.mutateAsync({
+      transactionId: transaction.transaction_id,
+      data: { confirmed_time: confirmedTime, exact_address: exactAddress },
+    });
+    onUpdate?.(result);
+  };
 
-  const handleConfirmTime = (confirmedTime: string, exactAddress: string) =>
-    handleAction(
-      () =>
-        apiClient.transactions.confirmTime(transaction.transaction_id, {
-          confirmed_time: confirmedTime,
-          exact_address: exactAddress,
-        }),
-      'Termin bestätigt'
-    );
+  const handleConfirmHandover = async () => {
+    const result = await confirmHandoverMutation.mutateAsync({
+      transactionId: transaction.transaction_id,
+    });
+    onUpdate?.(result);
+  };
 
-  const handleConfirmHandover = () =>
-    handleAction(
-      () =>
-        apiClient.transactions.confirmHandover(transaction.transaction_id, {}),
-      'Übergabe bestätigt'
-    );
-
-  const handleCancel = () =>
-    handleAction(
-      () => apiClient.transactions.cancel(transaction.transaction_id, {}),
-      'Transaktion storniert'
-    );
+  const handleCancel = async () => {
+    const result = await cancelMutation.mutateAsync({
+      transactionId: transaction.transaction_id,
+    });
+    onUpdate?.(result);
+  };
 
   return (
     <div className="my-4 rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm dark:border-amber-800 dark:from-amber-950/20 dark:to-gray-900">
@@ -266,10 +270,14 @@ export function TransactionToken({
           <Button
             size="sm"
             onClick={handleAccept}
-            disabled={loading}
+            disabled={isLoading}
             className="bg-green-600 hover:bg-green-700"
           >
-            Akzeptieren
+            {acceptMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Akzeptieren'
+            )}
           </Button>
         )}
 
@@ -278,7 +286,7 @@ export function TransactionToken({
             size="sm"
             variant="outline"
             onClick={() => setShowRejectModal(true)}
-            disabled={loading}
+            disabled={isLoading}
             className="border-red-300 text-red-600 hover:bg-red-50"
           >
             Ablehnen
@@ -290,7 +298,7 @@ export function TransactionToken({
             size="sm"
             variant="outline"
             onClick={() => setShowProposeTimeModal(true)}
-            disabled={loading}
+            disabled={isLoading}
           >
             <Calendar className="mr-1 h-3 w-3" />
             Termin vorschlagen
@@ -301,7 +309,7 @@ export function TransactionToken({
           <Button
             size="sm"
             onClick={() => setShowConfirmTimeModal(true)}
-            disabled={loading}
+            disabled={isLoading}
             className="bg-blue-600 hover:bg-blue-700"
           >
             Termin bestätigen
@@ -312,10 +320,10 @@ export function TransactionToken({
           <Button
             size="sm"
             onClick={handleConfirmHandover}
-            disabled={loading}
+            disabled={isLoading}
             className="bg-green-600 hover:bg-green-700"
           >
-            {loading ? (
+            {confirmHandoverMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               'Übergabe bestätigen'
@@ -328,9 +336,13 @@ export function TransactionToken({
             size="sm"
             variant="outline"
             onClick={handleCancel}
-            disabled={loading}
+            disabled={isLoading}
           >
-            Stornieren
+            {cancelMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Stornieren'
+            )}
           </Button>
         )}
       </div>

@@ -2,7 +2,16 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { User, Settings, Shield, Activity, Edit, Check, X } from 'lucide-react';
+import {
+  User,
+  Settings,
+  Shield,
+  Activity,
+  Edit,
+  Check,
+  X,
+  Calendar,
+} from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { PrivacyControls } from '@/components/profile/PrivacyControls';
@@ -11,6 +20,7 @@ import { PublicProfileView } from '@/components/profile/PublicProfileView';
 import { PasswordUpdateForm } from '@/components/profile/PasswordUpdateForm';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { AccountDeletionModal } from '@/components/profile/AccountDeletionModal';
+import { AvailabilityManagement } from '@/components/availability/AvailabilityManagement';
 import { ThemeToggle } from '@/components/profile/ThemeToggle';
 import { apiClient } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
@@ -187,6 +197,7 @@ function ProfilePageContent() {
   const tabs = [
     { id: 'profile', label: 'Profil', icon: User },
     { id: 'privacy', label: 'Privatsphäre', icon: Shield },
+    { id: 'availability', label: 'Verfügbarkeit', icon: Calendar },
     { id: 'activity', label: 'Aktivitäten', icon: Activity },
     { id: 'settings', label: 'Einstellungen', icon: Settings },
   ];
@@ -322,6 +333,8 @@ function ProfilePageContent() {
               isLoading={isLoading}
             />
           )}
+
+          {activeTab === 'availability' && <AvailabilityManagement />}
 
           {activeTab === 'activity' && (
             <div className="space-y-6">

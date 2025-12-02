@@ -56,6 +56,13 @@ import type {
   TransactionConfirmHandoverRequest,
   TransactionHistoryItem,
 } from '@/types/transactions';
+import type {
+  AvailabilitySlotCreate,
+  AvailabilitySlotUpdate,
+  AvailabilitySlotRead,
+  AvailabilitySlotPublic,
+  AvailabilityCheckResponse,
+} from '@/types/availability';
 
 import { useAuthStore } from '@/store/auth';
 import { extendApiClientWithAdmin } from './admin-api';
@@ -1339,6 +1346,66 @@ class ApiClient {
 
     getFilterOptions: () =>
       this.request<BookFilterOptions>('/api/books/filters/options'),
+  };
+
+  availability = {
+    createSlot: (data: AvailabilitySlotCreate) =>
+      this.request<AvailabilitySlotRead>('/api/availability/my', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    getMySlots: (includeInactive = false) => {
+      const params = new URLSearchParams();
+      if (includeInactive) params.append('include_inactive', 'true');
+      return this.request<AvailabilitySlotRead[]>(
+        `/api/availability/my${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    updateSlot: (slotId: number, data: AvailabilitySlotUpdate) =>
+      this.request<AvailabilitySlotRead>(`/api/availability/my/${slotId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+
+    deleteSlot: (slotId: number, hardDelete = false) => {
+      const params = new URLSearchParams();
+      if (hardDelete) params.append('hard_delete', 'true');
+      return this.request<{ message: string }>(
+        `/api/availability/my/${slotId}${params.toString() ? '?' + params.toString() : ''}`,
+        {
+          method: 'DELETE',
+        }
+      );
+    },
+
+    getUserAvailability: (
+      userId: number,
+      startDate?: string,
+      endDate?: string
+    ) => {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      return this.request<AvailabilitySlotPublic[]>(
+        `/api/availability/users/${userId}${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    checkAvailability: (
+      userId: number,
+      proposedTime: string,
+      durationHours = 1
+    ) => {
+      const params = new URLSearchParams({
+        proposed_time: proposedTime,
+        duration_hours: durationHours.toString(),
+      });
+      return this.request<AvailabilityCheckResponse>(
+        `/api/availability/users/${userId}/check?${params.toString()}`
+      );
+    },
   };
 
   transactions = {
