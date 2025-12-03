@@ -4,8 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import type {
   TransactionCreateRequest,
-  TransactionAcceptRequest,
-  TransactionRejectRequest,
   TransactionProposeTimeRequest,
   TransactionConfirmTimeRequest,
   TransactionCancelRequest,
@@ -48,46 +46,6 @@ export function useCreateTransaction() {
   });
 }
 
-export function useAcceptTransaction() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      transactionId,
-      data = {},
-    }: {
-      transactionId: number;
-      data?: TransactionAcceptRequest;
-    }) => apiClient.transactions.accept(transactionId, data),
-    onSuccess: (updatedTransaction: TransactionData) => {
-      queryClient.invalidateQueries({
-        queryKey: ['transactions', updatedTransaction.transaction_id],
-      });
-      queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
-    },
-  });
-}
-
-export function useRejectTransaction() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      transactionId,
-      data,
-    }: {
-      transactionId: number;
-      data: TransactionRejectRequest;
-    }) => apiClient.transactions.reject(transactionId, data),
-    onSuccess: (updatedTransaction: TransactionData) => {
-      queryClient.invalidateQueries({
-        queryKey: ['transactions', updatedTransaction.transaction_id],
-      });
-      queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
-    },
-  });
-}
-
 export function useProposeTime() {
   const queryClient = useQueryClient();
 
@@ -104,6 +62,38 @@ export function useProposeTime() {
         queryKey: ['transactions', updatedTransaction.transaction_id],
       });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
+    },
+  });
+}
+
+export function useUpdateTransactionAddress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      transactionId,
+      address,
+    }: {
+      transactionId: number;
+      address: string;
+    }) => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/transactions/${transactionId}/address`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ exact_address: address }),
+        }
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to update address');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
 }

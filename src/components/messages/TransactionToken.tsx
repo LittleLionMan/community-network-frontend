@@ -20,12 +20,11 @@ import { Badge } from '@/components/ui/badge';
 import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  useAcceptTransaction,
-  useRejectTransaction,
   useProposeTime,
   useConfirmTime,
   useConfirmHandover,
   useCancelTransaction,
+  useUpdateTransactionAddress,
 } from '@/hooks/useTransactions';
 
 interface TransactionTokenProps {
@@ -39,38 +38,42 @@ const statusConfig: Record<
   { label: string; color: string; icon: LucideIcon }
 > = {
   pending: {
-    label: 'Wartet auf Antwort',
-    color: 'text-yellow-600 bg-yellow-50',
+    label: 'In Abstimmung',
+    color:
+      'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20',
     icon: Clock,
   },
   accepted: {
-    label: 'Akzeptiert',
-    color: 'text-blue-600 bg-blue-50',
-    icon: CheckCircle,
+    label: 'In Abstimmung',
+    color:
+      'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20',
+    icon: Clock,
   },
   time_confirmed: {
     label: 'Termin bestätigt',
-    color: 'text-green-600 bg-green-50',
+    color:
+      'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20',
     icon: Calendar,
   },
   completed: {
     label: 'Abgeschlossen',
-    color: 'text-green-700 bg-green-100',
+    color:
+      'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30',
     icon: CheckCircle,
   },
   cancelled: {
     label: 'Storniert',
-    color: 'text-gray-600 bg-gray-100',
+    color: 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800',
     icon: XCircle,
   },
   rejected: {
     label: 'Abgelehnt',
-    color: 'text-red-600 bg-red-50',
+    color: 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20',
     icon: XCircle,
   },
   expired: {
     label: 'Abgelaufen',
-    color: 'text-gray-500 bg-gray-50',
+    color: 'text-gray-500 bg-gray-50 dark:text-gray-400 dark:bg-gray-800',
     icon: Clock,
   },
 };
@@ -80,43 +83,29 @@ export function TransactionToken({
   currentUserId,
   onUpdate,
 }: TransactionTokenProps) {
-  const [showRejectModal, setShowRejectModal] = useState(false);
   const [showProposeTimeModal, setShowProposeTimeModal] = useState(false);
   const [showConfirmTimeModal, setShowConfirmTimeModal] = useState(false);
+  const [showEditAddressModal, setShowEditAddressModal] = useState(false);
 
-  const acceptMutation = useAcceptTransaction();
-  const rejectMutation = useRejectTransaction();
   const proposeTimeMutation = useProposeTime();
   const confirmTimeMutation = useConfirmTime();
   const confirmHandoverMutation = useConfirmHandover();
   const cancelMutation = useCancelTransaction();
+  const updateAddressMutation = useUpdateTransactionAddress();
+
+  console.log(transaction.can_confirm_time);
+  console.log(transaction);
 
   const isLoading =
-    acceptMutation.isPending ||
-    rejectMutation.isPending ||
     proposeTimeMutation.isPending ||
     confirmTimeMutation.isPending ||
     confirmHandoverMutation.isPending ||
-    cancelMutation.isPending;
+    cancelMutation.isPending ||
+    updateAddressMutation.isPending;
 
   const statusInfo = statusConfig[transaction.status];
   const StatusIcon = statusInfo.icon;
   const isProvider = currentUserId === transaction.provider.id;
-
-  const handleAccept = async () => {
-    const result = await acceptMutation.mutateAsync({
-      transactionId: transaction.transaction_id,
-    });
-    onUpdate?.(result);
-  };
-
-  const handleReject = async (reason: string) => {
-    const result = await rejectMutation.mutateAsync({
-      transactionId: transaction.transaction_id,
-      data: { reason },
-    });
-    onUpdate?.(result);
-  };
 
   const handleProposeTime = async (proposedTime: Date) => {
     const result = await proposeTimeMutation.mutateAsync({
@@ -126,13 +115,13 @@ export function TransactionToken({
     onUpdate?.(result);
   };
 
-  const handleConfirmTime = async (
-    confirmedTime: string,
-    exactAddress: string
-  ) => {
+  const handleConfirmTime = async (confirmedTime: string) => {
     const result = await confirmTimeMutation.mutateAsync({
       transactionId: transaction.transaction_id,
-      data: { confirmed_time: confirmedTime, exact_address: exactAddress },
+      data: {
+        confirmed_time: confirmedTime,
+        exact_address: transaction.exact_address || 'Münster',
+      },
     });
     onUpdate?.(result);
   };
@@ -151,19 +140,27 @@ export function TransactionToken({
     onUpdate?.(result);
   };
 
+  const handleUpdateAddress = async (newAddress: string) => {
+    const result = await updateAddressMutation.mutateAsync({
+      transactionId: transaction.transaction_id,
+      address: newAddress,
+    });
+    onUpdate?.(result);
+  };
+
   return (
     <div className="my-4 rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm dark:border-amber-800 dark:from-amber-950/20 dark:to-gray-900">
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-3">
           {transaction.offer.thumbnail_url ? (
             <img
-              src={transaction.offer.thumbnail_url}
+              src={`${process.env.NEXT_PUBLIC_API_URL}${transaction.offer.thumbnail_url}`}
               alt={transaction.offer.title}
               className="h-16 w-12 rounded object-cover"
             />
           ) : (
-            <div className="flex h-16 w-12 items-center justify-center rounded bg-amber-100">
-              <BookOpen className="h-6 w-6 text-amber-600" />
+            <div className="flex h-16 w-12 items-center justify-center rounded bg-amber-100 dark:bg-amber-900">
+              <BookOpen className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
           )}
           <div>
@@ -240,13 +237,27 @@ export function TransactionToken({
 
       {transaction.exact_address && (
         <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
-          <h5 className="mb-1 flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-300">
-            <MapPin className="h-4 w-4" />
-            Treffpunkt
-          </h5>
-          <p className="text-sm text-blue-700 dark:text-blue-400">
-            {transaction.exact_address}
-          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h5 className="mb-1 flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-300">
+                <MapPin className="h-4 w-4" />
+                Treffpunkt
+              </h5>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                {transaction.exact_address}
+              </p>
+            </div>
+            {transaction.can_edit_address && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowEditAddressModal(true)}
+                className="ml-2 text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30"
+              >
+                Bearbeiten
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
@@ -266,39 +277,13 @@ export function TransactionToken({
       )}
 
       <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-3 dark:border-gray-700">
-        {transaction.can_accept && (
-          <Button
-            size="sm"
-            onClick={handleAccept}
-            disabled={isLoading}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {acceptMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Akzeptieren'
-            )}
-          </Button>
-        )}
-
-        {transaction.can_reject && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowRejectModal(true)}
-            disabled={isLoading}
-            className="border-red-300 text-red-600 hover:bg-red-50"
-          >
-            Ablehnen
-          </Button>
-        )}
-
         {transaction.can_propose_time && (
           <Button
             size="sm"
             variant="outline"
             onClick={() => setShowProposeTimeModal(true)}
             disabled={isLoading}
+            className="border-gray-400 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
           >
             <Calendar className="mr-1 h-3 w-3" />
             Termin vorschlagen
@@ -337,6 +322,7 @@ export function TransactionToken({
             variant="outline"
             onClick={handleCancel}
             disabled={isLoading}
+            className="border-gray-400 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
           >
             {cancelMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -346,16 +332,6 @@ export function TransactionToken({
           </Button>
         )}
       </div>
-
-      {showRejectModal && (
-        <RejectModal
-          onClose={() => setShowRejectModal(false)}
-          onSubmit={(reason) => {
-            handleReject(reason);
-            setShowRejectModal(false);
-          }}
-        />
-      )}
 
       {showProposeTimeModal && (
         <ProposeTimeModal
@@ -370,10 +346,22 @@ export function TransactionToken({
       {showConfirmTimeModal && (
         <ConfirmTimeModal
           proposedTimes={transaction.proposed_times}
+          currentAddress={transaction.exact_address}
           onClose={() => setShowConfirmTimeModal(false)}
-          onSubmit={(time, address) => {
-            handleConfirmTime(time, address);
+          onSubmit={(time) => {
+            handleConfirmTime(time);
             setShowConfirmTimeModal(false);
+          }}
+        />
+      )}
+
+      {showEditAddressModal && (
+        <EditAddressModal
+          currentAddress={transaction.exact_address || ''}
+          onClose={() => setShowEditAddressModal(false)}
+          onSubmit={(address) => {
+            handleUpdateAddress(address);
+            setShowEditAddressModal(false);
           }}
         />
       )}
@@ -471,15 +459,16 @@ function ProposeTimeModal({
 
 function ConfirmTimeModal({
   proposedTimes,
+  currentAddress,
   onClose,
   onSubmit,
 }: {
   proposedTimes: string[];
+  currentAddress: string | null;
   onClose: () => void;
-  onSubmit: (time: string, address: string) => void;
+  onSubmit: (time: string) => void;
 }) {
   const [selectedTime, setSelectedTime] = useState('');
-  const [address, setAddress] = useState('');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -516,10 +505,72 @@ function ConfirmTimeModal({
             </select>
           </div>
 
+          {currentAddress && (
+            <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+              <div className="mb-1 flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-300">
+                <MapPin className="h-4 w-4" />
+                Treffpunkt
+              </div>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                {currentAddress}
+              </p>
+            </div>
+          )}
+
+          {!currentAddress && (
+            <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                ⚠️ Kein Treffpunkt festgelegt. Der Anbieter sollte einen
+                Treffpunkt angeben.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <Button
+            onClick={() => selectedTime && onSubmit(selectedTime)}
+            disabled={!selectedTime || !currentAddress}
+            className="flex-1"
+          >
+            Bestätigen
+          </Button>
+          <Button variant="outline" onClick={onClose}>
+            Abbrechen
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditAddressModal({
+  currentAddress,
+  onClose,
+  onSubmit,
+}: {
+  currentAddress: string;
+  onClose: () => void;
+  onSubmit: (address: string) => void;
+}) {
+  const [address, setAddress] = useState(currentAddress);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Treffpunkt bearbeiten</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium">
-              Genaue Adresse
-            </label>
+            <label className="mb-2 block text-sm font-medium">Adresse</label>
             <input
               type="text"
               value={address}
@@ -528,18 +579,20 @@ function ConfirmTimeModal({
               className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
               maxLength={500}
             />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Dies wird der Treffpunkt für die Übergabe. Du kannst ihn nur vor
+              der Terminbestätigung ändern.
+            </p>
           </div>
         </div>
 
         <div className="mt-4 flex gap-2">
           <Button
-            onClick={() =>
-              selectedTime && address && onSubmit(selectedTime, address)
-            }
-            disabled={!selectedTime || !address}
+            onClick={() => address && onSubmit(address)}
+            disabled={!address || address === currentAddress}
             className="flex-1"
           >
-            Bestätigen
+            Speichern
           </Button>
           <Button variant="outline" onClick={onClose}>
             Abbrechen

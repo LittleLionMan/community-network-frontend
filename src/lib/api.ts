@@ -49,8 +49,6 @@ import type {
   TransactionProposeTimeRequest,
   TransactionData,
   TransactionCreateRequest,
-  TransactionAcceptRequest,
-  TransactionRejectRequest,
   TransactionConfirmTimeRequest,
   TransactionCancelRequest,
   TransactionConfirmHandoverRequest,
@@ -1420,24 +1418,6 @@ class ApiClient {
         }
       );
     },
-
-    accept: (transactionId: number, data: TransactionAcceptRequest) =>
-      this.request<TransactionData>(
-        `/api/transactions/${transactionId}/accept`,
-        {
-          method: 'POST',
-          body: JSON.stringify(data),
-        }
-      ),
-
-    reject: (transactionId: number, data: TransactionRejectRequest) =>
-      this.request<TransactionData>(
-        `/api/transactions/${transactionId}/reject`,
-        {
-          method: 'POST',
-          body: JSON.stringify(data),
-        }
-      ),
 
     proposeTime: (transactionId: number, data: TransactionProposeTimeRequest) =>
       this.request<TransactionData>(

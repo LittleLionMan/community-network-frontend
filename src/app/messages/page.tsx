@@ -562,6 +562,19 @@ export default function MessagesPage() {
           }
           break;
 
+        case 'transaction_updated':
+          if (message.transaction_id && message.conversation_id) {
+            refreshConversations();
+            if (message.conversation_id === selectedConversationId) {
+              // Messages werden automatisch aktualisiert
+            }
+          }
+          break;
+
+        case 'availability_changed':
+          refreshConversations();
+          break;
+
         default:
       }
     };
@@ -587,6 +600,24 @@ export default function MessagesPage() {
     refreshConversations,
     updateUnreadCount,
   ]);
+
+  useEffect(() => {
+    const handleTransactionUpdate = (event: CustomEvent) => {
+      refreshConversations();
+    };
+
+    window.addEventListener(
+      'transaction-updated',
+      handleTransactionUpdate as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'transaction-updated',
+        handleTransactionUpdate as EventListener
+      );
+    };
+  }, [refreshConversations]);
 
   useEffect(() => {
     if (selectedConversationId && messages.length > 0) {

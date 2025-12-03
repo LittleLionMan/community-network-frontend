@@ -14,7 +14,7 @@ import type {
   AvailabilitySlotCreate,
   AvailabilitySlotRead,
 } from '@/types/availability';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 const WEEKDAYS = [
@@ -265,7 +265,7 @@ function SlotCard({
   const [title, setTitle] = useState(slot.title || '');
   const [notes, setNotes] = useState(slot.notes || '');
 
-  const isRecurring = slot.day_of_week !== undefined;
+  const isRecurring = slot.day_of_week !== null;
   const isManual = slot.source === 'manual';
 
   return (
@@ -320,26 +320,13 @@ function SlotCard({
                   <>
                     {slot.specific_date ? (
                       <>
-                        {format(new Date(slot.specific_date), 'dd.MM.yyyy', {
+                        {format(parseISO(slot.specific_date), 'dd.MM.yyyy', {
                           locale: de,
                         })}
                         {slot.specific_start && slot.specific_end ? (
                           <>
-                            ,{' '}
-                            {slot.specific_start.includes('T')
-                              ? slot.specific_start
-                                  .split('T')[1]
-                                  .replace('Z', '')
-                                  .slice(0, 5)
-                              : slot.specific_start.slice(0, 5)}{' '}
-                            -{' '}
-                            {slot.specific_end.includes('T')
-                              ? slot.specific_end
-                                  .split('T')[1]
-                                  .replace('Z', '')
-                                  .slice(0, 5)
-                              : slot.specific_end.slice(0, 5)}{' '}
-                            Uhr
+                            , {format(parseISO(slot.specific_start), 'HH:mm')} -{' '}
+                            {format(parseISO(slot.specific_end), 'HH:mm')} Uhr
                           </>
                         ) : (
                           <span className="text-red-500">

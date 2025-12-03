@@ -16,14 +16,7 @@ export interface TransactionParticipantInfo {
 export interface TransactionData {
   transaction_id: number;
   transaction_type: 'book_exchange' | 'service_meetup' | 'event_confirmation';
-  status:
-    | 'pending'
-    | 'accepted'
-    | 'time_confirmed'
-    | 'completed'
-    | 'cancelled'
-    | 'rejected'
-    | 'expired';
+  status: 'pending' | 'time_confirmed' | 'completed' | 'cancelled' | 'expired';
   offer: TransactionOfferInfo;
   requester: TransactionParticipantInfo;
   provider: TransactionParticipantInfo;
@@ -36,10 +29,9 @@ export interface TransactionData {
   updated_at: string;
   expires_at: string;
   is_expired: boolean;
-  can_accept: boolean;
-  can_reject: boolean;
   can_propose_time: boolean;
   can_confirm_time: boolean;
+  can_edit_address: boolean;
   can_confirm_handover: boolean;
   can_cancel: boolean;
   metadata: Record<string, unknown>;
@@ -51,14 +43,6 @@ export interface TransactionCreateRequest {
   transaction_type: 'book_exchange' | 'service_meetup' | 'event_confirmation';
   initial_message: string;
   proposed_times?: string[];
-}
-
-export interface TransactionAcceptRequest {
-  message?: string;
-}
-
-export interface TransactionRejectRequest {
-  reason: string;
 }
 
 export interface TransactionProposeTimeRequest {
