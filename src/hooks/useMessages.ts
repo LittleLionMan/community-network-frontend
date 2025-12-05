@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '@/lib/api';
-import { useAuthStore } from '@/store/auth';
 import type {
   Conversation,
   ConversationDetail,
@@ -10,7 +9,6 @@ import type {
   CreateConversationData,
   CreateMessageData,
   UpdateMessageData,
-  MessagePrivacySettings,
   UnreadCount,
 } from '@/types/message';
 
@@ -500,9 +498,23 @@ export function useConversation(conversationId: number | null) {
 
   const updateMessage = useCallback((updatedMessage: Message) => {
     if (currentConversationIdRef.current === updatedMessage.conversation_id) {
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
-      );
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === updatedMessage.id ? updatedMessage : msg
+        );
+        if (updatedMessage.transaction_data) {
+          return updated.sort((a, b) => {
+            const aTime = a.transaction_data
+              ? new Date(a.transaction_data.updated_at as string).getTime()
+              : new Date(a.created_at).getTime();
+            const bTime = b.transaction_data
+              ? new Date(b.transaction_data.updated_at as string).getTime()
+              : new Date(b.created_at).getTime();
+            return aTime - bTime;
+          });
+        }
+        return updated;
+      });
     }
   }, []);
 

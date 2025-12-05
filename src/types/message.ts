@@ -24,6 +24,7 @@ export interface Message {
   reply_to?: Message;
   is_read: boolean;
   transaction_data?: Record<string, string | number | boolean | null>;
+  last_activity_at?: string;
 }
 
 export interface ConversationParticipant {
@@ -138,6 +139,7 @@ export interface WebSocketMessage {
   transaction_id?: number;
   new_status?: string;
   updated_by?: number;
+  transaction_data?: Record<string, string | number | boolean | null>;
 }
 
 export interface TypingStatus {

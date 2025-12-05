@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { User } from '@/types';
+import { useAvailableRequestSlots } from '@/hooks/useTransactions';
 
 interface CreditBadgeProps {
   user: User;
@@ -17,16 +18,11 @@ interface CreditBadgeProps {
 
 export function CreditBadge({ user }: CreditBadgeProps) {
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const { data: availableSlots } = useAvailableRequestSlots();
 
-  const getNextResetDate = () => {
-    const now = new Date();
-    const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return nextReset.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
+  const credits =
+    availableSlots?.total_credits ?? user.book_credits_remaining ?? 0;
+  const creditText = credits === 1 ? 'Credit' : 'Credits';
 
   return (
     <>
@@ -36,13 +32,16 @@ export function CreditBadge({ user }: CreditBadgeProps) {
       >
         <BookOpen className="h-4 w-4 text-white" />
         <span className="text-sm font-medium text-white">
-          {user.book_credits_remaining ?? 0}/1 Credits
+          {credits} {creditText}
         </span>
         <Info className="h-3 w-3 text-white/70 transition-opacity group-hover:text-white" />
 
-        <div className="pointer-events-none absolute -bottom-16 left-1/2 z-50 hidden w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-2 text-xs text-gray-700 opacity-0 shadow-lg transition-opacity group-hover:block group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-          <p className="mb-1 font-medium">Nächste Aufladung:</p>
-          <p>{getNextResetDate()}</p>
+        <div className="pointer-events-none absolute -bottom-16 left-1/2 z-50 hidden w-56 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-2 text-xs text-gray-700 opacity-0 shadow-lg transition-opacity group-hover:block group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+          <p className="font-medium">
+            {credits === 0
+              ? 'Keine Credits verfügbar'
+              : `${credits} ${creditText} verfügbar`}
+          </p>
         </div>
       </button>
 
@@ -60,27 +59,33 @@ export function CreditBadge({ user }: CreditBadgeProps) {
           <div className="space-y-4">
             <div>
               <h3 className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
-                📚 Was sind Credits?
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Credits erlauben dir, Bücher zu erwerben. Ein Credit = Ein Buch.
-              </p>
-            </div>
-            <div>
-              <h3 className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
-                🔄 Wie bekomme ich Credits?
+                🔄 Wie funktioniert das System?
               </h3>
               <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• Jeden Monat: Automatisch 1 Credit</li>
-                <li>• Aber: Maximal 1 Credit</li>
+                <li>• Jeder startet mit 1 Credit</li>
+                <li>
+                  • Bei erfolgreicher Übergabe erhält die/der Anbietende 1
+                  Credit
+                </li>
+                <li>• Die/Der Transaktionspartner/in gibt 1 Credit ab</li>
+                <li>
+                  • Credits sammeln sich durch erfolgreiche Transaktionen an
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
-                ⏰ Nächste Aufladung
+                💡 Tipp
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {getNextResetDate()}
+                Biete eigene Bücher an, um durch erfolgreiche Transaktioen
+                Credits zu verdienen. Je mehr du gibst, desto mehr kannst du
+                nehmen!
+              </p>
+            </div>
+            <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                Aktueller Stand: {credits} {creditText}
               </p>
             </div>
           </div>

@@ -1419,6 +1419,13 @@ class ApiClient {
       );
     },
 
+    getAvailableRequestSlots: () =>
+      this.request<{
+        total_credits: number;
+        active_transactions: number;
+        available_slots: number;
+      }>('/api/transactions/available-slots'),
+
     proposeTime: (transactionId: number, data: TransactionProposeTimeRequest) =>
       this.request<TransactionData>(
         `/api/transactions/${transactionId}/propose-time`,

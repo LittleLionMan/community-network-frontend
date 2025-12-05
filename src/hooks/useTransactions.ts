@@ -42,6 +42,9 @@ export function useCreateTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['books', 'marketplace'] });
+      queryClient.invalidateQueries({ queryKey: ['books', 'my-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['books', 'stats'] });
     },
   });
 }
@@ -63,6 +66,14 @@ export function useProposeTime() {
       });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
     },
+  });
+}
+
+export function useAvailableRequestSlots() {
+  return useQuery({
+    queryKey: ['available-request-slots'],
+    queryFn: () => apiClient.transactions.getAvailableRequestSlots(),
+    staleTime: 30000,
   });
 }
 
@@ -136,6 +147,7 @@ export function useConfirmHandover() {
       });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['available-request-slots'] });
     },
   });
 }
@@ -157,6 +169,8 @@ export function useCancelTransaction() {
       });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
       queryClient.invalidateQueries({ queryKey: ['availability'] });
+      queryClient.invalidateQueries({ queryKey: ['books', 'marketplace'] });
+      queryClient.invalidateQueries({ queryKey: ['books', 'my-offers'] });
     },
   });
 }

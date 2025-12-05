@@ -10,7 +10,7 @@ import type { AvailabilitySlotPublic } from '@/types/availability';
 interface AvailabilityCalendarProps {
   slots: AvailabilitySlotPublic[];
   onSelectTime?: (time: Date) => void;
-  selectedTime?: Date;
+  selectedTimes?: Date[];
   mode?: 'view' | 'select';
   minDate?: Date;
 }
@@ -21,7 +21,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 export function AvailabilityCalendar({
   slots,
   onSelectTime,
-  selectedTime,
+  selectedTimes = [],
   mode = 'view',
   minDate = new Date(),
 }: AvailabilityCalendarProps) {
@@ -48,30 +48,54 @@ export function AvailabilityCalendar({
     );
   };
 
+  const hasAvailableSlots = slots.some(
+    (slot) => slot.slot_type === 'available'
+  );
+
   const getSlotForDateTime = (
     date: Date,
     hour: number
   ): AvailabilitySlotPublic | null => {
     const dayOfWeek = (date.getDay() + 6) % 7;
 
-    for (const slot of slots) {
-      if (slot.specific_date) {
+    const specificSlots = slots.filter((slot) => slot.specific_date);
+
+    for (const slot of specificSlots) {
+      if (!slot.specific_date || !slot.specific_start || !slot.specific_end)
+        continue;
+
+      try {
         const slotDate = parseISO(slot.specific_date);
         if (isSameDay(slotDate, date)) {
-          const slotStart = parseInt(slot.specific_start?.split(':')[0] || '0');
-          const slotEnd = parseInt(slot.specific_end?.split(':')[0] || '0');
-          if (hour >= slotStart && hour < slotEnd) {
+          const startDateTime = parseISO(slot.specific_start);
+          const endDateTime = parseISO(slot.specific_end);
+
+          const slotStartHour = startDateTime.getHours();
+          const slotEndHour = endDateTime.getHours();
+
+          if (hour >= slotStartHour && hour < slotEndHour) {
             return slot;
           }
         }
-      } else if (slot.day_of_week === dayOfWeek) {
-        const slotStart = parseInt(slot.start_time?.split(':')[0] || '0');
-        const slotEnd = parseInt(slot.end_time?.split(':')[0] || '0');
+      } catch (e) {
+        console.error('Failed to parse slot dates:', slot, e);
+        continue;
+      }
+    }
+
+    const recurringSlots = slots.filter(
+      (slot) => slot.day_of_week !== null && slot.day_of_week !== undefined
+    );
+    for (const slot of recurringSlots) {
+      if (slot.day_of_week === dayOfWeek && slot.start_time && slot.end_time) {
+        const slotStart = parseInt(slot.start_time.split(':')[0] || '0');
+        const slotEnd = parseInt(slot.end_time.split(':')[0] || '0');
         if (hour >= slotStart && hour < slotEnd) {
           return slot;
         }
       }
     }
+
     return null;
   };
 
@@ -84,30 +108,38 @@ export function AvailabilityCalendar({
     if (dateTime < minDate) return;
 
     const slot = getSlotForDateTime(date, hour);
-    if (slot && slot.slot_type === 'available') {
-      onSelectTime(dateTime);
+
+    if (hasAvailableSlots) {
+      if (slot && slot.slot_type === 'available') {
+        onSelectTime(dateTime);
+      }
+    } else {
+      if (!slot || slot.slot_type !== 'blocked') {
+        onSelectTime(dateTime);
+      }
     }
   };
 
   const isTimeSelected = (date: Date, hour: number): boolean => {
-    if (!selectedTime) return false;
+    if (!selectedTimes.length) return false;
     const dateTime = new Date(date);
     dateTime.setHours(hour, 0, 0, 0);
-    return (
-      isSameDay(dateTime, selectedTime) &&
-      dateTime.getHours() === selectedTime.getHours()
+    return selectedTimes.some(
+      (selectedTime) =>
+        isSameDay(dateTime, selectedTime) &&
+        dateTime.getHours() === selectedTime.getHours()
     );
   };
 
   const isTimePast = (date: Date, hour: number): boolean => {
     const dateTime = new Date(date);
-    dateTime.setHours(hour, 0, 0, 0);
+    dateTime.setHours(hour, 59, 59, 999);
     return dateTime < minDate;
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -137,78 +169,82 @@ export function AvailabilityCalendar({
       </div>
 
       <div className="rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-8 border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-          <div className="border-r border-gray-200 p-2 dark:border-gray-700">
-            <Clock className="mx-auto h-4 w-4 text-gray-400" />
+        <div className="max-h-96 overflow-x-auto overflow-y-auto">
+          <div className="min-w-[600px]">
+            <div className="sticky top-0 z-10 grid grid-cols-8 border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
+              <div className="sticky left-0 z-20 border-r border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
+                <Clock className="mx-auto h-4 w-4 text-gray-400" />
+              </div>
+              {weekDays.map((day, idx) => (
+                <div
+                  key={idx}
+                  className="border-r border-gray-200 p-2 text-center last:border-r-0 dark:border-gray-700"
+                >
+                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {WEEKDAYS[idx]}
+                  </div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {format(day, 'dd.MM', { locale: de })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {HOURS.map((hour) => (
+              <div
+                key={hour}
+                className="grid grid-cols-8 border-b border-gray-200 last:border-b-0 dark:border-gray-700"
+              >
+                <div className="sticky left-0 z-10 border-r border-gray-200 bg-gray-50 p-2 text-center text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                  {hour.toString().padStart(2, '0')}:00
+                </div>
+                {weekDays.map((day, idx) => {
+                  const slot = getSlotForDateTime(day, hour);
+                  const isBlocked = slot?.slot_type === 'blocked';
+                  const isAvailable = hasAvailableSlots
+                    ? slot?.slot_type === 'available'
+                    : !isBlocked;
+                  const isSelected = isTimeSelected(day, hour);
+                  const isPast = isTimePast(day, hour);
+                  const isSelectable =
+                    mode === 'select' && isAvailable && !isPast && !isBlocked;
+
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleTimeClick(day, hour)}
+                      disabled={!isSelectable}
+                      className={`border-r border-gray-200 p-2 last:border-r-0 dark:border-gray-700 ${
+                        isSelected
+                          ? 'bg-blue-500 text-white hover:bg-blue-600'
+                          : isAvailable && !isPast && !isBlocked
+                            ? 'bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                            : isBlocked
+                              ? 'bg-red-50 dark:bg-red-900/20'
+                              : isPast
+                                ? 'bg-gray-200 dark:bg-gray-800'
+                                : 'bg-white dark:bg-gray-900'
+                      } ${isSelectable ? 'cursor-pointer' : 'cursor-not-allowed'} transition-colors`}
+                    >
+                      {(slot ||
+                        (!hasAvailableSlots && !isPast && !isBlocked)) && (
+                        <div className="flex h-full items-center justify-center">
+                          {isSelected ? (
+                            <div className="h-2 w-2 rounded-full bg-white" />
+                          ) : isAvailable && !isPast && !isBlocked ? (
+                            <div className="h-2 w-2 rounded-full bg-green-500 dark:bg-green-400" />
+                          ) : isBlocked ? (
+                            <div className="h-2 w-2 rounded-full bg-red-500 dark:bg-red-400" />
+                          ) : null}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-          {weekDays.map((day, idx) => (
-            <div
-              key={idx}
-              className="border-r border-gray-200 p-2 text-center last:border-r-0 dark:border-gray-700"
-            >
-              <div className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {WEEKDAYS[idx]}
-              </div>
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {format(day, 'dd.MM', { locale: de })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="max-h-96 overflow-y-auto">
-          {HOURS.map((hour) => (
-            <div
-              key={hour}
-              className="grid grid-cols-8 border-b border-gray-200 last:border-b-0 dark:border-gray-700"
-            >
-              <div className="border-r border-gray-200 bg-gray-50 p-2 text-center text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                {hour.toString().padStart(2, '0')}:00
-              </div>
-              {weekDays.map((day, idx) => {
-                const slot = getSlotForDateTime(day, hour);
-                const isAvailable = slot?.slot_type === 'available';
-                const isBlocked = slot?.slot_type === 'blocked';
-                const isSelected = isTimeSelected(day, hour);
-                const isPast = isTimePast(day, hour);
-                const isSelectable =
-                  mode === 'select' && isAvailable && !isPast;
-
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleTimeClick(day, hour)}
-                    disabled={!isSelectable}
-                    className={`border-r border-gray-200 p-2 last:border-r-0 dark:border-gray-700 ${
-                      isSelected
-                        ? 'bg-blue-500 text-white'
-                        : isAvailable && !isPast
-                          ? 'bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30'
-                          : isBlocked
-                            ? 'bg-red-50 dark:bg-red-900/20'
-                            : isPast
-                              ? 'bg-gray-100 dark:bg-gray-800'
-                              : 'bg-white dark:bg-gray-900'
-                    } ${isSelectable ? 'cursor-pointer' : 'cursor-default'} transition-colors`}
-                  >
-                    {slot && (
-                      <div className="flex h-full items-center justify-center">
-                        {isAvailable && (
-                          <div
-                            className={`h-2 w-2 rounded-full ${isSelected ? 'bg-white' : 'bg-green-500 dark:bg-green-400'}`}
-                          />
-                        )}
-                        {isBlocked && (
-                          <div className="h-2 w-2 rounded-full bg-red-500 dark:bg-red-400" />
-                        )}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
         </div>
       </div>
 
@@ -217,16 +253,22 @@ export function AvailabilityCalendar({
           <div className="h-3 w-3 rounded-full bg-green-500" />
           <span>Verfügbar</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-red-500" />
-          <span>Blockiert</span>
-        </div>
+        {slots.some((s) => s.slot_type === 'blocked') && (
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full bg-red-500" />
+            <span>Blockiert</span>
+          </div>
+        )}
         {mode === 'select' && (
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-blue-500" />
             <span>Ausgewählt</span>
           </div>
         )}
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full bg-gray-200 dark:bg-gray-800" />
+          <span>Vergangen</span>
+        </div>
       </div>
     </div>
   );

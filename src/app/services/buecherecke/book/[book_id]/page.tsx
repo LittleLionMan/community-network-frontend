@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
   ArrowLeft,
+  AlertCircle,
   BookOpen,
   Calendar,
   Globe,
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useMarketplace } from '@/hooks/useBooks';
+import { useAvailableRequestSlots } from '@/hooks/useTransactions';
 import { useAuthStore } from '@/store/auth';
 import { BookOffer } from '@/lib/api';
 import { RequestBookModal } from '@/components/books/RequestBookModal';
@@ -46,6 +48,7 @@ export default function BookDetailPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const bookId = Number(params.book_id);
+  const { data: availableSlots } = useAvailableRequestSlots();
 
   const { data: marketplaceData, isLoading } = useMarketplace({
     book_id: bookId,
@@ -209,6 +212,7 @@ export default function BookDetailPage() {
                 key={offer.id}
                 offer={offer}
                 currentUserId={user?.id}
+                availableSlots={availableSlots}
               />
             ))}
           </div>
@@ -271,12 +275,114 @@ export default function BookDetailPage() {
 function OfferCard({
   offer,
   currentUserId,
+  availableSlots,
 }: {
   offer: BookOffer;
   currentUserId?: number;
+  availableSlots?: {
+    total_credits: number;
+    active_transactions: number;
+    available_slots: number;
+  };
 }) {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const isOwnOffer = currentUserId === offer.owner_id;
+
+  if (!availableSlots) {
+    return (
+      <Card className="transition-shadow hover:shadow-lg">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              {offer.owner?.profile_image_url ? (
+                <img
+                  src={offer.owner.profile_image_url}
+                  alt={offer.owner.display_name}
+                  className="h-12 w-12 rounded-full"
+                />
+              ) : (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                  <User className="h-6 w-6 text-amber-600" />
+                </div>
+              )}
+              <div>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">
+                  {offer.owner?.display_name}
+                </p>
+                <Badge
+                  variant="secondary"
+                  className="mt-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                >
+                  {conditionLabels[offer.condition]}
+                </Badge>
+              </div>
+            </div>
+            {isOwnOffer && (
+              <Badge
+                variant="outline"
+                className="border-blue-300 text-blue-700"
+              >
+                Dein Angebot
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 space-y-2 text-sm">
+            {offer.location_district && (
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <MapPin className="h-4 w-4" />
+                <span>{offer.location_district}</span>
+              </div>
+            )}
+            {offer.distance_km !== null && offer.distance_km !== undefined && (
+              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                <MapPin className="h-4 w-4" />
+                <span>{offer.distance_km.toFixed(1)} km entfernt</span>
+              </div>
+            )}
+          </div>
+
+          {offer.user_comment && (
+            <div className="mb-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
+              <div className="mb-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <MessageSquare className="h-4 w-4" />
+                <span>Kommentar:</span>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {offer.user_comment}
+              </p>
+            </div>
+          )}
+
+          {!isOwnOffer && (
+            <Button
+              className="w-full bg-amber-600 hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={true}
+            >
+              Lädt...
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const canRequest = availableSlots.available_slots > 0;
+  const hasNoCredits = availableSlots.total_credits === 0;
+  const hasTooManyActive =
+    !hasNoCredits &&
+    availableSlots.active_transactions >= availableSlots.total_credits;
+
+  const getTooltipText = () => {
+    if (hasNoCredits) {
+      return 'Du benötigst Credits, um Bücher anzufragen.';
+    }
+    if (hasTooManyActive) {
+      return `Du hast bereits ${availableSlots.active_transactions} aktive Transaktion(en). Storniere eine bestehende Transaktion, um eine neue zu starten.`;
+    }
+    return 'Unbekannter Fehler';
+  };
 
   return (
     <>
@@ -346,12 +452,26 @@ function OfferCard({
           )}
 
           {!isOwnOffer && (
-            <Button
-              className="w-full bg-amber-600 hover:bg-amber-700"
-              onClick={() => setShowRequestModal(true)}
-            >
-              Anfrage senden
-            </Button>
+            <div className="group relative">
+              <Button
+                className="w-full bg-amber-600 hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setShowRequestModal(true)}
+                disabled={!canRequest}
+              >
+                Anfrage senden
+              </Button>
+              {!canRequest && (
+                <div className="pointer-events-none absolute -top-2 left-1/2 z-50 hidden w-72 -translate-x-1/2 -translate-y-full rounded-lg border border-gray-200 bg-white p-3 text-xs shadow-lg group-hover:block dark:border-gray-700 dark:bg-gray-800">
+                  <div className="mb-2 flex items-start gap-2">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                    <p className="text-gray-700 dark:text-gray-300">
+                      {getTooltipText()}
+                    </p>
+                  </div>
+                  <div className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 border-b border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"></div>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

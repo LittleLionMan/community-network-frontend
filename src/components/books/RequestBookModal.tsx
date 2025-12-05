@@ -32,7 +32,7 @@ export function RequestBookModal({
   const router = useRouter();
   const [message, setMessage] = useState('');
   const [selectedTimes, setSelectedTimes] = useState<Date[]>([]);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(true);
 
   const createTransaction = useCreateTransaction();
 
@@ -60,6 +60,14 @@ export function RequestBookModal({
   const handleSubmit = async () => {
     if (!message.trim()) {
       toast.error('Fehler', 'Bitte gib eine Nachricht ein.');
+      return;
+    }
+
+    if (selectedTimes.length === 0) {
+      toast.error(
+        'Fehler',
+        'Bitte wähle mindestens einen Terminvorschlag aus.'
+      );
       return;
     }
 
@@ -130,7 +138,7 @@ export function RequestBookModal({
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Hallo! Ich würde gerne dein Buch ausleihen..."
+              placeholder="Hallo! Ich würde gerne dein Buch erwerben..."
               rows={4}
               maxLength={2000}
             />
@@ -142,7 +150,10 @@ export function RequestBookModal({
           <div>
             <div className="mb-2 flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Terminvorschläge (optional)
+                Terminvorschläge *{' '}
+                <span className="text-xs text-gray-500">
+                  (mind. 1 erforderlich)
+                </span>
               </label>
               <Button
                 type="button"
@@ -164,36 +175,35 @@ export function RequestBookModal({
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
                   </div>
-                ) : providerAvailability && providerAvailability.length > 0 ? (
+                ) : (
                   <>
-                    <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
-                      Verfügbarkeit von {bookOffer.owner?.display_name}:
-                    </p>
+                    {providerAvailability && providerAvailability.length > 0 ? (
+                      <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
+                        Verfügbarkeit von {bookOffer.owner?.display_name}:
+                      </p>
+                    ) : (
+                      <p className="mb-3 text-sm text-amber-600 dark:text-amber-400">
+                        <AlertCircle className="mb-1 mr-1 inline h-4 w-4" />
+                        Der Anbieter hat noch keine Verfügbarkeiten festgelegt.
+                        Du kannst trotzdem beliebige Zeiten vorschlagen.
+                      </p>
+                    )}
                     <AvailabilityCalendar
-                      slots={providerAvailability}
+                      slots={providerAvailability || []}
                       onSelectTime={handleAddTime}
+                      selectedTimes={selectedTimes}
                       mode="select"
                       minDate={new Date()}
                     />
                   </>
-                ) : (
-                  <div className="flex flex-col items-center py-8 text-center">
-                    <AlertCircle className="mb-2 h-8 w-8 text-gray-400" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Der Anbieter hat noch keine Verfügbarkeit angegeben.
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      Du kannst trotzdem einen Termin vorschlagen.
-                    </p>
-                  </div>
                 )}
               </div>
             )}
 
             {selectedTimes.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Ausgewählte Zeiten:
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Ausgewählte Zeiten ({selectedTimes.length}/5):
                 </p>
                 {selectedTimes.map((time, idx) => (
                   <div
@@ -223,9 +233,16 @@ export function RequestBookModal({
               </div>
             )}
 
-            {selectedTimes.length < 5 && !showCalendar && (
+            {selectedTimes.length === 0 && !showCalendar && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                <AlertCircle className="mr-1 inline h-4 w-4" />
+                Bitte wähle mindestens einen Termin aus.
+              </p>
+            )}
+
+            {selectedTimes.length < 5 && selectedTimes.length > 0 && (
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Du kannst bis zu {5 - selectedTimes.length} weitere Zeiten
+                Du kannst noch {5 - selectedTimes.length} weitere Zeiten
                 vorschlagen.
               </p>
             )}
@@ -243,7 +260,11 @@ export function RequestBookModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!message.trim() || createTransaction.isPending}
+            disabled={
+              !message.trim() ||
+              selectedTimes.length === 0 ||
+              createTransaction.isPending
+            }
             className="flex-1 bg-amber-600 hover:bg-amber-700"
           >
             {createTransaction.isPending ? (

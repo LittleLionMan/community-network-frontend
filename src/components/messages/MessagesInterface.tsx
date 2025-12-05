@@ -23,7 +23,6 @@ import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { ConversationList } from './ConversationList';
 import { SwipeableChat } from './SwipeableChat';
 import { TransactionToken } from '@/components/messages/TransactionToken';
-import type { TransactionData } from '@/types/transactions';
 import { parseTransactionData } from '@/lib/parseTransactionData';
 
 interface MessageUser {

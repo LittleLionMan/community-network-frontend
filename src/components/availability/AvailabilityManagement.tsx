@@ -29,6 +29,7 @@ const WEEKDAYS = [
 
 type SlotFormData = {
   type: 'recurring' | 'specific';
+  slot_type: 'available' | 'blocked';
   day_of_week?: number;
   start_time?: string;
   end_time?: string;
@@ -59,7 +60,6 @@ export function AvailabilityManagement() {
     slots?.filter(
       (s) => s.specific_date !== null && s.specific_date !== undefined
     ) || [];
-
   const handleCreate = (data: SlotFormData) => {
     let slotData: AvailabilitySlotCreate;
 
@@ -103,7 +103,7 @@ export function AvailabilityManagement() {
       const endDateTime = `${dateStr}T${endTime}`;
 
       slotData = {
-        slot_type: 'available',
+        slot_type: data.slot_type,
         title: data.title,
         notes: data.notes,
         is_active: true,
@@ -148,10 +148,10 @@ export function AvailabilityManagement() {
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Meine Verfügbarkeit
+            Mein Kalender
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Gib an, wann du verfügbar bist
+            Verwalte deine Verfügbarkeiten und blockiere bestimmte Zeiten
           </p>
         </div>
         <Button
@@ -159,7 +159,7 @@ export function AvailabilityManagement() {
           className="w-full bg-indigo-600 hover:bg-indigo-700 sm:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Verfügbarkeit hinzufügen
+          Termin hinzufügen
         </Button>
       </div>
 
@@ -167,12 +167,12 @@ export function AvailabilityManagement() {
         <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
           <h3 className="mb-4 flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
             <Calendar className="h-5 w-5" />
-            Wöchentliche Verfügbarkeit
+            Wöchentliche Verfügbarkeiten
           </h3>
 
           {recurringSlots.length === 0 ? (
             <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              Noch keine wöchentlichen Zeiten festgelegt
+              Noch keine wöchentlichen Verfügbarkeiten festgelegt
             </p>
           ) : (
             <div className="space-y-2">
@@ -224,9 +224,10 @@ export function AvailabilityManagement() {
           Hinweis
         </h3>
         <p className="text-sm text-indigo-800 dark:text-indigo-300">
-          Diese Zeiten werden anderen Nutzern angezeigt, wenn sie Termine mit
-          dir vereinbaren möchten. Blockierte Zeiten (z.B. durch bestätigte
-          Termine) werden automatisch verwaltet.
+          Verfügbarkeiten werden anderen Nutzern angezeigt, wenn sie Termine mit
+          dir vereinbaren möchten. Blockierungen sind nur für dich sichtbar und
+          verhindern Terminvereinbarungen für diese Zeiten. Spezifische Termine
+          überschreiben wöchentliche Verfügbarkeiten.
         </p>
       </div>
 
@@ -348,11 +349,9 @@ function SlotCard({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-end gap-1">
               <Badge
-                variant={
-                  slot.slot_type === 'available' ? 'success' : 'secondary'
-                }
+                variant={slot.slot_type === 'available' ? 'success' : 'warning'}
                 className="text-xs"
               >
                 {slot.slot_type === 'available' ? 'Verfügbar' : 'Blockiert'}
@@ -400,8 +399,12 @@ function CreateSlotModal({
   onCreate: (data: SlotFormData) => void;
 }) {
   const [type, setType] = useState<'recurring' | 'specific'>('recurring');
+  const [slotType, setSlotType] = useState<'available' | 'blocked'>(
+    'available'
+  );
   const [formData, setFormData] = useState<SlotFormData>({
     type: 'recurring',
+    slot_type: 'available',
     day_of_week: 0,
     start_time: '09:00',
     end_time: '17:00',
@@ -417,6 +420,7 @@ function CreateSlotModal({
     if (newType === 'recurring') {
       setFormData({
         type: 'recurring',
+        slot_type: slotType,
         day_of_week: 0,
         start_time: '09:00',
         end_time: '17:00',
@@ -429,6 +433,7 @@ function CreateSlotModal({
     } else {
       setFormData({
         type: 'specific',
+        slot_type: slotType,
         day_of_week: undefined,
         start_time: undefined,
         end_time: undefined,
@@ -439,6 +444,11 @@ function CreateSlotModal({
         notes: formData.notes || '',
       });
     }
+  };
+
+  const handleSlotTypeChange = (newSlotType: 'available' | 'blocked') => {
+    setSlotType(newSlotType);
+    setFormData({ ...formData, slot_type: newSlotType });
   };
 
   const handleSubmit = () => {
@@ -460,15 +470,15 @@ function CreateSlotModal({
       }
     }
 
-    onCreate({ ...formData, type });
+    onCreate({ ...formData, type, slot_type: slotType });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-xl dark:bg-gray-800 sm:p-6">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-xl dark:bg-gray-800 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Verfügbarkeit hinzufügen
+            Termin hinzufügen
           </h3>
           <button
             onClick={onClose}
@@ -498,10 +508,42 @@ function CreateSlotModal({
                 onClick={() => handleTypeChange('specific')}
                 className="flex-1"
               >
-                Spezifisch
+                Spezifischer Termin
               </Button>
             </div>
           </div>
+
+          {type === 'specific' && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Art des Termins
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={slotType === 'available' ? 'default' : 'outline'}
+                  onClick={() => handleSlotTypeChange('available')}
+                  className="flex-1"
+                >
+                  Verfügbarkeit
+                </Button>
+                <Button
+                  type="button"
+                  variant={slotType === 'blocked' ? 'default' : 'outline'}
+                  onClick={() => handleSlotTypeChange('blocked')}
+                  className="flex-1"
+                  style={
+                    slotType === 'blocked' ? { backgroundColor: '#dc2626' } : {}
+                  }
+                >
+                  Blockierung
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Blockierungen überschreiben wöchentliche Verfügbarkeiten
+              </p>
+            </div>
+          )}
 
           {type === 'recurring' ? (
             <>
@@ -750,7 +792,11 @@ function CreateSlotModal({
               onChange={(e) =>
                 setFormData({ ...formData, title: e.target.value })
               }
-              placeholder="z.B. Nachmittags verfügbar"
+              placeholder={
+                slotType === 'blocked'
+                  ? 'z.B. Friseurtermin'
+                  : 'z.B. Nachmittags verfügbar'
+              }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
             />
           </div>
@@ -797,7 +843,7 @@ function DeleteConfirmModal({
       <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Verfügbarkeit löschen?
+            Termin löschen?
           </h3>
           <button
             onClick={onClose}
@@ -808,8 +854,8 @@ function DeleteConfirmModal({
         </div>
 
         <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
-          Möchtest du diese Verfügbarkeit wirklich löschen? Diese Aktion kann
-          nicht rückgängig gemacht werden.
+          Möchtest du diesen Termin wirklich löschen? Diese Aktion kann nicht
+          rückgängig gemacht werden.
         </p>
 
         <div className="flex gap-2">

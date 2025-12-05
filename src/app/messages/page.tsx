@@ -368,6 +368,7 @@ export default function MessagesPage() {
     loadMoreMessages,
     hasMoreMessages,
     clearError: clearMessageError,
+    refreshConversation,
   } = useConversation(selectedConversationId);
 
   const {
@@ -563,16 +564,17 @@ export default function MessagesPage() {
           break;
 
         case 'transaction_updated':
-          if (message.transaction_id && message.conversation_id) {
+          if (
+            message.transaction_id &&
+            message.conversation_id &&
+            message.message_id
+          ) {
             refreshConversations();
+
             if (message.conversation_id === selectedConversationId) {
-              // Messages werden automatisch aktualisiert
+              refreshConversation();
             }
           }
-          break;
-
-        case 'availability_changed':
-          refreshConversations();
           break;
 
         default:
@@ -599,6 +601,7 @@ export default function MessagesPage() {
     refreshUnreadCount,
     refreshConversations,
     updateUnreadCount,
+    refreshConversation,
   ]);
 
   useEffect(() => {

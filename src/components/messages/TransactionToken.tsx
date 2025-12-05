@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
   CheckCircle,
@@ -13,12 +13,13 @@ import {
   Loader2,
   X,
   LucideIcon,
+  AlertCircle,
 } from 'lucide-react';
 import { TransactionData } from '@/types/transactions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DateTimePicker } from '@/components/ui/DateTimePicker';
-import { Textarea } from '@/components/ui/textarea';
+import { AvailabilityCalendar } from '@/components/availability/AvailabilityCalendar';
+import { useUserAvailability } from '@/hooks/useAvailability';
 import {
   useProposeTime,
   useConfirmTime,
@@ -66,11 +67,6 @@ const statusConfig: Record<
     color: 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800',
     icon: XCircle,
   },
-  rejected: {
-    label: 'Abgelehnt',
-    color: 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20',
-    icon: XCircle,
-  },
   expired: {
     label: 'Abgelaufen',
     color: 'text-gray-500 bg-gray-50 dark:text-gray-400 dark:bg-gray-800',
@@ -93,9 +89,6 @@ export function TransactionToken({
   const cancelMutation = useCancelTransaction();
   const updateAddressMutation = useUpdateTransactionAddress();
 
-  console.log(transaction.can_confirm_time);
-  console.log(transaction);
-
   const isLoading =
     proposeTimeMutation.isPending ||
     confirmTimeMutation.isPending ||
@@ -106,6 +99,10 @@ export function TransactionToken({
   const statusInfo = statusConfig[transaction.status];
   const StatusIcon = statusInfo.icon;
   const isProvider = currentUserId === transaction.provider.id;
+
+  const counterpartId = isProvider
+    ? transaction.requester.id
+    : transaction.provider.id;
 
   const handleProposeTime = async (proposedTime: Date) => {
     const result = await proposeTimeMutation.mutateAsync({
@@ -335,6 +332,7 @@ export function TransactionToken({
 
       {showProposeTimeModal && (
         <ProposeTimeModal
+          counterpartId={counterpartId}
           onClose={() => setShowProposeTimeModal(false)}
           onSubmit={(time) => {
             handleProposeTime(time);
@@ -369,87 +367,130 @@ export function TransactionToken({
   );
 }
 
-function RejectModal({
-  onClose,
-  onSubmit,
-}: {
-  onClose: () => void;
-  onSubmit: (reason: string) => void;
-}) {
-  const [reason, setReason] = useState('');
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Anfrage ablehnen</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <Textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="Bitte gib einen Grund an..."
-          rows={3}
-          maxLength={500}
-        />
-        <div className="mt-4 flex gap-2">
-          <Button
-            onClick={() => reason && onSubmit(reason)}
-            disabled={!reason}
-            className="flex-1 bg-red-600 hover:bg-red-700"
-          >
-            Ablehnen
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Abbrechen
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ProposeTimeModal({
+  counterpartId,
   onClose,
   onSubmit,
 }: {
+  counterpartId: number;
   onClose: () => void;
   onSubmit: (time: Date) => void;
 }) {
-  const [selectedTime, setSelectedTime] = useState<Date | undefined>();
+  const [selectedTimes, setSelectedTimes] = useState<Date[]>([]);
+
+  const endDate = format(addDays(new Date(), 30), 'yyyy-MM-dd');
+  const { data: availability, isLoading } = useUserAvailability(
+    counterpartId,
+    undefined,
+    endDate
+  );
+
+  const handleAddTime = (time: Date) => {
+    if (selectedTimes.length >= 5) {
+      return;
+    }
+    if (!selectedTimes.find((t) => t.getTime() === time.getTime())) {
+      setSelectedTimes([...selectedTimes, time]);
+    }
+  };
+
+  const handleRemoveTime = (index: number) => {
+    setSelectedTimes(selectedTimes.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = () => {
+    if (selectedTimes.length > 0) {
+      onSubmit(selectedTimes[0]);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+    <div className="fixed inset-x-0 bottom-0 top-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-8">
+      <div className="my-auto w-full max-w-2xl rounded-lg bg-white p-4 shadow-xl dark:bg-gray-800 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Termin vorschlagen</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Termin vorschlagen
+          </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        <DateTimePicker
-          value={selectedTime}
-          onChange={(date) => setSelectedTime(date || undefined)}
-          minDate={new Date()}
-        />
-        <div className="mt-4 flex gap-2">
+
+        <div className="mb-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
+          ) : (
+            <>
+              {availability && availability.length > 0 ? (
+                <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
+                  Wähle verfügbare Zeitslots aus dem Kalender (max. 5):
+                </p>
+              ) : (
+                <p className="mb-3 text-sm text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="mb-1 mr-1 inline h-4 w-4" />
+                  Die andere Person hat noch keine Verfügbarkeiten festgelegt.
+                  Du kannst trotzdem beliebige zukünftige Zeiten vorschlagen.
+                </p>
+              )}
+              <AvailabilityCalendar
+                slots={availability || []}
+                onSelectTime={handleAddTime}
+                selectedTimes={selectedTimes}
+                mode="select"
+                minDate={new Date()}
+              />
+            </>
+          )}
+        </div>
+
+        {selectedTimes.length > 0 && (
+          <div className="mb-4 space-y-2">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              Ausgewählte Termine ({selectedTimes.length}/5):
+            </p>
+            {selectedTimes.map((time, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-2 dark:border-green-800 dark:bg-green-900/20"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm text-green-900 dark:text-green-200">
+                    {format(time, 'EEEE, dd.MM.yyyy HH:mm', {
+                      locale: de,
+                    })}{' '}
+                    Uhr
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveTime(idx)}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Abbrechen
+          </Button>
           <Button
-            onClick={() => selectedTime && onSubmit(selectedTime)}
-            disabled={!selectedTime}
+            onClick={handleSubmit}
+            disabled={selectedTimes.length === 0}
             className="flex-1"
           >
-            Vorschlagen
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Abbrechen
+            Vorschlagen ({selectedTimes.length})
           </Button>
         </div>
       </div>
@@ -472,12 +513,14 @@ function ConfirmTimeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Termin bestätigen</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Termin bestätigen
+          </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="h-5 w-5" />
           </button>
@@ -485,7 +528,7 @@ function ConfirmTimeModal({
 
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium">
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Wähle einen Termin
             </label>
             <select
@@ -528,15 +571,15 @@ function ConfirmTimeModal({
         </div>
 
         <div className="mt-4 flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Abbrechen
+          </Button>
           <Button
             onClick={() => selectedTime && onSubmit(selectedTime)}
             disabled={!selectedTime || !currentAddress}
             className="flex-1"
           >
             Bestätigen
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Abbrechen
           </Button>
         </div>
       </div>
@@ -556,13 +599,15 @@ function EditAddressModal({
   const [address, setAddress] = useState(currentAddress);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+    <div className="fixed inset-x-0 bottom-0 top-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-8">
+      <div className="my-auto w-full max-w-2xl rounded-lg bg-white p-4 shadow-xl dark:bg-gray-800 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Treffpunkt bearbeiten</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Treffpunkt bearbeiten
+          </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="h-5 w-5" />
           </button>
@@ -570,7 +615,9 @@ function EditAddressModal({
 
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium">Adresse</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Adresse
+            </label>
             <input
               type="text"
               value={address}
@@ -587,15 +634,15 @@ function EditAddressModal({
         </div>
 
         <div className="mt-4 flex gap-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Abbrechen
+          </Button>
           <Button
             onClick={() => address && onSubmit(address)}
             disabled={!address || address === currentAddress}
             className="flex-1"
           >
             Speichern
-          </Button>
-          <Button variant="outline" onClick={onClose}>
-            Abbrechen
           </Button>
         </div>
       </div>

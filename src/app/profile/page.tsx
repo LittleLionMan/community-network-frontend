@@ -197,7 +197,7 @@ function ProfilePageContent() {
   const tabs = [
     { id: 'profile', label: 'Profil', icon: User },
     { id: 'privacy', label: 'Privatsphäre', icon: Shield },
-    { id: 'availability', label: 'Verfügbarkeit', icon: Calendar },
+    { id: 'availability', label: 'Kalender', icon: Calendar },
     { id: 'activity', label: 'Aktivitäten', icon: Activity },
     { id: 'settings', label: 'Einstellungen', icon: Settings },
   ];
