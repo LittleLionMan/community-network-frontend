@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, addDays } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
@@ -104,10 +104,86 @@ export function TransactionToken({
     ? transaction.requester.id
     : transaction.provider.id;
 
-  const handleProposeTime = async (proposedTime: Date) => {
+  const expirationInfo = useMemo(() => {
+    const now = new Date();
+
+    if (transaction.status === 'expired') {
+      return {
+        isExpired: true,
+        type: 'expired',
+        message: 'Diese Transaktion ist abgelaufen.',
+      };
+    }
+
+    if (transaction.expires_at) {
+      const expiresAt = new Date(transaction.expires_at);
+
+      if (expiresAt < now) {
+        return {
+          isExpired: true,
+          type: 'pending_expired',
+          message:
+            'Die 7-Tage-Frist ist abgelaufen. Diese Transaktion wird automatisch beendet.',
+        };
+      }
+
+      const warningTime = new Date(expiresAt.getTime() - 24 * 60 * 60 * 1000);
+      if (now > warningTime && transaction.status === 'pending') {
+        const hoursLeft = Math.ceil(
+          (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60)
+        );
+        return {
+          isExpired: false,
+          type: 'expiring_soon',
+          message: `Noch ${hoursLeft} Stunden bis zum Ablauf der Anfrage.`,
+        };
+      }
+    }
+
+    if (transaction.status === 'time_confirmed' && transaction.confirmed_time) {
+      const confirmedTime = new Date(transaction.confirmed_time);
+      const cutoff = new Date(confirmedTime.getTime() + 24 * 60 * 60 * 1000);
+
+      if (
+        now > cutoff &&
+        !(transaction.requester_confirmed && transaction.provider_confirmed)
+      ) {
+        return {
+          isExpired: true,
+          type: 'meeting_expired',
+          message:
+            'Der Termin liegt mehr als 24h zurück ohne vollständige Bestätigung. Diese Transaktion wird automatisch beendet.',
+        };
+      }
+
+      if (
+        confirmedTime < now &&
+        !(transaction.requester_confirmed && transaction.provider_confirmed)
+      ) {
+        const hoursLeft = Math.ceil(
+          (cutoff.getTime() - now.getTime()) / (1000 * 60 * 60)
+        );
+        return {
+          isExpired: false,
+          type: 'meeting_past',
+          message: `Der Termin liegt in der Vergangenheit. Bitte bestätigt die Übergabe innerhalb von ${hoursLeft}h.`,
+        };
+      }
+    }
+
+    return { isExpired: false, type: null, message: null };
+  }, [
+    transaction.status,
+    transaction.expires_at,
+    transaction.confirmed_time,
+    transaction.requester_confirmed,
+    transaction.provider_confirmed,
+  ]);
+
+  const handleProposeTime = async (proposedTimes: Date[]) => {
     const result = await proposeTimeMutation.mutateAsync({
       transactionId: transaction.transaction_id,
-      data: { proposed_time: proposedTime.toISOString() },
+      data: { proposed_times: proposedTimes.map((t) => t.toISOString()) },
     });
     onUpdate?.(result);
   };
@@ -171,10 +247,27 @@ export function TransactionToken({
             )}
           </div>
         </div>
-        <Badge className={statusInfo.color}>
-          <StatusIcon className="mr-1 h-3 w-3" />
-          {statusInfo.label}
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge className={statusInfo.color}>
+            <StatusIcon className="mr-1 h-3 w-3" />
+            {statusInfo.label}
+          </Badge>
+
+          {expirationInfo.message && (
+            <div
+              className={`rounded-md px-2 py-1 text-xs ${
+                expirationInfo.isExpired
+                  ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                  : expirationInfo.type === 'expiring_soon'
+                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                    : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+              }`}
+            >
+              <AlertCircle className="mr-1 inline h-3 w-3" />
+              {expirationInfo.message}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mb-3 space-y-2 text-sm">
@@ -274,7 +367,7 @@ export function TransactionToken({
       )}
 
       <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-3 dark:border-gray-700">
-        {transaction.can_propose_time && (
+        {transaction.can_propose_time && !expirationInfo.isExpired && (
           <Button
             size="sm"
             variant="outline"
@@ -287,7 +380,7 @@ export function TransactionToken({
           </Button>
         )}
 
-        {transaction.can_confirm_time && (
+        {transaction.can_confirm_time && !expirationInfo.isExpired && (
           <Button
             size="sm"
             onClick={() => setShowConfirmTimeModal(true)}
@@ -298,22 +391,23 @@ export function TransactionToken({
           </Button>
         )}
 
-        {transaction.can_confirm_handover && (
-          <Button
-            size="sm"
-            onClick={handleConfirmHandover}
-            disabled={isLoading}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {confirmHandoverMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Übergabe bestätigen'
-            )}
-          </Button>
-        )}
+        {transaction.can_confirm_handover &&
+          expirationInfo.type !== 'meeting_expired' && (
+            <Button
+              size="sm"
+              onClick={handleConfirmHandover}
+              disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {confirmHandoverMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Übergabe bestätigen'
+              )}
+            </Button>
+          )}
 
-        {transaction.can_cancel && (
+        {transaction.can_cancel && !expirationInfo.isExpired && (
           <Button
             size="sm"
             variant="outline"
@@ -334,8 +428,8 @@ export function TransactionToken({
         <ProposeTimeModal
           counterpartId={counterpartId}
           onClose={() => setShowProposeTimeModal(false)}
-          onSubmit={(time) => {
-            handleProposeTime(time);
+          onSubmit={(times) => {
+            handleProposeTime(times);
             setShowProposeTimeModal(false);
           }}
         />
@@ -374,7 +468,7 @@ function ProposeTimeModal({
 }: {
   counterpartId: number;
   onClose: () => void;
-  onSubmit: (time: Date) => void;
+  onSubmit: (times: Date[]) => void;
 }) {
   const [selectedTimes, setSelectedTimes] = useState<Date[]>([]);
 
@@ -400,7 +494,7 @@ function ProposeTimeModal({
 
   const handleSubmit = () => {
     if (selectedTimes.length > 0) {
-      onSubmit(selectedTimes[0]);
+      onSubmit(selectedTimes);
     }
   };
 
@@ -511,6 +605,16 @@ function ConfirmTimeModal({
 }) {
   const [selectedTime, setSelectedTime] = useState('');
 
+  const futureTimes = useMemo(() => {
+    const now = new Date();
+    return proposedTimes.filter((time) => {
+      const proposedDate = new Date(time);
+      return proposedDate > now;
+    });
+  }, [proposedTimes]);
+
+  const pastTimesCount = proposedTimes.length - futureTimes.length;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800">
@@ -531,21 +635,45 @@ function ConfirmTimeModal({
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Wähle einen Termin
             </label>
-            <select
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
-            >
-              <option value="">-- Bitte wählen --</option>
-              {proposedTimes.map((time, idx) => (
-                <option key={idx} value={time}>
-                  {format(new Date(time), 'EEEE, dd.MM.yyyy HH:mm', {
-                    locale: de,
-                  })}{' '}
-                  Uhr
-                </option>
-              ))}
-            </select>
+
+            {pastTimesCount > 0 && (
+              <div className="mb-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                <AlertCircle className="mr-1 inline h-4 w-4" />
+                {pastTimesCount} Termin
+                {pastTimesCount > 1 ? 'e liegen' : ' liegt'} in der
+                Vergangenheit und {pastTimesCount > 1 ? 'wurden' : 'wurde'}{' '}
+                ausgeblendet.
+              </div>
+            )}
+
+            {futureTimes.length === 0 ? (
+              <div className="rounded-lg bg-red-50 p-4 text-center dark:bg-red-900/20">
+                <AlertCircle className="mx-auto mb-2 h-8 w-8 text-red-600 dark:text-red-400" />
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                  Alle vorgeschlagenen Termine liegen in der Vergangenheit
+                </p>
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  Bitte bitte die andere Partei, neue Termine vorzuschlagen oder
+                  schlade selber Alternativen vor.
+                </p>
+              </div>
+            ) : (
+              <select
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+              >
+                <option value="">-- Bitte wählen --</option>
+                {futureTimes.map((time, idx) => (
+                  <option key={idx} value={time}>
+                    {format(new Date(time), 'EEEE, dd.MM.yyyy HH:mm', {
+                      locale: de,
+                    })}{' '}
+                    Uhr
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {currentAddress && (

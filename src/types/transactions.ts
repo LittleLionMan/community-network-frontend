@@ -46,7 +46,7 @@ export interface TransactionCreateRequest {
 }
 
 export interface TransactionProposeTimeRequest {
-  proposed_time: string;
+  proposed_times: string[];
 }
 
 export interface TransactionConfirmTimeRequest {

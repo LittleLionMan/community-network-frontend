@@ -189,6 +189,29 @@ export function useConversations() {
     []
   );
 
+  const updateConversationPreview = useCallback(
+    (conversationId: number, preview: string, lastMessageAt: string) => {
+      setConversations((prev) => {
+        const updated = prev.map((conv) =>
+          conv.id === conversationId
+            ? {
+                ...conv,
+                last_message_at: lastMessageAt,
+                updated_at: lastMessageAt,
+              }
+            : conv
+        );
+
+        return updated.sort((a, b) => {
+          const aTime = a.last_message_at || a.updated_at;
+          const bTime = b.last_message_at || b.updated_at;
+          return new Date(bTime).getTime() - new Date(aTime).getTime();
+        });
+      });
+    },
+    []
+  );
+
   const refreshConversations = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -239,6 +262,7 @@ export function useConversations() {
     createConversation,
     updateConversation,
     updateConversationUnreadCount,
+    updateConversationPreview,
     clearError,
     refreshConversations,
   };
@@ -597,80 +621,5 @@ export function useConversation(conversationId: number | null) {
         loadConversation(conversationId, abortController.signal);
       }
     },
-  };
-}
-
-export function useUnreadCount() {
-  const [unreadCount, setUnreadCount] = useState<UnreadCount>({
-    total_unread: 0,
-    conversations: [],
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const isLoadingRef = useRef(false);
-  const { retry } = useRetry();
-
-  const loadUnreadCount = useCallback(async () => {
-    if (isLoadingRef.current) return;
-
-    isLoadingRef.current = true;
-    try {
-      const response = await retry(() => apiClient.messages.getUnreadCount());
-      setUnreadCount(response);
-    } catch (err) {
-      console.error('Failed to load unread count:', err);
-    } finally {
-      setIsLoading(false);
-      isLoadingRef.current = false;
-    }
-  }, [retry]);
-
-  const updateConversationUnreadCount = useCallback(
-    (conversationId: number, count: number) => {
-      setUnreadCount((prev) => {
-        const existingConvIndex = prev.conversations.findIndex(
-          (c) => c.conversation_id === conversationId
-        );
-        const newConversations = [...prev.conversations];
-
-        if (existingConvIndex >= 0) {
-          if (count === 0) {
-            newConversations.splice(existingConvIndex, 1);
-          } else {
-            newConversations[existingConvIndex] = {
-              conversation_id: conversationId,
-              unread_count: count,
-            };
-          }
-        } else if (count > 0) {
-          newConversations.push({
-            conversation_id: conversationId,
-            unread_count: count,
-          });
-        }
-
-        const total_unread = newConversations.reduce(
-          (sum, conv) => sum + conv.unread_count,
-          0
-        );
-
-        return {
-          total_unread,
-          conversations: newConversations,
-        };
-      });
-    },
-    []
-  );
-
-  useEffect(() => {
-    loadUnreadCount();
-  }, [loadUnreadCount]);
-
-  return {
-    unreadCount,
-    isLoading,
-    updateUnreadCount: setUnreadCount,
-    updateConversationUnreadCount,
-    refreshUnreadCount: loadUnreadCount,
   };
 }

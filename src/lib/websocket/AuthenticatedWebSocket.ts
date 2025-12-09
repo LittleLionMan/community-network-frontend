@@ -6,6 +6,10 @@ import {
 } from '@/types/websocket';
 import { useAuthStore } from '@/store/auth';
 
+function hasUnderlyingError(e: Event): e is Event & { error: unknown } {
+  return 'error' in e;
+}
+
 type SendableWebSocketData = Record<string, unknown> | AuthWebSocketMessage;
 
 export class AuthenticatedWebSocket extends EventTarget {
@@ -145,8 +149,24 @@ export class AuthenticatedWebSocket extends EventTarget {
     this.dispatchEvent(new CustomEvent('disconnected', { detail: event }));
   }
 
-  private handleError(error: Event): void {
-    console.error('🚨 WebSocket error:', error);
+  private handleError(event: Event): void {
+    console.group('🚨 WebSocket error');
+
+    console.error('Event:', event);
+
+    let underlyingError: unknown = 'None';
+    if (hasUnderlyingError(event)) {
+      underlyingError = event.error;
+    }
+
+    console.error('Underlying error:', underlyingError);
+
+    if (event.target instanceof WebSocket) {
+      console.error('WebSocket readyState:', event.target.readyState);
+    }
+
+    console.groupEnd();
+
     this.setState({ isConnected: false });
 
     this.handleAuthError({

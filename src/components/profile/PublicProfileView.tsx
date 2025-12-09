@@ -169,6 +169,8 @@ export function PublicProfileView({
               </p>
             )}
 
+            {user.email && <p className="text-gray-600">{user.email}</p>}
+
             <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
               {user.location && (
                 <div className="flex items-center">

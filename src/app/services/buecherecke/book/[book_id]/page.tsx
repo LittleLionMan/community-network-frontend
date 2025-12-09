@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useMarketplace } from '@/hooks/useBooks';
 import { useAvailableRequestSlots } from '@/hooks/useTransactions';
@@ -231,12 +232,8 @@ export default function BookDetailPage() {
               <Card key={idx}>
                 <CardContent className="pt-6">
                   <div className="mb-2 flex items-center gap-3">
-                    {comment.user.profile_image_url ? (
-                      <img
-                        src={comment.user.profile_image_url}
-                        alt={comment.user.display_name}
-                        className="h-10 w-10 rounded-full"
-                      />
+                    {comment.user ? (
+                      <ProfileAvatar user={comment.user} size="sm" />
                     ) : (
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
                         <User className="h-5 w-5 text-amber-600" />
@@ -294,12 +291,8 @@ function OfferCard({
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              {offer.owner?.profile_image_url ? (
-                <img
-                  src={offer.owner.profile_image_url}
-                  alt={offer.owner.display_name}
-                  className="h-12 w-12 rounded-full"
-                />
+              {offer.owner ? (
+                <ProfileAvatar user={offer.owner} size="sm" />
               ) : (
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
                   <User className="h-6 w-6 text-amber-600" />
@@ -390,12 +383,8 @@ function OfferCard({
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              {offer.owner?.profile_image_url ? (
-                <img
-                  src={offer.owner.profile_image_url}
-                  alt={offer.owner.display_name}
-                  className="h-12 w-12 rounded-full"
-                />
+              {offer.owner ? (
+                <ProfileAvatar user={offer.owner} size="sm" />
               ) : (
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
                   <User className="h-6 w-6 text-amber-600" />

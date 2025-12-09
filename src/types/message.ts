@@ -101,6 +101,8 @@ export interface WebSocketMessage {
     | 'messages_read'
     | 'typing_status'
     | 'unread_count_update'
+    | 'transaction_updated'
+    | 'conversation_updated'
     | 'heartbeat'
     | 'heartbeat_ack'
     | 'refresh_token'
@@ -140,6 +142,9 @@ export interface WebSocketMessage {
   new_status?: string;
   updated_by?: number;
   transaction_data?: Record<string, string | number | boolean | null>;
+  unread_count?: number;
+  last_message_preview?: string;
+  last_message_at?: string;
 }
 
 export interface TypingStatus {

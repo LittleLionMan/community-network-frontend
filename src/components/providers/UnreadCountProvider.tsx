@@ -1,10 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
 import { useAuthStore } from '@/store/auth';
 import { apiClient } from '@/lib/api';
 import type { UnreadCount, WebSocketMessage } from '@/types/message';
-import { useMessagePrivacy } from '@/hooks/useMessagePrivacyApi';
 
 interface UnreadCountContextType {
   unreadCount: UnreadCount;
@@ -37,7 +43,7 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAuthenticated } = useAuthStore();
 
-  const refreshUnreadCount = async () => {
+  const refreshUnreadCount = useCallback(async () => {
     if (!user || !isAuthenticated) {
       setIsLoading(false);
       return;
@@ -45,7 +51,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
 
     const token = localStorage.getItem('auth_token');
     if (!token || token === 'undefined') {
-      console.log('No valid token available for unread count');
       setIsLoading(false);
       return;
     }
@@ -55,35 +60,66 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
       setUnreadCount(response);
     } catch (err) {
       console.error('Failed to load unread count:', err);
-      if (err instanceof Error && err.message.includes('403')) {
-        console.log('Authentication error - skipping unread count');
-      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, isAuthenticated]);
 
-  const updateUnreadCount = (count: UnreadCount) => {
+  const updateUnreadCount = useCallback((count: UnreadCount) => {
     setUnreadCount(count);
-  };
+  }, []);
 
-  const privacyHookResult = useMessagePrivacy();
+  const updateConversationUnreadCount = useCallback(
+    (conversationId: number, count: number) => {
+      setUnreadCount((prev) => {
+        const existingConvIndex = prev.conversations.findIndex(
+          (c) => c.conversation_id === conversationId
+        );
 
-  const privacySettings =
-    isAuthenticated && user
-      ? privacyHookResult.data
-      : { messages_notifications: true };
+        const newConversations = [...prev.conversations];
+
+        if (count === 0) {
+          if (existingConvIndex >= 0) {
+            newConversations.splice(existingConvIndex, 1);
+          }
+        } else {
+          if (existingConvIndex >= 0) {
+            newConversations[existingConvIndex] = {
+              conversation_id: conversationId,
+              unread_count: count,
+            };
+          } else {
+            newConversations.push({
+              conversation_id: conversationId,
+              unread_count: count,
+            });
+          }
+        }
+
+        const total_unread = newConversations.reduce(
+          (sum, conv) => sum + conv.unread_count,
+          0
+        );
+
+        return {
+          total_unread,
+          conversations: newConversations,
+        };
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     const handleGlobalWebSocketMessage = (event: CustomEvent) => {
       const message: WebSocketMessage = event.detail;
+      console.log('🔔 UnreadCountProvider received:', message.type, message);
 
       switch (message.type) {
         case 'new_message':
           if (
             message.conversation_id &&
-            message.message?.sender.id !== user?.id &&
-            privacySettings?.messages_notifications !== false
+            message.message?.sender.id !== user?.id
           ) {
             refreshUnreadCount();
           }
@@ -103,6 +139,33 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
             }
           }
           break;
+
+        case 'conversation_updated':
+          console.log('📊 conversation_updated:', {
+            conversation_id: message.conversation_id,
+            unread_count: message.unread_count,
+            user_id: user?.id,
+            current_state: unreadCount,
+          });
+
+          if (message.conversation_id && message.unread_count !== undefined) {
+            updateConversationUnreadCount(
+              message.conversation_id,
+              message.unread_count
+            );
+
+            setTimeout(() => {
+              console.log('✅ State after update:', unreadCount);
+            }, 100);
+          }
+          break;
+
+        case 'transaction_updated':
+          refreshUnreadCount();
+          break;
+
+        default:
+          break;
       }
     };
 
@@ -117,34 +180,17 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
         handleGlobalWebSocketMessage as EventListener
       );
     };
-  }, [user?.id, privacySettings]);
+  }, [
+    user?.id,
+    refreshUnreadCount,
+    updateUnreadCount,
+    updateConversationUnreadCount,
+  ]);
 
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {
       const { conversationId } = event.detail;
-
-      setUnreadCount((prev) => {
-        const existingConvIndex = prev.conversations.findIndex(
-          (c) => c.conversation_id === conversationId
-        );
-
-        if (existingConvIndex >= 0) {
-          const newConversations = [...prev.conversations];
-          newConversations.splice(existingConvIndex, 1);
-
-          const total_unread = newConversations.reduce(
-            (sum, conv) => sum + conv.unread_count,
-            0
-          );
-
-          return {
-            total_unread,
-            conversations: newConversations,
-          };
-        }
-
-        return prev;
-      });
+      updateConversationUnreadCount(conversationId, 0);
     };
 
     window.addEventListener(
@@ -158,7 +204,7 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
         handleMarkedRead as EventListener
       );
     };
-  }, []);
+  }, [updateConversationUnreadCount]);
 
   useEffect(() => {
     if (user && isAuthenticated) {
@@ -176,17 +222,20 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
       setUnreadCount({ total_unread: 0, conversations: [] });
       setIsLoading(false);
     }
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, refreshUnreadCount]);
+
+  const contextValue = useMemo(
+    () => ({
+      unreadCount,
+      updateUnreadCount,
+      refreshUnreadCount,
+      isLoading,
+    }),
+    [unreadCount, updateUnreadCount, refreshUnreadCount, isLoading]
+  );
 
   return (
-    <UnreadCountContext.Provider
-      value={{
-        unreadCount,
-        updateUnreadCount,
-        refreshUnreadCount,
-        isLoading,
-      }}
-    >
+    <UnreadCountContext.Provider value={contextValue}>
       {children}
     </UnreadCountContext.Provider>
   );

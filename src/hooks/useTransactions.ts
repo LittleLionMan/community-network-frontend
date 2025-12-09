@@ -66,6 +66,14 @@ export function useProposeTime() {
       });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
     },
+    onError: (error: Error) => {
+      console.error('Failed to propose time:', error);
+      if (error.message.includes('cannot be updated')) {
+        alert(
+          'Diese Transaktion kann nicht mehr bearbeitet werden (abgelaufen oder bereits abgeschlossen).'
+        );
+      }
+    },
   });
 }
 
@@ -126,6 +134,16 @@ export function useConfirmTime() {
       });
       queryClient.invalidateQueries({ queryKey: ['transactions', 'user'] });
       queryClient.invalidateQueries({ queryKey: ['availability'] });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to confirm time:', error);
+      if (error.message.includes('cannot be updated')) {
+        alert(
+          'Diese Transaktion kann nicht mehr bearbeitet werden (abgelaufen oder bereits abgeschlossen).'
+        );
+      } else if (error.message.includes('not available')) {
+        alert('Der Anbieter ist zu diesem Zeitpunkt nicht verfügbar.');
+      }
     },
   });
 }
