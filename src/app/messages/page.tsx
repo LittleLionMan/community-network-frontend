@@ -506,6 +506,10 @@ export default function MessagesPage() {
 
       switch (message.type) {
         case 'new_message':
+          console.log('🔍 new_message received:', {
+            sender: message.message?.sender,
+            profile_image_url: message.message?.sender.profile_image_url,
+          });
           if (message.message && message.conversation_id) {
             if (message.conversation_id !== selectedConversationId) {
               updateConversationPreview(
@@ -555,6 +559,13 @@ export default function MessagesPage() {
 
         case 'conversation_updated':
           if (message.conversation_id) {
+            console.log('📊 Handling conversation_updated:', {
+              conversationId: message.conversation_id,
+              preview: message.last_message_preview,
+              timestamp: message.last_message_at,
+              unread: message.unread_count,
+            });
+
             if (message.last_message_preview && message.last_message_at) {
               updateConversationPreview(
                 message.conversation_id,
@@ -617,13 +628,17 @@ export default function MessagesPage() {
   }, [refreshConversations]);
 
   useEffect(() => {
-    if (selectedConversationId && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (!lastMessage.is_read && lastMessage.sender.id !== user?.id) {
-        markAsRead();
-      }
+    if (!selectedConversationId || messages.length === 0) return;
+
+    const unreadMessages = messages.filter(
+      (msg) => !msg.is_read && msg.sender.id !== user?.id
+    );
+
+    if (unreadMessages.length > 0) {
+      const lastUnreadId = unreadMessages[unreadMessages.length - 1].id;
+      markAsRead(lastUnreadId);
     }
-  }, [selectedConversationId, messages.length, user?.id, markAsRead, messages]);
+  }, [selectedConversationId, messages, user?.id, markAsRead]);
 
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {
@@ -641,6 +656,26 @@ export default function MessagesPage() {
         handleMarkedRead as EventListener
       );
   }, [updateConversationUnreadCount]);
+
+  useEffect(() => {
+    const handlePreviewUpdate = (event: CustomEvent) => {
+      const { conversationId, preview, timestamp } = event.detail;
+
+      updateConversationPreview(conversationId, preview, timestamp);
+    };
+
+    window.addEventListener(
+      'conversation-preview-updated',
+      handlePreviewUpdate as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'conversation-preview-updated',
+        handlePreviewUpdate as EventListener
+      );
+    };
+  }, [updateConversationPreview]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {

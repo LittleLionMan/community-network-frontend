@@ -132,6 +132,10 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
           break;
 
         case 'unread_count_update':
+          console.log('✅ unread_count_update received by current user:', {
+            current_user_id: user?.id,
+            data: message.data,
+          });
           if (message.data && typeof message.data === 'object') {
             const unreadData = message.data as unknown as UnreadCount;
             if ('total_unread' in unreadData && 'conversations' in unreadData) {
@@ -141,27 +145,34 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
           break;
 
         case 'conversation_updated':
-          console.log('📊 conversation_updated:', {
+          console.log('📊 conversation_updated received by current user:', {
+            current_user_id: user?.id,
             conversation_id: message.conversation_id,
             unread_count: message.unread_count,
-            user_id: user?.id,
-            current_state: unreadCount,
+            preview: message.last_message_preview,
           });
 
-          if (message.conversation_id && message.unread_count !== undefined) {
-            updateConversationUnreadCount(
-              message.conversation_id,
-              message.unread_count
+          if (
+            message.conversation_id &&
+            message.last_message_preview &&
+            message.last_message_at
+          ) {
+            window.dispatchEvent(
+              new CustomEvent('conversation-preview-updated', {
+                detail: {
+                  conversationId: message.conversation_id,
+                  preview: message.last_message_preview,
+                  timestamp: message.last_message_at,
+                },
+              })
             );
-
-            setTimeout(() => {
-              console.log('✅ State after update:', unreadCount);
-            }, 100);
           }
           break;
 
         case 'transaction_updated':
-          refreshUnreadCount();
+          console.log(
+            '🔄 transaction_updated - waiting for unread_count_update'
+          );
           break;
 
         default:
@@ -180,12 +191,7 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
         handleGlobalWebSocketMessage as EventListener
       );
     };
-  }, [
-    user?.id,
-    refreshUnreadCount,
-    updateUnreadCount,
-    updateConversationUnreadCount,
-  ]);
+  }, [user?.id, refreshUnreadCount, updateUnreadCount]);
 
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {

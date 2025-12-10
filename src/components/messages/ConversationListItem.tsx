@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect, useState } from 'react';
 import { Archive, VolumeX } from 'lucide-react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { parseTransactionData } from '@/lib/parseTransactionData';
@@ -110,7 +110,18 @@ export const ConversationListItem: React.FC<ConversationListItemProps> =
             <div className="flex flex-shrink-0 items-center space-x-2">
               {conversation.last_message_at && (
                 <span className="text-xs text-gray-500">
-                  {formatTime(conversation.last_message_at)}
+                  {(() => {
+                    try {
+                      return formatTime(conversation.last_message_at);
+                    } catch (e) {
+                      console.error(
+                        'Invalid date:',
+                        conversation.last_message_at,
+                        e
+                      );
+                      return '--:--';
+                    }
+                  })()}
                 </span>
               )}
 
