@@ -9,7 +9,6 @@ import type {
   CreateConversationData,
   CreateMessageData,
   UpdateMessageData,
-  UnreadCount,
 } from '@/types/message';
 
 interface RetryOptions {
@@ -50,6 +49,39 @@ function useRetry() {
   );
 
   return { retry };
+}
+
+function normalizeProfileImageUrl(
+  url: string | null | undefined
+): string | null | undefined {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  return `${process.env.NEXT_PUBLIC_API_URL}${url}`;
+}
+
+export function normalizeMessage(message: Message): Message {
+  return {
+    ...message,
+    sender: {
+      ...message.sender,
+      profile_image_url: normalizeProfileImageUrl(
+        message.sender.profile_image_url
+      ),
+    },
+    reply_to: message.reply_to
+      ? {
+          ...message.reply_to,
+          sender: {
+            ...message.reply_to.sender,
+            profile_image_url: normalizeProfileImageUrl(
+              message.reply_to.sender.profile_image_url
+            ),
+          },
+        }
+      : undefined,
+  };
 }
 
 export function useConversations() {

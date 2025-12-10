@@ -113,7 +113,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
   useEffect(() => {
     const handleGlobalWebSocketMessage = (event: CustomEvent) => {
       const message: WebSocketMessage = event.detail;
-      console.log('🔔 UnreadCountProvider received:', message.type, message);
 
       switch (message.type) {
         case 'new_message':
@@ -132,10 +131,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
           break;
 
         case 'unread_count_update':
-          console.log('✅ unread_count_update received by current user:', {
-            current_user_id: user?.id,
-            data: message.data,
-          });
           if (message.data && typeof message.data === 'object') {
             const unreadData = message.data as unknown as UnreadCount;
             if ('total_unread' in unreadData && 'conversations' in unreadData) {
@@ -151,6 +146,13 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
             unread_count: message.unread_count,
             preview: message.last_message_preview,
           });
+
+          if (message.conversation_id && message.unread_count !== undefined) {
+            updateConversationUnreadCount(
+              message.conversation_id,
+              message.unread_count
+            );
+          }
 
           if (
             message.conversation_id &&
@@ -170,9 +172,11 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
           break;
 
         case 'transaction_updated':
-          console.log(
-            '🔄 transaction_updated - waiting for unread_count_update'
-          );
+          if (message.conversation_id) {
+            setTimeout(() => {
+              refreshUnreadCount();
+            }, 100);
+          }
           break;
 
         default:

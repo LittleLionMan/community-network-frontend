@@ -12,7 +12,11 @@ import { DesktopHeader } from '@/components/messages/DesktopHeader';
 import { ToastManager } from '@/components/messages/ToastManager';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
-import { useConversations, useConversation } from '@/hooks/useMessages';
+import {
+  useConversations,
+  useConversation,
+  normalizeMessage,
+} from '@/hooks/useMessages';
 import { useGlobalUnreadCount } from '@/components/providers/UnreadCountProvider';
 import { useMessagePrivacy } from '@/hooks/useMessagePrivacyApi';
 import { useUserWebSocket } from '@/hooks/useUserWebSocket';
@@ -506,23 +510,20 @@ export default function MessagesPage() {
 
       switch (message.type) {
         case 'new_message':
-          console.log('🔍 new_message received:', {
-            sender: message.message?.sender,
-            profile_image_url: message.message?.sender.profile_image_url,
-          });
           if (message.message && message.conversation_id) {
-            if (message.conversation_id !== selectedConversationId) {
-              updateConversationPreview(
-                message.conversation_id,
-                message.message.content,
-                message.message.created_at
-              );
-            } else {
-              addMessage(message.message);
+            updateConversationPreview(
+              message.conversation_id,
+              message.message.content,
+              message.message.created_at
+            );
+            if (message.conversation_id === selectedConversationId) {
+              const normalizedMessage = normalizeMessage(message.message);
 
               if (message.message.sender.id !== user?.id) {
+                normalizedMessage.is_read = true;
                 markAsRead(message.message.id);
               }
+              addMessage(normalizedMessage);
             }
           }
           break;
@@ -559,13 +560,6 @@ export default function MessagesPage() {
 
         case 'conversation_updated':
           if (message.conversation_id) {
-            console.log('📊 Handling conversation_updated:', {
-              conversationId: message.conversation_id,
-              preview: message.last_message_preview,
-              timestamp: message.last_message_at,
-              unread: message.unread_count,
-            });
-
             if (message.last_message_preview && message.last_message_at) {
               updateConversationPreview(
                 message.conversation_id,
@@ -630,9 +624,13 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!selectedConversationId || messages.length === 0) return;
 
-    const unreadMessages = messages.filter(
-      (msg) => !msg.is_read && msg.sender.id !== user?.id
-    );
+    const unreadMessages = messages.filter((msg) => {
+      if (msg.message_type === 'transaction') {
+        return !msg.is_read;
+      }
+
+      return !msg.is_read && msg.sender.id !== user?.id;
+    });
 
     if (unreadMessages.length > 0) {
       const lastUnreadId = unreadMessages[unreadMessages.length - 1].id;
