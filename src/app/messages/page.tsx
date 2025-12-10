@@ -321,6 +321,15 @@ export default function MessagesPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<
     number | null
   >(null);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('conversation-state-changed', {
+        detail: { conversationId: selectedConversationId },
+      })
+    );
+  }, [selectedConversationId]);
+
   const [showNewConversationModal, setShowNewConversationModal] =
     useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -516,14 +525,13 @@ export default function MessagesPage() {
               message.message.content,
               message.message.created_at
             );
+
             if (message.conversation_id === selectedConversationId) {
-              const normalizedMessage = normalizeMessage(message.message);
+              addMessage(normalizeMessage(message.message));
 
               if (message.message.sender.id !== user?.id) {
-                normalizedMessage.is_read = true;
                 markAsRead(message.message.id);
               }
-              addMessage(normalizedMessage);
             }
           }
           break;
@@ -554,25 +562,6 @@ export default function MessagesPage() {
           ) {
             if (message.conversation_id === selectedConversationId) {
               refreshConversation();
-            }
-          }
-          break;
-
-        case 'conversation_updated':
-          if (message.conversation_id) {
-            if (message.last_message_preview && message.last_message_at) {
-              updateConversationPreview(
-                message.conversation_id,
-                message.last_message_preview,
-                message.last_message_at
-              );
-            }
-
-            if (message.unread_count !== undefined) {
-              updateConversationUnreadCount(
-                message.conversation_id,
-                message.unread_count
-              );
             }
           }
           break;

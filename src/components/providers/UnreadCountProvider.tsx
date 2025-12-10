@@ -42,6 +42,24 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
   });
   const [isLoading, setIsLoading] = useState(true);
   const { user, isAuthenticated } = useAuthStore();
+  const [openConversationId, setOpenConversationId] = useState<number | null>(
+    null
+  );
+
+  useEffect(() => {
+    const handler = (e: CustomEvent) => {
+      setOpenConversationId(e.detail.conversationId);
+    };
+    window.addEventListener(
+      'conversation-state-changed',
+      handler as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        'conversation-state-changed',
+        handler as EventListener
+      );
+  }, []);
 
   const refreshUnreadCount = useCallback(async () => {
     if (!user || !isAuthenticated) {
@@ -115,67 +133,41 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
       const message: WebSocketMessage = event.detail;
 
       switch (message.type) {
-        case 'new_message':
-          if (
-            message.conversation_id &&
-            message.message?.sender.id !== user?.id
-          ) {
-            refreshUnreadCount();
-          }
-          break;
-
-        case 'messages_read':
-          if (message.user_id !== user?.id) {
-            refreshUnreadCount();
-          }
-          break;
-
         case 'unread_count_update':
+          console.log('✅ unread_count_update received:', {
+            current_user_id: user?.id,
+            openConversationId,
+            data: message.data,
+          });
+
           if (message.data && typeof message.data === 'object') {
             const unreadData = message.data as unknown as UnreadCount;
             if ('total_unread' in unreadData && 'conversations' in unreadData) {
-              updateUnreadCount(unreadData);
+              if (openConversationId) {
+                const filtered: UnreadCount = {
+                  conversations: unreadData.conversations
+                    .map((c) =>
+                      c.conversation_id === openConversationId
+                        ? { ...c, unread_count: 0 }
+                        : c
+                    )
+                    .filter((c) => c.unread_count > 0),
+                  total_unread: unreadData.conversations
+                    .filter((c) => c.conversation_id !== openConversationId)
+                    .reduce((sum, c) => sum + c.unread_count, 0),
+                };
+                console.log('🔄 Filtered because chat is open:', {
+                  openConversationId,
+                  before: unreadData,
+                  after: filtered,
+                });
+                updateUnreadCount(filtered);
+              } else {
+                console.log('✅ Applied as-is (no chat open)');
+                updateUnreadCount(unreadData);
+                updateUnreadCount(unreadData);
+              }
             }
-          }
-          break;
-
-        case 'conversation_updated':
-          console.log('📊 conversation_updated received by current user:', {
-            current_user_id: user?.id,
-            conversation_id: message.conversation_id,
-            unread_count: message.unread_count,
-            preview: message.last_message_preview,
-          });
-
-          if (message.conversation_id && message.unread_count !== undefined) {
-            updateConversationUnreadCount(
-              message.conversation_id,
-              message.unread_count
-            );
-          }
-
-          if (
-            message.conversation_id &&
-            message.last_message_preview &&
-            message.last_message_at
-          ) {
-            window.dispatchEvent(
-              new CustomEvent('conversation-preview-updated', {
-                detail: {
-                  conversationId: message.conversation_id,
-                  preview: message.last_message_preview,
-                  timestamp: message.last_message_at,
-                },
-              })
-            );
-          }
-          break;
-
-        case 'transaction_updated':
-          if (message.conversation_id) {
-            setTimeout(() => {
-              refreshUnreadCount();
-            }, 100);
           }
           break;
 
@@ -195,7 +187,7 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
         handleGlobalWebSocketMessage as EventListener
       );
     };
-  }, [user?.id, refreshUnreadCount, updateUnreadCount]);
+  }, [user?.id, updateUnreadCount, openConversationId]);
 
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {
