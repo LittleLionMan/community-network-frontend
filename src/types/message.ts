@@ -143,7 +143,7 @@ export interface WebSocketMessage {
   updated_by?: number;
   transaction_data?: Record<string, string | number | boolean | null>;
   unread_count?: number;
-  last_message_preview?: string;
+  preview?: string;
   last_message_at?: string;
 }
 

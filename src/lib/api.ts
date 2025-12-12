@@ -309,6 +309,7 @@ export interface BookOfferCreate {
   notes?: string;
   user_comment?: string;
   custom_location?: string;
+  location_district?: string;
 }
 
 export interface BookOfferUpdate {
@@ -316,6 +317,7 @@ export interface BookOfferUpdate {
   notes?: string;
   user_comment?: string;
   custom_location?: string;
+  location_district?: string;
   is_available?: boolean;
 }
 
@@ -1440,6 +1442,18 @@ class ApiClient {
         `/api/transactions/${transactionId}/confirm-time`,
         {
           method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    updateAddress: (
+      transactionId: number,
+      data: { exact_address: string; location_district: string | null }
+    ) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/address`,
+        {
+          method: 'PUT',
           body: JSON.stringify(data),
         }
       ),

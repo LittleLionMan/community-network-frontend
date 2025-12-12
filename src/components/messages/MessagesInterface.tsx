@@ -71,7 +71,7 @@ interface MessagesInterfaceProps {
   messages: Message[];
   currentUserId: number;
   typingUsers?: MessageUser[];
-  onSelectConversation: (conversation: Conversation) => void;
+  onSelectConversation: (conversation: Conversation | null) => void;
   onSendMessage: (content: string, replyToId?: number) => Promise<void>;
   onEditMessage: (messageId: number, content: string) => Promise<void>;
   onDeleteMessage: (messageId: number) => Promise<void>;
@@ -739,7 +739,8 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
 
   const handleBackToList = useCallback(() => {
     setShowMobileConversationList(true);
-  }, []);
+    onSelectConversation(null);
+  }, [onSelectConversation]);
 
   const handleEditMessage = useCallback(
     async (messageId: number, content: string) => {

@@ -330,6 +330,16 @@ export default function MessagesPage() {
     );
   }, [selectedConversationId]);
 
+  useEffect(() => {
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent('conversation-state-changed', {
+          detail: { conversationId: null },
+        })
+      );
+    };
+  }, []);
+
   const [showNewConversationModal, setShowNewConversationModal] =
     useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -400,9 +410,12 @@ export default function MessagesPage() {
   const { handleAuthError, isErrorDismissed, getErrorId } =
     useAuthErrorHandler();
 
-  const handleSelectConversation = useCallback((conversation: Conversation) => {
-    setSelectedConversationId(conversation.id);
-  }, []);
+  const handleSelectConversation = useCallback(
+    (conversation: Conversation | null) => {
+      setSelectedConversationId(conversation?.id ?? null);
+    },
+    []
+  );
 
   const handleSelectMessageFromSearch = useCallback(
     (conversationId: number) => {
@@ -560,6 +573,18 @@ export default function MessagesPage() {
             message.conversation_id &&
             message.message_id
           ) {
+            if (message.preview && message.last_message_at) {
+              console.log(
+                '✅ Updating preview for conversation:',
+                message.conversation_id
+              );
+              updateConversationPreview(
+                message.conversation_id,
+                message.preview,
+                message.last_message_at
+              );
+            }
+
             if (message.conversation_id === selectedConversationId) {
               refreshConversation();
             }

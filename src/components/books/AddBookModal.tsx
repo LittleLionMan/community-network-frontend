@@ -101,6 +101,7 @@ export function AddBookModal({
         notes: undefined,
         user_comment: userComment || undefined,
         custom_location: customLocation || undefined,
+        location_district: locationDistrict || undefined,
       });
 
       toast.success(

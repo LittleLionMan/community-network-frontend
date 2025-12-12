@@ -53,9 +53,7 @@ export function ISBNScanner({ onScan, onClose }: ISBNScannerProps) {
     initScanner();
 
     return () => {
-      if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop();
-      }
+      scannerRef.current?.stop();
     };
   }, [onScan]);
 

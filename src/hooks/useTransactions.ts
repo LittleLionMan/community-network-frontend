@@ -96,23 +96,22 @@ export function useUpdateTransactionAddress() {
       transactionId: number;
       address: string;
     }) => {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/transactions/${transactionId}/address`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ exact_address: address }),
-        }
-      );
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Failed to update address');
+      const validationResult = await apiClient.location.validate(address);
+
+      if (!validationResult.valid || !validationResult.district) {
+        throw new Error(
+          validationResult.message || 'Standort konnte nicht validiert werden.'
+        );
       }
-      return response.json();
+
+      return apiClient.transactions.updateAddress(transactionId, {
+        exact_address: address,
+        location_district: validationResult.district,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
   });
 }

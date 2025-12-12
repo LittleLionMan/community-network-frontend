@@ -134,12 +134,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
 
       switch (message.type) {
         case 'unread_count_update':
-          console.log('✅ unread_count_update received:', {
-            current_user_id: user?.id,
-            openConversationId,
-            data: message.data,
-          });
-
           if (message.data && typeof message.data === 'object') {
             const unreadData = message.data as unknown as UnreadCount;
             if ('total_unread' in unreadData && 'conversations' in unreadData) {
@@ -156,11 +150,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
                     .filter((c) => c.conversation_id !== openConversationId)
                     .reduce((sum, c) => sum + c.unread_count, 0),
                 };
-                console.log('🔄 Filtered because chat is open:', {
-                  openConversationId,
-                  before: unreadData,
-                  after: filtered,
-                });
                 updateUnreadCount(filtered);
               } else {
                 console.log('✅ Applied as-is (no chat open)');

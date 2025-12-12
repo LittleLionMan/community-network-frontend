@@ -224,21 +224,36 @@ export function useConversations() {
   const updateConversationPreview = useCallback(
     (conversationId: number, preview: string, lastMessageAt: string) => {
       setConversations((prev) => {
-        const updated = prev.map((conv) =>
-          conv.id === conversationId
-            ? {
-                ...conv,
-                last_message_at: lastMessageAt,
-                updated_at: lastMessageAt,
-              }
-            : conv
-        );
+        const updated = prev.map((conv) => {
+          if (conv.id !== conversationId) return conv;
 
-        return updated.sort((a, b) => {
+          if (!conv.last_message) {
+            return {
+              ...conv,
+              last_message_at: lastMessageAt,
+              updated_at: lastMessageAt,
+            };
+          }
+
+          return {
+            ...conv,
+            last_message_at: lastMessageAt,
+            updated_at: lastMessageAt,
+            last_message: {
+              ...conv.last_message,
+              content: preview,
+              created_at: lastMessageAt,
+            },
+          };
+        });
+
+        const sorted = updated.sort((a, b) => {
           const aTime = a.last_message_at || a.updated_at;
           const bTime = b.last_message_at || b.updated_at;
           return new Date(bTime).getTime() - new Date(aTime).getTime();
         });
+
+        return sorted;
       });
     },
     []

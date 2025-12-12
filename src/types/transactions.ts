@@ -23,6 +23,7 @@ export interface TransactionData {
   proposed_times: string[];
   confirmed_time: string | null;
   exact_address: string | null;
+  location_district: string | null;
   requester_confirmed: boolean;
   provider_confirmed: boolean;
   created_at: string;

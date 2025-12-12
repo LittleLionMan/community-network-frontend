@@ -27,6 +27,8 @@ import {
   useCancelTransaction,
   useUpdateTransactionAddress,
 } from '@/hooks/useTransactions';
+import { apiClient } from '@/lib/api';
+import { toast } from '@/components/ui/toast';
 
 interface TransactionTokenProps {
   transaction: TransactionData;
@@ -39,12 +41,6 @@ const statusConfig: Record<
   { label: string; color: string; icon: LucideIcon }
 > = {
   pending: {
-    label: 'In Abstimmung',
-    color:
-      'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20',
-    icon: Clock,
-  },
-  accepted: {
     label: 'In Abstimmung',
     color:
       'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20',
@@ -103,6 +99,14 @@ export function TransactionToken({
   const counterpartId = isProvider
     ? transaction.requester.id
     : transaction.provider.id;
+
+  const shouldShowDistrict =
+    transaction.status === 'pending' &&
+    !transaction.exact_address &&
+    transaction.location_district;
+  const shouldShowExactAddress =
+    transaction.status === 'time_confirmed' ||
+    transaction.status === 'completed';
 
   const expirationInfo = useMemo(() => {
     const now = new Date();
@@ -221,6 +225,10 @@ export function TransactionToken({
     onUpdate?.(result);
   };
 
+  console.log(transaction.exact_address);
+  console.log(transaction.location_district);
+  console.log(transaction.status);
+
   return (
     <div className="my-4 rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm dark:border-amber-800 dark:from-amber-950/20 dark:to-gray-900">
       <div className="mb-3 flex items-start justify-between">
@@ -325,7 +333,7 @@ export function TransactionToken({
         </div>
       )}
 
-      {transaction.exact_address && (
+      {(shouldShowDistrict || shouldShowExactAddress) && (
         <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -334,8 +342,15 @@ export function TransactionToken({
                 Treffpunkt
               </h5>
               <p className="text-sm text-blue-700 dark:text-blue-400">
-                {transaction.exact_address}
+                {shouldShowExactAddress
+                  ? transaction.exact_address || 'Nicht angegeben'
+                  : transaction.location_district || 'Nicht angegeben'}
               </p>
+              {shouldShowDistrict && (
+                <p className="mt-1 text-xs text-blue-600 dark:text-blue-500">
+                  Genauer Standort wird nach Terminbestätigung sichtbar
+                </p>
+              )}
             </div>
             {transaction.can_edit_address && (
               <Button
@@ -438,7 +453,7 @@ export function TransactionToken({
       {showConfirmTimeModal && (
         <ConfirmTimeModal
           proposedTimes={transaction.proposed_times}
-          currentAddress={transaction.exact_address}
+          locationDistrict={transaction.location_district}
           onClose={() => setShowConfirmTimeModal(false)}
           onSubmit={(time) => {
             handleConfirmTime(time);
@@ -594,12 +609,12 @@ function ProposeTimeModal({
 
 function ConfirmTimeModal({
   proposedTimes,
-  currentAddress,
+  locationDistrict,
   onClose,
   onSubmit,
 }: {
   proposedTimes: string[];
-  currentAddress: string | null;
+  locationDistrict: string | null;
   onClose: () => void;
   onSubmit: (time: string) => void;
 }) {
@@ -654,7 +669,7 @@ function ConfirmTimeModal({
                 </p>
                 <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                   Bitte bitte die andere Partei, neue Termine vorzuschlagen oder
-                  schlade selber Alternativen vor.
+                  schlage selber Alternativen vor.
                 </p>
               </div>
             ) : (
@@ -676,19 +691,22 @@ function ConfirmTimeModal({
             )}
           </div>
 
-          {currentAddress && (
+          {locationDistrict && (
             <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
               <div className="mb-1 flex items-center gap-2 text-sm font-medium text-blue-800 dark:text-blue-300">
                 <MapPin className="h-4 w-4" />
-                Treffpunkt
+                Ungefährer Treffpunkt
               </div>
               <p className="text-sm text-blue-700 dark:text-blue-400">
-                {currentAddress}
+                {locationDistrict}
+              </p>
+              <p className="mt-1 text-xs text-blue-600 dark:text-blue-500">
+                Der genaue Standort wird nach Terminbestätigung sichtbar
               </p>
             </div>
           )}
 
-          {!currentAddress && (
+          {!locationDistrict && (
             <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
               <p className="text-sm text-amber-700 dark:text-amber-300">
                 ⚠️ Kein Treffpunkt festgelegt. Der Anbieter sollte einen
@@ -704,7 +722,7 @@ function ConfirmTimeModal({
           </Button>
           <Button
             onClick={() => selectedTime && onSubmit(selectedTime)}
-            disabled={!selectedTime || !currentAddress}
+            disabled={!selectedTime || !locationDistrict}
             className="flex-1"
           >
             Bestätigen
@@ -724,7 +742,55 @@ function EditAddressModal({
   onClose: () => void;
   onSubmit: (address: string) => void;
 }) {
-  const [address, setAddress] = useState(currentAddress);
+  const [addressInput, setAddressInput] = useState(currentAddress);
+  const [validatedDistrict, setValidatedDistrict] = useState<string | null>(
+    null
+  );
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const handleValidateAddress = async () => {
+    if (!addressInput.trim() || addressInput.trim().length < 3) {
+      setValidationError('Adresse muss mindestens 3 Zeichen haben');
+      setValidatedDistrict(null);
+      return;
+    }
+
+    setIsValidating(true);
+    setValidationError(null);
+
+    try {
+      const result = await apiClient.location.validate(addressInput.trim());
+
+      if (result.valid && result.district) {
+        setValidatedDistrict(result.district);
+        setValidationError(null);
+        toast.success('Standort validiert', `Gefunden: ${result.district}`);
+      } else {
+        setValidationError(
+          result.message ||
+            'Standort konnte nicht gefunden werden. Bitte überprüfe die Schreibweise.'
+        );
+        setValidatedDistrict(null);
+      }
+    } catch (error) {
+      setValidationError('Fehler bei der Standortvalidierung');
+      setValidatedDistrict(null);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!validatedDistrict) {
+      toast.error('Fehler', 'Bitte validiere die Adresse zuerst.');
+      return;
+    }
+
+    if (addressInput && addressInput !== currentAddress) {
+      onSubmit(addressInput);
+    }
+  };
 
   return (
     <div className="fixed inset-x-0 bottom-0 top-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 pt-8">
@@ -744,19 +810,58 @@ function EditAddressModal({
         <div className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Adresse
+              Adresse *
             </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Straße, Hausnummer, Münster"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
-              maxLength={500}
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={addressInput}
+                onChange={(e) => {
+                  setAddressInput(e.target.value);
+                  setValidatedDistrict(null);
+                  setValidationError(null);
+                }}
+                placeholder="Straße, Hausnummer, Münster"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+                maxLength={500}
+              />
+              <Button
+                type="button"
+                onClick={handleValidateAddress}
+                disabled={isValidating || addressInput.trim().length < 3}
+                variant="outline"
+              >
+                {isValidating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Prüfen'
+                )}
+              </Button>
+            </div>
+
+            {validatedDistrict && (
+              <div className="mt-2 flex items-center gap-2 rounded-md bg-green-50 p-2 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                <MapPin className="h-4 w-4" />
+                <span>Stadtteil gefunden: {validatedDistrict}</span>
+              </div>
+            )}
+
+            {validationError && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                {validationError}
+              </p>
+            )}
+
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               Dies wird der Treffpunkt für die Übergabe. Du kannst ihn nur vor
               der Terminbestätigung ändern.
+            </p>
+          </div>
+
+          <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+            <p className="text-sm text-blue-700 dark:text-blue-400">
+              ℹ️ Der genaue Standort wird erst nach der Terminbestätigung für
+              den Anfragenden sichtbar. Vorher sieht dieser nur den Stadtteil.
             </p>
           </div>
         </div>
@@ -766,8 +871,12 @@ function EditAddressModal({
             Abbrechen
           </Button>
           <Button
-            onClick={() => address && onSubmit(address)}
-            disabled={!address || address === currentAddress}
+            onClick={handleSubmit}
+            disabled={
+              !addressInput ||
+              !validatedDistrict ||
+              addressInput === currentAddress
+            }
             className="flex-1"
           >
             Speichern

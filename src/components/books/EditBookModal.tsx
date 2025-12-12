@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { BookOffer } from '@/lib/api';
+import { BookOffer, apiClient } from '@/lib/api';
 import { useUpdateOffer } from '@/hooks/useBooks';
 import { toast } from '@/components/ui/toast';
 
@@ -29,7 +29,15 @@ export function EditBookModal({
     notes: offer.notes || '',
     user_comment: offer.user_comment || '',
     custom_location: '',
+    location_district: null as string | null,
   });
+
+  const [locationInput, setLocationInput] = useState('');
+  const [validatedDistrict, setValidatedDistrict] = useState<string | null>(
+    null
+  );
+  const [isValidatingLocation, setIsValidatingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -38,12 +46,60 @@ export function EditBookModal({
         notes: offer.notes || '',
         user_comment: offer.user_comment || '',
         custom_location: '',
+        location_district: null,
       });
+      setLocationInput('');
+      setValidatedDistrict(null);
+      setLocationError(null);
     }
   }, [isOpen, offer]);
 
+  const handleValidateLocation = async () => {
+    if (!locationInput.trim() || locationInput.trim().length < 3) {
+      setLocationError('Standort muss mindestens 3 Zeichen haben');
+      setValidatedDistrict(null);
+      return;
+    }
+
+    setIsValidatingLocation(true);
+    setLocationError(null);
+
+    try {
+      const result = await apiClient.location.validate(locationInput.trim());
+
+      if (result.valid && result.district) {
+        setValidatedDistrict(result.district);
+        setFormData({
+          ...formData,
+          custom_location: locationInput.trim(),
+          location_district: result.district,
+        });
+        setLocationError(null);
+      } else {
+        setLocationError(
+          result.message ||
+            'Standort konnte nicht gefunden werden. Bitte überprüfe die Schreibweise.'
+        );
+        setValidatedDistrict(null);
+      }
+    } catch (error) {
+      setLocationError('Fehler bei der Standortvalidierung');
+      setValidatedDistrict(null);
+    } finally {
+      setIsValidatingLocation(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (locationInput.trim() && !validatedDistrict) {
+      toast.error(
+        'Fehler',
+        'Bitte validiere den Standort, bevor du speicherst.'
+      );
+      return;
+    }
 
     try {
       await updateOffer.mutateAsync({
@@ -53,6 +109,7 @@ export function EditBookModal({
           notes: formData.notes || undefined,
           user_comment: formData.user_comment || undefined,
           custom_location: formData.custom_location || undefined,
+          location_district: formData.location_district || undefined,
         },
       });
 
@@ -76,7 +133,7 @@ export function EditBookModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -155,13 +212,46 @@ export function EditBookModal({
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Abweichender Standort (optional)
             </label>
-            <Input
-              value={formData.custom_location}
-              onChange={(e) =>
-                setFormData({ ...formData, custom_location: e.target.value })
-              }
-              placeholder="z.B. Mitte-Nord, Prenzlauer Berg"
-            />
+            <div className="flex gap-2">
+              <Input
+                value={locationInput}
+                onChange={(e) => {
+                  setLocationInput(e.target.value);
+                  setValidatedDistrict(null);
+                  setLocationError(null);
+                }}
+                placeholder="z.B. Hauptbahnhof 5, Münster"
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                onClick={handleValidateLocation}
+                disabled={
+                  isValidatingLocation || locationInput.trim().length < 3
+                }
+                variant="outline"
+              >
+                {isValidatingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Prüfen'
+                )}
+              </Button>
+            </div>
+
+            {validatedDistrict && (
+              <div className="mt-2 flex items-center gap-2 rounded-md bg-green-50 p-2 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                <MapPin className="h-4 w-4" />
+                <span>Standort gefunden: {validatedDistrict}</span>
+              </div>
+            )}
+
+            {locationError && (
+              <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                {locationError}
+              </p>
+            )}
+
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Aktuell: {offer.location_district || 'Nicht gesetzt'}
             </p>
@@ -180,7 +270,10 @@ export function EditBookModal({
             <Button
               type="submit"
               className="flex-1 bg-amber-600 hover:bg-amber-700"
-              disabled={updateOffer.isPending}
+              disabled={
+                updateOffer.isPending ||
+                (locationInput.trim() !== '' && !validatedDistrict)
+              }
             >
               {updateOffer.isPending ? 'Speichern...' : 'Speichern'}
             </Button>
