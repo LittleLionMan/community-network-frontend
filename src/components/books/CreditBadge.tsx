@@ -62,12 +62,12 @@ export function CreditBadge({ user }: CreditBadgeProps) {
                 🔄 Wie funktioniert das System?
               </h3>
               <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-                <li>• Jeder startet mit 1 Credit</li>
+                <li>• Jeder startet mit einem Credit</li>
                 <li>
-                  • Bei erfolgreicher Übergabe erhält die/der Anbietende 1
+                  • Bei erfolgreicher Übergabe erhält die/der Anbietende einen
                   Credit
                 </li>
-                <li>• Die/Der Transaktionspartner/in gibt 1 Credit ab</li>
+                <li>• Die/Der Transaktionspartner/in gibt einen Credit ab</li>
                 <li>
                   • Credits sammeln sich durch erfolgreiche Transaktionen an
                 </li>
@@ -78,7 +78,7 @@ export function CreditBadge({ user }: CreditBadgeProps) {
                 💡 Tipp
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Biete eigene Bücher an, um durch erfolgreiche Transaktioen
+                Biete eigene Bücher an, um durch erfolgreiche Transaktionen
                 Credits zu verdienen. Je mehr du gibst, desto mehr kannst du
                 nehmen!
               </p>
