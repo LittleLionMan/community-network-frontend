@@ -173,6 +173,7 @@ export function AddBookModal({
                   error={isbn.length > 0 && !isIsbnValid}
                   className="flex-1"
                 />
+                {/*
                 <Button
                   type="button"
                   variant="outline"
@@ -182,6 +183,7 @@ export function AddBookModal({
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
+                */}
               </div>
               {isbn.length > 0 && !isIsbnValid && (
                 <p className="mt-1 text-sm text-red-600">
@@ -388,7 +390,6 @@ export function AddBookModal({
           )}
         </div>
       </DialogContent>
-
       {showScanner && (
         <ISBNScanner
           onScan={(scannedIsbn) => {

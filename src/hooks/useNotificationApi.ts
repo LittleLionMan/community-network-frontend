@@ -13,7 +13,10 @@ export function useNotificationStats(enabled = true) {
   return useQuery({
     queryKey: ['notification-stats'],
     queryFn: () => apiClient.notifications.getStats(),
-    staleTime: 30000,
+    staleTime: 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     enabled,
   });
 }
@@ -41,9 +44,9 @@ export function useMarkNotificationAsRead() {
         is_read: isRead,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
     },
   });
 }
@@ -55,9 +58,9 @@ export function useMarkAllNotificationsAsRead() {
     mutationFn: async (typeFilter?: NotificationType) => {
       return apiClient.notifications.markAllAsRead(typeFilter);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
     },
   });
 }
@@ -69,9 +72,9 @@ export function useDeleteNotification() {
     mutationFn: async (notificationId: number) => {
       return apiClient.notifications.delete(notificationId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      await queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
     },
   });
 }

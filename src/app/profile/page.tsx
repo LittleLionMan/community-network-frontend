@@ -474,15 +474,23 @@ function ProfilePageContent() {
                         Neue Nachrichten
                       </span>
                     </label>
-                    <label className="flex cursor-not-allowed items-center opacity-50">
+                    <label className="flex items-center">
                       <input
                         type="checkbox"
                         className="mr-2"
                         checked={user.email_notifications_newsletter || false}
-                        disabled={true}
+                        onChange={(e) =>
+                          handleNotificationChange(
+                            'email_notifications_newsletter',
+                            e.target.checked
+                          )
+                        }
+                        disabled={isLoading}
                       />
-                      <span className="text-gray-500 dark:text-gray-400">
-                        Newsletter (möglicherweise zukünftig)
+                      <span
+                        className={`dark:text-gray-200 ${isLoading ? 'opacity-50' : ''}`}
+                      >
+                        Newsletter
                       </span>
                     </label>
                   </div>

@@ -284,6 +284,7 @@ function OfferCard({
 }) {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const isOwnOffer = currentUserId === offer.owner_id;
+  const { isAuthenticated } = useAuthStore();
 
   if (!availableSlots) {
     return (
@@ -440,7 +441,7 @@ function OfferCard({
             </div>
           )}
 
-          {!isOwnOffer && (
+          {!isOwnOffer && isAuthenticated && (
             <div className="group relative">
               <Button
                 className="w-full bg-amber-600 hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"

@@ -1,9 +1,10 @@
 import { useEffect, useCallback } from 'react';
-import { useNotifications } from './useNotifications';
+import { useBrowserNotifications } from './useBrowserNotifications';
 import { useAuthStore } from '@/store/auth';
 
 export function useMessageNotifications() {
-  const { showMessageNotification, permissionState } = useNotifications();
+  const { showMessageNotification, permissionState } =
+    useBrowserNotifications();
   const { user } = useAuthStore();
 
   useEffect(() => {

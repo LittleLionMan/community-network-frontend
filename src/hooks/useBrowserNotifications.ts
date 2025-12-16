@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuthStore } from '@/store/auth';
 
 type PermissionState = 'default' | 'granted' | 'denied';
 
@@ -31,14 +30,13 @@ interface PushNotificationData {
   }>;
 }
 
-export function useNotifications() {
+export function useBrowserNotifications() {
   const [permissionState, setPermissionState] =
     useState<NotificationPermissionState>({
       permission: 'default',
       isSupported: false,
     });
   const [isRegistering, setIsRegistering] = useState(false);
-  const { user } = useAuthStore();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, MessageCircle, Users } from 'lucide-react';
+import { Eye, EyeOff, MessageCircle, Users, AlertCircle } from 'lucide-react';
 import type { User } from '@/types';
 import {
   useMessagePrivacy,
   useUpdateMessagePrivacy,
 } from '@/hooks/useMessagePrivacyApi';
+import { useActiveMarketplaceOffersCount } from '@/hooks/useMarketplaceValidation';
 import { NotificationPrivacyControls } from '@/components/notifications/NotificationPrivacyControls';
 
 interface PrivacyControlsProps {
@@ -24,6 +25,7 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
   onSettingsChange,
 }) => {
   const { data: settings, isLoading, refetch } = useMessagePrivacy();
+  const { data: activeOffersData } = useActiveMarketplaceOffersCount();
   const updatePrivacy = useUpdateMessagePrivacy();
 
   const [localMessagesEnabled, setLocalMessagesEnabled] = useState<
@@ -32,6 +34,7 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
   const [localMessagesFromStrangers, setLocalMessagesFromStrangers] = useState<
     boolean | null
   >(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const messagesEnabled =
     localMessagesEnabled !== null
@@ -42,6 +45,10 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
       ? localMessagesFromStrangers
       : (settings?.messages_from_strangers ?? true);
 
+  const hasActiveOffers = (activeOffersData?.total_count ?? 0) > 0;
+  const activeOffersCount = activeOffersData?.total_count ?? 0;
+  const bookOffersCount = activeOffersData?.book_offers ?? 0;
+
   useEffect(() => {
     if (settings) {
       setLocalMessagesEnabled(settings.messages_enabled ?? true);
@@ -49,7 +56,25 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
     }
   }, [settings]);
 
+  const getOffersBreakdown = () => {
+    const parts = [];
+    if (bookOffersCount > 0) {
+      parts.push(
+        `${bookOffersCount} Buch-Angebot${bookOffersCount !== 1 ? 'e' : ''}`
+      );
+    }
+    return parts.join(', ');
+  };
+
   const handleToggle = async (setting: string, value: boolean) => {
+    if (!value && hasActiveOffers) {
+      setErrorMessage(
+        'Du kannst Nachrichten nicht deaktivieren, solange du aktive Marktplatz-Angebote hast. Deaktiviere zuerst alle Angebote.'
+      );
+      setTimeout(() => setErrorMessage(null), 5000);
+      return;
+    }
+
     if (setting === 'messages_enabled') {
       setLocalMessagesEnabled(value);
     } else if (setting === 'messages_from_strangers') {
@@ -60,8 +85,35 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
       await updatePrivacy.mutateAsync({ [setting]: value });
       onSettingsChange({ [setting]: value });
       await refetch();
-    } catch (error) {
+      setErrorMessage(null);
+    } catch (error: unknown) {
       console.error('Failed to update message privacy settings:', error);
+
+      if (
+        error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        error.status === 400 &&
+        'detail' in error &&
+        typeof error.detail === 'object' &&
+        error.detail &&
+        'code' in error.detail &&
+        error.detail.code === 'active_offers_exist'
+      ) {
+        const detail = error.detail as {
+          user_message?: string;
+          active_offers_count?: number;
+        };
+        setErrorMessage(
+          detail.user_message ||
+            'Du kannst Nachrichten nicht deaktivieren, solange du aktive Marktplatz-Angebote hast.'
+        );
+        setTimeout(() => setErrorMessage(null), 5000);
+      } else {
+        setErrorMessage('Fehler beim Aktualisieren der Einstellungen');
+        setTimeout(() => setErrorMessage(null), 3000);
+      }
+
       await refetch();
       if (settings) {
         setLocalMessagesEnabled(settings.messages_enabled ?? true);
@@ -81,6 +133,8 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
     );
   }
 
+  const canDisableMessages = !hasActiveOffers;
+
   return (
     <div className="space-y-6">
       <div>
@@ -94,8 +148,49 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
         </p>
       </div>
 
+      {errorMessage && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400" />
+            <div>
+              <div className="font-medium text-red-900 dark:text-red-200">
+                Fehler
+              </div>
+              <div className="text-sm text-red-800 dark:text-red-300">
+                {errorMessage}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasActiveOffers && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <div className="mb-1 font-medium text-amber-900 dark:text-amber-200">
+                Aktive Marktplatz-Angebote
+              </div>
+              <div className="text-sm text-amber-800 dark:text-amber-300">
+                Du hast {activeOffersCount} aktive{' '}
+                {activeOffersCount === 1 ? 'Angebot' : 'Angebote'} (
+                {getOffersBreakdown()}). Nachrichten können nicht deaktiviert
+                werden, solange du Angebote auf dem Marktplatz hast.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
-        <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+        <div
+          className={`flex items-center justify-between rounded-lg p-4 ${
+            canDisableMessages
+              ? 'bg-gray-50 dark:bg-gray-800'
+              : 'bg-gray-100 dark:bg-gray-900'
+          }`}
+        >
           <div className="flex items-start space-x-3">
             <MessageCircle className="mt-0.5 h-5 w-5 text-gray-400" />
             <div>
@@ -106,6 +201,12 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
                 Andere Community-Mitglieder können dir private Nachrichten
                 senden
               </div>
+              {!canDisableMessages && (
+                <div className="mt-1 flex items-center text-xs text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="mr-1 h-3 w-3" />
+                  Kann nicht deaktiviert werden (Aktive Angebote)
+                </div>
+              )}
             </div>
           </div>
           <label className="relative inline-flex cursor-pointer items-center">
@@ -115,16 +216,20 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
               onChange={(e) =>
                 handleToggle('messages_enabled', e.target.checked)
               }
-              disabled={updatePrivacy.isPending}
+              disabled={updatePrivacy.isPending || !canDisableMessages}
               className="peer sr-only"
             />
-            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-gray-700 dark:peer-checked:bg-indigo-500"></div>
+            <div
+              className={`peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-gray-700 dark:peer-checked:bg-indigo-500 ${
+                !canDisableMessages ? 'cursor-not-allowed opacity-60' : ''
+              }`}
+            ></div>
           </label>
         </div>
 
         <div
           className={`flex items-center justify-between rounded-lg p-4 transition-opacity ${
-            messagesEnabled
+            messagesEnabled && canDisableMessages
               ? 'bg-gray-50 dark:bg-gray-800'
               : 'bg-gray-100 opacity-50 dark:bg-gray-900'
           }`}
@@ -139,6 +244,12 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
                 Auch Personen, mit denen du noch nie geschrieben hast, können
                 dir schreiben
               </div>
+              {!canDisableMessages && (
+                <div className="mt-1 flex items-center text-xs text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="mr-1 h-3 w-3" />
+                  Kann nicht deaktiviert werden (Aktive Angebote)
+                </div>
+              )}
             </div>
           </div>
           <label className="relative inline-flex cursor-pointer items-center">
@@ -148,10 +259,18 @@ const MessagePrivacyControls: React.FC<MessagePrivacyControlsProps> = ({
               onChange={(e) =>
                 handleToggle('messages_from_strangers', e.target.checked)
               }
-              disabled={!messagesEnabled || updatePrivacy.isPending}
+              disabled={
+                !messagesEnabled ||
+                updatePrivacy.isPending ||
+                !canDisableMessages
+              }
               className="peer sr-only"
             />
-            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-gray-700 dark:peer-checked:bg-indigo-500"></div>
+            <div
+              className={`peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 peer-disabled:cursor-not-allowed peer-disabled:opacity-50 dark:bg-gray-700 dark:peer-checked:bg-indigo-500 ${
+                !canDisableMessages ? 'cursor-not-allowed opacity-60' : ''
+              }`}
+            ></div>
           </label>
         </div>
       </div>

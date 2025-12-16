@@ -58,9 +58,25 @@ export function NotificationDropdown() {
       }
     }
 
-    router.push(
-      `/forum/threads/${notification.data.thread_id}?post=${notification.data.post_id}`
-    );
+    if (
+      notification.type === 'forum_reply' ||
+      notification.type === 'forum_mention' ||
+      notification.type === 'forum_quote'
+    ) {
+      const forumData = notification.data as {
+        thread_id: number;
+        post_id: number;
+      };
+      router.push(
+        `/forum/threads/${forumData.thread_id}?post=${forumData.post_id}`
+      );
+    } else if (
+      notification.type === 'credit_received' ||
+      notification.type === 'credit_spent'
+    ) {
+      router.push('/messages');
+    }
+
     setIsOpen(false);
   };
 

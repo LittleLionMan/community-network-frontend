@@ -323,9 +323,9 @@ export interface BookOfferUpdate {
 }
 
 export interface BookStats {
-  total_books: number;
-  total_offers: number;
   available_offers: number;
+  new_this_week: number;
+  successful_exchanges: number;
   my_offers?: number;
   my_available?: number;
 }
@@ -1491,6 +1491,23 @@ class ApiClient {
         `/api/transactions?${params.toString()}`
       );
     },
+    canCreateMarketplaceOffer: () =>
+      this.request<{
+        can_create: boolean;
+        reason?: 'messages_disabled' | 'strangers_disabled';
+        message?: string;
+        has_active_offers?: boolean;
+        active_offers_count?: number;
+        offers_by_type?: {
+          book_offers: number;
+        };
+      }>('/api/transactions/marketplace/can-create-offer'),
+
+    getActiveMarketplaceOffersCount: () =>
+      this.request<{
+        total_count: number;
+        book_offers: number;
+      }>('/api/transactions/marketplace/active-offers-count'),
   };
 
   notifications = {

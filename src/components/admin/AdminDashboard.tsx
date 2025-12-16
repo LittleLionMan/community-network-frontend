@@ -13,10 +13,12 @@ import {
   CheckCircle,
   RefreshCw,
   Zap,
+  Mail,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { toast } from '@/components/ui/toast';
 import type { AdminDashboardStats, RateLimitHealth } from '@/types/admin';
+import { NewsletterModal } from './NewsletterModal';
 
 interface StatCardProps {
   title: string;
@@ -127,6 +129,8 @@ export function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -159,6 +163,40 @@ export function AdminDashboard() {
     } catch (error) {
       toast.error('Fehler beim System Maintenance');
       console.log(error);
+    }
+  };
+
+  const handleSendNewsletter = async (message: string) => {
+    setNewsletterLoading(true);
+    try {
+      const response = await apiClient.request<{
+        message: string;
+        recipients_count: number;
+        emails_sent: number;
+        emails_failed: number;
+      }>('/api/admin/newsletter/send', {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      });
+
+      toast.success(
+        `Newsletter versendet! ${response.emails_sent} von ${response.recipients_count} Empfängern erreicht.`
+      );
+
+      if (response.emails_failed > 0) {
+        toast.error(
+          `${response.emails_failed} Emails konnten nicht zugestellt werden.`
+        );
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Newsletter-Versand fehlgeschlagen';
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setNewsletterLoading(false);
     }
   };
 
@@ -391,6 +429,15 @@ export function AdminDashboard() {
             <MessageSquare className="mr-2 h-5 w-5 text-green-600" />
             Content Moderation
           </Link>
+
+          <button
+            onClick={() => setShowNewsletterModal(true)}
+            className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Mail className="mr-2 h-5 w-5 text-purple-600" />
+            Newsletter versenden
+          </button>
+
           <button
             onClick={handleSystemMaintenance}
             className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -442,6 +489,12 @@ export function AdminDashboard() {
           </div>
         </div>
       )}
+      <NewsletterModal
+        isOpen={showNewsletterModal}
+        onClose={() => setShowNewsletterModal(false)}
+        onSend={handleSendNewsletter}
+        isLoading={newsletterLoading}
+      />
     </div>
   );
 }

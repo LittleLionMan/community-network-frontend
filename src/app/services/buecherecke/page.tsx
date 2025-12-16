@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Plus, TrendingUp, Users } from 'lucide-react';
+import { BookOpen, Plus, TrendingUp, Users, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -10,14 +10,20 @@ import { BookFilters } from '@/components/books/BookFilters';
 import { AddBookModal } from '@/components/books/AddBookModal';
 import { CreditBadge } from '@/components/books/CreditBadge';
 import { useMarketplace, useMyOffers, useBookStats } from '@/hooks/useBooks';
+import { useCanCreateMarketplaceOffer } from '@/hooks/useMarketplaceValidation';
 import { useAuthStore } from '@/store/auth';
+import { useRouter } from 'next/navigation';
 
 export default function BuechereckePage() {
   const { isAuthenticated, user } = useAuthStore();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'marketplace' | 'my-books'>(
     'marketplace'
   );
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
+
+  const { data: canCreateData, isLoading: isCheckingPermission } =
+    useCanCreateMarketplaceOffer();
 
   const [filters, setFilters] = useState<{
     search?: string;
@@ -38,7 +44,7 @@ export default function BuechereckePage() {
     'active' | 'reserved' | 'completed' | undefined
   >('active');
 
-  const userHasLocation = Boolean(user?.location);
+  const userHasLocation = Boolean(user?.exact_address);
 
   const {
     data: marketplaceData,
@@ -75,6 +81,30 @@ export default function BuechereckePage() {
 
   const { data: stats } = useBookStats();
 
+  const canCreateOffer = canCreateData?.can_create ?? true;
+  const canCreateReason = canCreateData?.reason;
+
+  const getTooltipMessage = () => {
+    if (!isAuthenticated) {
+      return 'Bitte melde dich an';
+    }
+    if (canCreateReason === 'messages_disabled') {
+      return 'Aktiviere zuerst Nachrichten in deinen Privacy-Einstellungen';
+    }
+    if (canCreateReason === 'strangers_disabled') {
+      return 'Aktiviere zuerst "Nachrichten von Fremden" in deinen Privacy-Einstellungen';
+    }
+    return 'Buch anbieten';
+  };
+
+  const handleAddBookClick = () => {
+    if (!canCreateOffer && canCreateReason) {
+      router.push('/profile?tab=privacy');
+    } else {
+      setIsAddBookModalOpen(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
@@ -97,13 +127,36 @@ export default function BuechereckePage() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               {isAuthenticated && user && <CreditBadge user={user} />}
               {isAuthenticated && (
-                <Button
-                  onClick={() => setIsAddBookModalOpen(true)}
-                  className="flex items-center justify-center gap-2 bg-white text-amber-700 hover:bg-amber-50"
-                >
-                  <Plus className="h-4 w-4" />
-                  Buch anbieten
-                </Button>
+                <div className="group relative">
+                  <Button
+                    onClick={handleAddBookClick}
+                    disabled={isCheckingPermission}
+                    className={`flex items-center justify-center gap-2 ${
+                      !canCreateOffer
+                        ? 'cursor-not-allowed bg-gray-300 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-700'
+                        : 'bg-white text-amber-700 hover:bg-amber-50'
+                    }`}
+                  >
+                    {!canCreateOffer && (
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    )}
+                    <Plus className="h-4 w-4" />
+                    Buch anbieten
+                  </Button>
+
+                  {!canCreateOffer && (
+                    <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-2 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 dark:bg-gray-700 sm:block">
+                      {getTooltipMessage()}
+                      <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                    </div>
+                  )}
+
+                  {!canCreateOffer && (
+                    <div className="mt-1 block text-xs text-amber-100 sm:hidden">
+                      {getTooltipMessage()}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -137,10 +190,10 @@ export default function BuechereckePage() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Gesamt Angebote
+                      Neu diese Woche
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {stats.total_offers}
+                      {stats.new_this_week}
                     </p>
                   </div>
                 </div>
@@ -155,10 +208,10 @@ export default function BuechereckePage() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      Verschiedene Bücher
+                      Erfolgreiche Transaktionen
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {stats.total_books}
+                      {stats.successful_exchanges}
                     </p>
                   </div>
                 </div>
@@ -307,7 +360,10 @@ export default function BuechereckePage() {
                     <p className="mb-4 text-gray-600 dark:text-gray-400">
                       Biete dein erstes Buch an
                     </p>
-                    <Button onClick={() => setIsAddBookModalOpen(true)}>
+                    <Button
+                      onClick={handleAddBookClick}
+                      disabled={!canCreateOffer}
+                    >
                       <Plus className="mr-2 h-4 w-4" />
                       Buch anbieten
                     </Button>
@@ -329,7 +385,7 @@ export default function BuechereckePage() {
         </Card>
       </div>
 
-      {isAuthenticated && user && (
+      {isAuthenticated && user && canCreateOffer && (
         <AddBookModal
           isOpen={isAddBookModalOpen}
           onClose={() => setIsAddBookModalOpen(false)}

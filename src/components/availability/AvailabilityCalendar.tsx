@@ -16,7 +16,13 @@ interface AvailabilityCalendarProps {
 }
 
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const START_HOUR = 7;
+const END_HOUR = 21;
+
+const HOURS = Array.from(
+  { length: END_HOUR - START_HOUR },
+  (_, i) => START_HOUR + i
+);
 
 export function AvailabilityCalendar({
   slots,
