@@ -45,7 +45,6 @@ interface UserApiResponse {
   first_name: string;
   last_name: string;
   bio: string;
-  location: string;
   created_at: string;
   profile_image_url: string;
 }
