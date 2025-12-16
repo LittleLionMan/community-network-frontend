@@ -52,8 +52,8 @@ interface ServiceDetail {
     profile_image_url?: string;
     email_verified: boolean;
     created_at: string;
-    location?: string;
-    location_private: boolean;
+    exact_address?: string;
+    exact_address_private: boolean;
   };
 }
 
@@ -506,11 +506,11 @@ export default function ServiceDetailPage() {
                       </p>
                     )}
 
-                    {!currentService.user.location_private &&
-                      currentService.user.location && (
+                    {!currentService.user.exact_address_private &&
+                      currentService.user.exact_address && (
                         <p className="mt-1 flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
                           <MapPin className="h-3 w-3" />
-                          {currentService.user.location}
+                          {currentService.user.exact_address}
                         </p>
                       )}
                   </div>

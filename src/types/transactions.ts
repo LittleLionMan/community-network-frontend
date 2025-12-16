@@ -52,7 +52,6 @@ export interface TransactionProposeTimeRequest {
 
 export interface TransactionConfirmTimeRequest {
   confirmed_time: string;
-  exact_address: string;
 }
 
 export interface TransactionCancelRequest {

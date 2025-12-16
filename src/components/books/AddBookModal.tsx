@@ -51,7 +51,14 @@ export function AddBookModal({
   );
   const createOffer = useCreateOffer();
 
-  const userHasLocation = Boolean(user?.location);
+  const userHasLocation = Boolean(
+    user?.exact_address && user?.location_district
+  );
+
+  const isSubmitDisabled =
+    createOffer.isPending ||
+    (!userHasLocation && !customLocation) ||
+    (customLocation.length > 0 && !isLocationValid);
 
   useEffect(() => {
     const cleaned = isbn.replace(/[^0-9X]/gi, '').toUpperCase();
@@ -78,18 +85,18 @@ export function AddBookModal({
   const handleSubmit = async () => {
     if (!book) return;
 
-    if (!userHasLocation && !customLocation) {
-      toast.error(
-        'Standort fehlt',
-        'Du musst entweder einen Standort in deinem Profil haben oder einen Custom Location angeben.'
-      );
-      return;
-    }
-
     if (customLocation && !isLocationValid) {
       toast.error(
         'Ungültiger Standort',
         'Bitte gib einen gültigen Standort an.'
+      );
+      return;
+    }
+
+    if (!userHasLocation && !customLocation) {
+      toast.error(
+        'Standort fehlt',
+        'Du hast keinen Standort in deinem Profil. Bitte gib einen für dieses Angebot an.'
       );
       return;
     }
@@ -101,7 +108,7 @@ export function AddBookModal({
         notes: undefined,
         user_comment: userComment || undefined,
         custom_location: customLocation || undefined,
-        location_district: locationDistrict || undefined,
+        location_district: locationDistrict,
       });
 
       toast.success(
@@ -316,42 +323,36 @@ export function AddBookModal({
               </p>
             </div>
 
-            {!userHasLocation && (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Standort *
-                </label>
-                <LocationInput
-                  value={customLocation}
-                  onChange={setCustomLocation}
-                  onValidated={(valid, district) => {
-                    setIsLocationValid(valid);
-                    setLocationDistrict(district);
-                  }}
-                  placeholder="z.B. Musterstraße 1, Stadt"
-                />
-                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                  Du hast keinen Standort in deinem Profil. Gib hier einen an.
-                </p>
-              </div>
-            )}
-
-            {userHasLocation && (
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Custom Location (optional)
-                </label>
-                <LocationInput
-                  value={customLocation}
-                  onChange={setCustomLocation}
-                  onValidated={(valid, district) => {
-                    setIsLocationValid(valid);
-                    setLocationDistrict(district);
-                  }}
-                  placeholder="Überschreibt deinen Profil-Standort"
-                />
-              </div>
-            )}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Standort {!userHasLocation && '*'}
+              </label>
+              <LocationInput
+                value={customLocation}
+                onChange={setCustomLocation}
+                onValidated={(valid, district) => {
+                  setIsLocationValid(valid);
+                  setLocationDistrict(district);
+                }}
+                placeholder={
+                  userHasLocation
+                    ? 'Optional: Andere Adresse für dieses Angebot'
+                    : 'z.B. Musterstraße 1, 48143 Münster'
+                }
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {userHasLocation ? (
+                  <>
+                    Profil-Standort: {user?.location_district}
+                    <br />
+                    Lasse das Feld leer um deinen Profil-Standort zu verwenden,
+                    oder gib eine andere Adresse an.
+                  </>
+                ) : (
+                  'Gib eine konkrete Adresse an (Straße, Hausnummer, PLZ, Stadt)'
+                )}
+              </p>
+            </div>
           </div>
         )}
 
@@ -371,13 +372,7 @@ export function AddBookModal({
             Abbrechen
           </Button>
           {step === 'details' && (
-            <Button
-              onClick={handleSubmit}
-              disabled={
-                createOffer.isPending ||
-                (!userHasLocation && (!customLocation || !isLocationValid))
-              }
-            >
+            <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
               {createOffer.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

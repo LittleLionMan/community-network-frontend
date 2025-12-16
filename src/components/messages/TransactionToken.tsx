@@ -197,7 +197,6 @@ export function TransactionToken({
       transactionId: transaction.transaction_id,
       data: {
         confirmed_time: confirmedTime,
-        exact_address: transaction.exact_address || 'Münster',
       },
     });
     onUpdate?.(result);
@@ -224,10 +223,6 @@ export function TransactionToken({
     });
     onUpdate?.(result);
   };
-
-  console.log(transaction.exact_address);
-  console.log(transaction.location_district);
-  console.log(transaction.status);
 
   return (
     <div className="my-4 rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm dark:border-amber-800 dark:from-amber-950/20 dark:to-gray-900">
@@ -702,15 +697,6 @@ function ConfirmTimeModal({
               </p>
               <p className="mt-1 text-xs text-blue-600 dark:text-blue-500">
                 Der genaue Standort wird nach Terminbestätigung sichtbar
-              </p>
-            </div>
-          )}
-
-          {!locationDistrict && (
-            <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                ⚠️ Kein Treffpunkt festgelegt. Der Anbieter sollte einen
-                Treffpunkt angeben.
               </p>
             </div>
           )}

@@ -92,12 +92,12 @@ interface ProfileUpdateData {
   first_name?: string;
   last_name?: string;
   bio?: string;
-  location?: string;
+  exact_address?: string;
   email_private?: boolean;
   first_name_private?: boolean;
   last_name_private?: boolean;
   bio_private?: boolean;
-  location_private?: boolean;
+  exact_address_private?: boolean;
   created_at_private?: boolean;
   email_notifications_events?: boolean;
   email_notifications_messages?: boolean;
@@ -275,6 +275,7 @@ export interface BookOffer {
   notes?: string;
   user_comment?: string;
   location_district?: string;
+  exact_address?: string;
   distance_km?: number;
   is_available: boolean;
   created_at: string;
@@ -340,6 +341,7 @@ export interface LocationValidation {
   district?: string;
   lat?: number;
   lon?: number;
+  formatted_address?: string;
   message: string;
 }
 
@@ -639,7 +641,7 @@ class ApiClient {
           first_name: string;
           last_name: string;
           bio: string;
-          location: string;
+          exact_address: string;
           created_at: string;
           profile_image_url: string;
         }>

@@ -210,7 +210,7 @@ export function EditBookModal({
 
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Abweichender Standort (optional)
+              Standort *
             </label>
             <div className="flex gap-2">
               <Input
@@ -253,7 +253,10 @@ export function EditBookModal({
             )}
 
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Aktuell: {offer.location_district || 'Nicht gesetzt'}
+              Aktuell:{' '}
+              {offer.exact_address ||
+                offer.location_district ||
+                'Nicht gesetzt'}
             </p>
           </div>
 

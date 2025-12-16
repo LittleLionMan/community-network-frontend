@@ -11,7 +11,7 @@ interface ProfileFormData {
   first_name: string;
   last_name: string;
   bio: string;
-  location: string;
+  exact_address: string;
 }
 
 interface EditProfileFormProps {
@@ -34,10 +34,14 @@ export function EditProfileForm({
     first_name: user.first_name || '',
     last_name: user.last_name || '',
     bio: user.bio || '',
-    location: user.location || '',
+    exact_address: user.exact_address || '',
   });
 
   const [errors, setErrors] = useState<Partial<ProfileFormData>>({});
+  const [isLocationValid, setIsLocationValid] = useState(true);
+  const [locationDistrict, setLocationDistrict] = useState<
+    string | undefined
+  >();
   const [displayNameStatus, setDisplayNameStatus] =
     useState<AvailabilityStatus>('idle');
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
@@ -113,6 +117,9 @@ export function EditProfileForm({
       displayNameStatus === 'taken'
     ) {
       newErrors.display_name = 'Display Name bereits vergeben';
+    }
+    if (formData.exact_address && !isLocationValid) {
+      newErrors.exact_address = 'Standort konnte nicht validiert werden';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -281,27 +288,34 @@ export function EditProfileForm({
           Standort
         </label>
         <LocationInput
-          value={formData.location}
-          onChange={(value) => handleChange('location', value)}
+          value={formData.exact_address}
+          onChange={(value) => handleChange('exact_address', value)}
           onValidated={(isValid, district) => {
-            if (!isValid && formData.location.length >= 3) {
+            setIsLocationValid(isValid);
+            setLocationDistrict(district);
+
+            if (!isValid && formData.exact_address.length >= 3) {
               setErrors((prev) => ({
                 ...prev,
-                location: 'Standort konnte nicht gefunden werden',
+                exact_address: 'Standort konnte nicht gefunden werden',
               }));
             } else {
               setErrors((prev) => ({
                 ...prev,
-                location: undefined,
+                exact_address: undefined,
               }));
             }
           }}
-          error={!!errors.location}
+          error={!!errors.exact_address}
           disabled={isLoading}
+          placeholder="z.B. Musterstraße 1, 48143 Münster"
         />
-        {errors.location && (
-          <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+        {errors.exact_address && (
+          <p className="mt-1 text-sm text-red-600">{errors.exact_address}</p>
         )}
+        <p className="mt-1 text-sm text-gray-500">
+          Hilft bei lokalen Events und Services
+        </p>
       </div>
 
       <div className="flex space-x-4">

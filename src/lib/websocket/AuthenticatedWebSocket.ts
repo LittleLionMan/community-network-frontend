@@ -103,7 +103,6 @@ export class AuthenticatedWebSocket extends EventTarget {
   }
 
   private handleOpen(): void {
-    console.log('🔗 WebSocket connected');
     this.setState({
       isConnected: true,
       isReconnecting: false,
@@ -116,8 +115,6 @@ export class AuthenticatedWebSocket extends EventTarget {
   }
 
   private handleClose(event: CloseEvent): void {
-    console.log('🔌 WebSocket disconnected:', event.code, event.reason);
-
     this.setState({
       isConnected: false,
       lastHeartbeat: undefined,
@@ -232,7 +229,6 @@ export class AuthenticatedWebSocket extends EventTarget {
         break;
 
       case 'token_refreshed':
-        console.log('✅ Token refreshed successfully');
         this.setState({ tokenExpiring: false });
         break;
 
@@ -250,7 +246,6 @@ export class AuthenticatedWebSocket extends EventTarget {
         break;
 
       default:
-        console.log('🔐 Auth message:', message.type);
     }
   }
 
@@ -296,24 +291,17 @@ export class AuthenticatedWebSocket extends EventTarget {
       30000
     );
 
-    console.log(
-      `🔄 Reconnecting in ${delay}ms (attempt ${this.state.reconnectAttempts}/${this.config.maxReconnectAttempts})`
-    );
-
     this.reconnectTimeout = setTimeout(() => {
       this.createConnection();
     }, delay);
   }
 
   private async handleTokenExpiring(): Promise<void> {
-    console.log('🔄 Attempting to refresh token...');
-
     try {
       const authStore = useAuthStore.getState();
       const refreshed = await authStore.refreshToken();
 
       if (refreshed) {
-        console.log('✅ Token refreshed successfully');
       } else {
         throw new Error('Token refresh returned no token');
       }

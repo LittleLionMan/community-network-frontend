@@ -30,7 +30,7 @@ export const privacyUpdateSchema = z.object({
   first_name_private: z.boolean().optional(),
   last_name_private: z.boolean().optional(),
   bio_private: z.boolean().optional(),
-  location_private: z.boolean().optional(),
+  exact_address: z.boolean().optional(),
   created_at_private: z.boolean().optional(),
 });
 

@@ -30,8 +30,8 @@ interface ServiceCardProps {
       profile_image_url?: string;
       email_verified: boolean;
       created_at: string;
-      location?: string;
-      location_private: boolean;
+      exact_address?: string;
+      exact_address_private: boolean;
     };
     service_image_url?: string;
   };
@@ -186,11 +186,11 @@ export function ServiceCard({
                       <span>{formatCreatedAt(service.created_at)}</span>
                     </div>
 
-                    {!service.user.location_private &&
-                      service.user.location && (
+                    {!service.user.exact_address_private &&
+                      service.user.exact_address && (
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          <span>{service.user.location}</span>
+                          <span>{service.user.exact_address}</span>
                         </div>
                       )}
 
@@ -312,12 +312,15 @@ export function ServiceCard({
                 <span>{formatCreatedAt(service.created_at)}</span>
               </div>
 
-              {!service.user.location_private && service.user.location && (
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-                  <MapPin className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">{service.user.location}</span>
-                </div>
-              )}
+              {!service.user.exact_address_private &&
+                service.user.exact_address && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">
+                      {service.user.exact_address}
+                    </span>
+                  </div>
+                )}
 
               <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
                 <Calendar className="h-3 w-3 flex-shrink-0" />

@@ -183,8 +183,8 @@ function ProfilePageContent() {
     if (!user.last_name_private && user.last_name)
       visibleData.last_name = user.last_name;
     if (!user.bio_private && user.bio) visibleData.bio = user.bio;
-    if (!user.location_private && user.location)
-      visibleData.location = user.location;
+    if (!user.exact_address_private && user.exact_address)
+      visibleData.exact_address = user.exact_address;
     if (!user.created_at_private) visibleData.created_at = user.created_at;
 
     if (user.profile_image_url) {

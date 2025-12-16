@@ -24,46 +24,7 @@ import { ConversationList } from './ConversationList';
 import { SwipeableChat } from './SwipeableChat';
 import { TransactionToken } from '@/components/messages/TransactionToken';
 import { parseTransactionData } from '@/lib/parseTransactionData';
-
-interface MessageUser {
-  id: number;
-  display_name: string;
-  profile_image_url?: string | null;
-}
-
-interface Message {
-  id: number;
-  conversation_id: number;
-  sender: MessageUser;
-  content: string;
-  message_type: string;
-  created_at: string;
-  edited_at?: string;
-  is_edited: boolean;
-  is_deleted: boolean;
-  reply_to_id?: number;
-  reply_to?: Message;
-  is_read: boolean;
-  transaction_data?: Record<string, string | number | boolean | null>;
-}
-
-interface ConversationParticipant {
-  user: MessageUser;
-  joined_at: string;
-  last_read_at?: string;
-  is_muted: boolean;
-  is_archived: boolean;
-}
-
-interface Conversation {
-  id: number;
-  participants: ConversationParticipant[];
-  last_message?: Message;
-  last_message_at?: string;
-  unread_count: number;
-  created_at: string;
-  updated_at: string;
-}
+import { MessageUser, Message, Conversation } from '@/types/message';
 
 interface MessagesInterfaceProps {
   conversations: Conversation[];

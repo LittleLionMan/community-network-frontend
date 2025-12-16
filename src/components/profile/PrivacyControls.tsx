@@ -234,9 +234,9 @@ export function PrivacyControls({
       description: 'Erzähle anderen von deinen Interessen',
     },
     {
-      key: 'location_private',
+      key: 'exact_address_private',
       label: 'Standort',
-      value: user.location,
+      value: user.exact_address,
       description: 'Hilft bei lokalen Events und Services',
     },
     {

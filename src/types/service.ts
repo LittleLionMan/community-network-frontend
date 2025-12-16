@@ -55,7 +55,7 @@ export interface Service {
     email_verified: boolean;
     created_at: string;
     location?: string;
-    location_private: boolean;
+    exact_address_private: boolean;
   };
 }
 

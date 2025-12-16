@@ -574,10 +574,6 @@ export default function MessagesPage() {
             message.message_id
           ) {
             if (message.preview && message.last_message_at) {
-              console.log(
-                '✅ Updating preview for conversation:',
-                message.conversation_id
-              );
               updateConversationPreview(
                 message.conversation_id,
                 message.preview,

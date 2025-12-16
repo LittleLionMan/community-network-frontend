@@ -152,7 +152,6 @@ export function UnreadCountProvider({ children }: UnreadCountProviderProps) {
                 };
                 updateUnreadCount(filtered);
               } else {
-                console.log('✅ Applied as-is (no chat open)');
                 updateUnreadCount(unreadData);
                 updateUnreadCount(unreadData);
               }

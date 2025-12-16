@@ -43,6 +43,7 @@ export function parseTransactionData(
     proposed_times: proposedTimes,
     confirmed_time: (flatData.confirmed_time as string) || null,
     exact_address: (flatData.exact_address as string) || null,
+    location_district: (flatData.location_district as string) || null,
     requester_confirmed: flatData.requester_confirmed as boolean,
     provider_confirmed: flatData.provider_confirmed as boolean,
     created_at: flatData.created_at as string,
