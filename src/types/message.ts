@@ -23,6 +23,8 @@ export interface Message {
   reply_to_id?: number;
   reply_to?: Message;
   is_read: boolean;
+  transaction_data?: Record<string, string | number | boolean | null>;
+  last_activity_at?: string;
 }
 
 export interface ConversationParticipant {
@@ -99,6 +101,8 @@ export interface WebSocketMessage {
     | 'messages_read'
     | 'typing_status'
     | 'unread_count_update'
+    | 'transaction_updated'
+    | 'conversation_updated'
     | 'heartbeat'
     | 'heartbeat_ack'
     | 'refresh_token'
@@ -109,7 +113,9 @@ export interface WebSocketMessage {
     | 'pong'
     | 'forum_reply'
     | 'forum_mention'
-    | 'forum_quote';
+    | 'forum_quote'
+    | 'transaction_updated'
+    | 'availability_changed';
   conversation_id?: number;
   message?: Message;
   user_id?: number;
@@ -132,6 +138,13 @@ export interface WebSocketMessage {
     profile_image_url?: string | null;
   };
   quoted_post_id?: number;
+  transaction_id?: number;
+  new_status?: string;
+  updated_by?: number;
+  transaction_data?: Record<string, string | number | boolean | null>;
+  unread_count?: number;
+  preview?: string;
+  last_message_at?: string;
 }
 
 export interface TypingStatus {

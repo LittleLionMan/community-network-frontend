@@ -42,10 +42,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   } = useNotificationStats(isAuthenticated && !!user);
 
   useEffect(() => {
-    if (user && isAuthenticated) {
-      invalidateNotifications();
+    if (user?.id && isAuthenticated) {
+      refetch();
     }
-  }, [user?.id, isAuthenticated, invalidateNotifications]);
+  }, [user?.id, isAuthenticated, refetch]);
 
   useEffect(() => {
     const handleGlobalWebSocketMessage = (event: Event) => {
@@ -59,6 +59,21 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       ) {
         if (document.hidden && message.message) {
           toast.success('Neue Benachrichtigung', message.message);
+        }
+        invalidateNotifications();
+      }
+
+      if (
+        message.type === 'credit_received' ||
+        message.type === 'credit_spent'
+      ) {
+        if (document.hidden && message.message) {
+          toast.success(
+            message.type === 'credit_received'
+              ? 'Credits erhalten'
+              : 'Credits ausgegeben',
+            message.message
+          );
         }
         invalidateNotifications();
       }

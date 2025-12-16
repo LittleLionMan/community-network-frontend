@@ -1,4 +1,9 @@
-export type NotificationType = 'forum_reply' | 'forum_mention' | 'forum_quote';
+export type NotificationType =
+  | 'forum_reply'
+  | 'forum_mention'
+  | 'forum_quote'
+  | 'credit_received'
+  | 'credit_spent';
 
 export interface NotificationActor {
   id: number;
@@ -7,7 +12,7 @@ export interface NotificationActor {
   profile_image_url?: string;
 }
 
-export interface NotificationData {
+export interface ForumNotificationData {
   thread_id: number;
   post_id: number;
   thread_title: string;
@@ -15,6 +20,16 @@ export interface NotificationData {
   actor: NotificationActor;
   quoted_post_id?: number;
 }
+
+export interface CreditNotificationData {
+  transaction_id: number;
+  credit_amount: number;
+  offer_title: string;
+  sender?: NotificationActor;
+  recipient?: NotificationActor;
+}
+
+export type NotificationData = ForumNotificationData | CreditNotificationData;
 
 export interface Notification {
   id: number;
@@ -45,6 +60,21 @@ export interface ForumNotificationWSMessage {
   actor: NotificationActor;
   quoted_post_id?: number;
 }
+
+export interface CreditNotificationWSMessage {
+  type: 'credit_received' | 'credit_spent';
+  notification_id: number;
+  transaction_id: number;
+  credit_amount: number;
+  offer_title: string;
+  message: string;
+  sender?: NotificationActor;
+  recipient?: NotificationActor;
+}
+
+export type NotificationWSMessage =
+  | ForumNotificationWSMessage
+  | CreditNotificationWSMessage;
 
 export interface NotificationPrivacySettings {
   forum_reply_enabled: boolean;

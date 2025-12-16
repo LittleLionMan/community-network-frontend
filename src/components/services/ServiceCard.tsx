@@ -5,6 +5,7 @@ import {
   MessageCircle,
   CheckCircle,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 import { apiClient } from '@/lib/api';
@@ -17,18 +18,20 @@ import { toast } from '@/components/ui/toast';
 interface ServiceCardProps {
   service: {
     id: number;
+    slug?: string;
     title: string;
     description: string;
     is_offering: boolean;
     created_at: string;
+    service_type?: string;
     user: {
       id: number;
       display_name: string;
       profile_image_url?: string;
       email_verified: boolean;
       created_at: string;
-      location?: string;
-      location_private: boolean;
+      exact_address?: string;
+      exact_address_private: boolean;
     };
     service_image_url?: string;
   };
@@ -48,6 +51,11 @@ export function ServiceCard({
   const { isAuthenticated, user } = useAuthStore();
   const [showInterestModal, setShowInterestModal] = useState(false);
   const isOwnService = currentUserId === service.user.id;
+  const isPlatformFeature = service.service_type === 'platform_feature';
+
+  const serviceUrl = service.slug
+    ? `/services/${service.slug}`
+    : `/services/${service.id}`;
 
   const formatMemberSince = (dateString: string) => {
     const date = new Date(dateString);
@@ -148,16 +156,20 @@ export function ServiceCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getServiceTypeColor(service.is_offering)}`}
-                >
-                  {getServiceTypeText(service.is_offering)}
-                </span>
+                <div className="flex items-center gap-2">
+                  {isPlatformFeature && (
+                    <Sparkles className="h-4 w-4 flex-shrink-0 text-amber-500" />
+                  )}
+                  {!isPlatformFeature && (
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getServiceTypeColor(service.is_offering)}`}
+                    >
+                      {getServiceTypeText(service.is_offering)}
+                    </span>
+                  )}
+                </div>
 
-                <Link
-                  href={`/services/${service.id}`}
-                  className="group mt-2 block"
-                >
+                <Link href={serviceUrl} className="group mt-2 block">
                   <h3 className="font-semibold text-gray-900 transition-colors group-hover:text-community-600 dark:text-gray-100 dark:group-hover:text-community-400">
                     {service.title}
                   </h3>
@@ -167,43 +179,49 @@ export function ServiceCard({
                   {truncateDescription(service.description)}
                 </p>
 
-                <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{formatCreatedAt(service.created_at)}</span>
-                  </div>
-
-                  {!service.user.location_private && service.user.location && (
+                {!isPlatformFeature && (
+                  <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
                     <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      <span>{service.user.location}</span>
+                      <Clock className="h-3 w-3" />
+                      <span>{formatCreatedAt(service.created_at)}</span>
                     </div>
-                  )}
 
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>
-                      Mitglied seit {formatMemberSince(service.user.created_at)}
-                    </span>
-                  </div>
-                </div>
+                    {!service.user.exact_address_private &&
+                      service.user.exact_address && (
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          <span>{service.user.exact_address}</span>
+                        </div>
+                      )}
 
-                <div className="mt-2 flex items-center gap-2">
-                  <ProfileAvatar user={service.user} size="sm" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                      {service.user.display_name}
-                    </span>
-                    {service.user.email_verified && (
-                      <span title="Email verifiziert">
-                        <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        Mitglied seit{' '}
+                        {formatMemberSince(service.user.created_at)}
                       </span>
-                    )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {!isPlatformFeature && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <ProfileAvatar user={service.user} size="sm" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        {service.user.display_name}
+                      </span>
+                      {service.user.email_verified && (
+                        <span title="Email verifiziert">
+                          <CheckCircle className="h-3 w-3 text-green-500 dark:text-green-400" />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {showInterestButton && !isOwnService && (
+              {showInterestButton && !isOwnService && !isPlatformFeature && (
                 <Button
                   size="sm"
                   onClick={handleExpressInterest}
@@ -221,7 +239,13 @@ export function ServiceCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+    <div
+      className={`overflow-hidden rounded-lg border transition-shadow hover:shadow-md ${
+        isPlatformFeature
+          ? 'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50 dark:border-amber-700 dark:from-amber-900/20 dark:to-orange-900/20'
+          : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
+      }`}
+    >
       {service.service_image_url && (
         <div className="relative h-48 w-full">
           <img
@@ -230,28 +254,48 @@ export function ServiceCard({
             className="h-full w-full object-cover"
           />
           <div className="absolute left-2 top-2">
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm ${getServiceTypeColor(service.is_offering)}`}
-            >
-              {getServiceTypeText(service.is_offering)}
-            </span>
+            {isPlatformFeature ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-medium text-white shadow-sm">
+                <Sparkles className="h-3 w-3" />
+                Platform Feature
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm ${getServiceTypeColor(service.is_offering)}`}
+              >
+                {getServiceTypeText(service.is_offering)}
+              </span>
+            )}
           </div>
         </div>
       )}
 
       <div className="p-4">
         {!service.service_image_url && (
-          <div className="mb-3">
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getServiceTypeColor(service.is_offering)}`}
-            >
-              {getServiceTypeText(service.is_offering)}
-            </span>
+          <div className="mb-3 flex items-center gap-2">
+            {isPlatformFeature ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-medium text-white">
+                <Sparkles className="h-3 w-3" />
+                Platform Feature
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getServiceTypeColor(service.is_offering)}`}
+              >
+                {getServiceTypeText(service.is_offering)}
+              </span>
+            )}
           </div>
         )}
 
-        <Link href={`/services/${service.id}`} className="group block">
-          <h3 className="mb-2 font-semibold text-gray-900 transition-colors group-hover:text-community-600 dark:text-gray-100 dark:group-hover:text-community-400">
+        <Link href={serviceUrl} className="group block">
+          <h3
+            className={`mb-2 font-semibold transition-colors ${
+              isPlatformFeature
+                ? 'text-amber-900 group-hover:text-amber-700 dark:text-amber-100 dark:group-hover:text-amber-300'
+                : 'text-gray-900 group-hover:text-community-600 dark:text-gray-100 dark:group-hover:text-community-400'
+            }`}
+          >
             {service.title}
           </h3>
         </Link>
@@ -260,53 +304,60 @@ export function ServiceCard({
           {service.description}
         </p>
 
-        <div className="mb-4 space-y-2">
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-            <Clock className="h-3 w-3 flex-shrink-0" />
-            <span>{formatCreatedAt(service.created_at)}</span>
-          </div>
+        {!isPlatformFeature && (
+          <>
+            <div className="mb-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                <Clock className="h-3 w-3 flex-shrink-0" />
+                <span>{formatCreatedAt(service.created_at)}</span>
+              </div>
 
-          {!service.user.location_private && service.user.location && (
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-              <MapPin className="h-3 w-3 flex-shrink-0" />
-              <span className="truncate">{service.user.location}</span>
-            </div>
-          )}
+              {!service.user.exact_address_private &&
+                service.user.exact_address && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">
+                      {service.user.exact_address}
+                    </span>
+                  </div>
+                )}
 
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-            <Calendar className="h-3 w-3 flex-shrink-0" />
-            <span>
-              Mitglied seit {formatMemberSince(service.user.created_at)}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <ProfileAvatar user={service.user} size="sm" />
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              <span className="truncate text-sm text-gray-600 dark:text-gray-400">
-                {service.user.display_name}
-              </span>
-              {service.user.email_verified && (
-                <span title="Email verifiziert" className="flex-shrink-0">
-                  <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                <Calendar className="h-3 w-3 flex-shrink-0" />
+                <span>
+                  Mitglied seit {formatMemberSince(service.user.created_at)}
                 </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <ProfileAvatar user={service.user} size="sm" />
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="truncate text-sm text-gray-600 dark:text-gray-400">
+                    {service.user.display_name}
+                  </span>
+                  {service.user.email_verified && (
+                    <span title="Email verifiziert" className="flex-shrink-0">
+                      <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {showInterestButton && !isOwnService && (
+                <Button
+                  size="sm"
+                  onClick={handleExpressInterest}
+                  className="flex flex-shrink-0 items-center gap-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">Interesse</span>
+                </Button>
               )}
             </div>
-          </div>
-
-          {showInterestButton && !isOwnService && (
-            <Button
-              size="sm"
-              onClick={handleExpressInterest}
-              className="flex flex-shrink-0 items-center gap-2"
-            >
-              <MessageCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Interesse</span>
-            </Button>
-          )}
-        </div>
+          </>
+        )}
       </div>
       {showInterestModal && (
         <InterestExpressionModal

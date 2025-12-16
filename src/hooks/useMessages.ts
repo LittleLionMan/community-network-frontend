@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiClient } from '@/lib/api';
-import { useAuthStore } from '@/store/auth';
 import type {
   Conversation,
   ConversationDetail,
@@ -10,8 +9,6 @@ import type {
   CreateConversationData,
   CreateMessageData,
   UpdateMessageData,
-  MessagePrivacySettings,
-  UnreadCount,
 } from '@/types/message';
 
 interface RetryOptions {
@@ -52,6 +49,39 @@ function useRetry() {
   );
 
   return { retry };
+}
+
+function normalizeProfileImageUrl(
+  url: string | null | undefined
+): string | null | undefined {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  return `${process.env.NEXT_PUBLIC_API_URL}${url}`;
+}
+
+export function normalizeMessage(message: Message): Message {
+  return {
+    ...message,
+    sender: {
+      ...message.sender,
+      profile_image_url: normalizeProfileImageUrl(
+        message.sender.profile_image_url
+      ),
+    },
+    reply_to: message.reply_to
+      ? {
+          ...message.reply_to,
+          sender: {
+            ...message.reply_to.sender,
+            profile_image_url: normalizeProfileImageUrl(
+              message.reply_to.sender.profile_image_url
+            ),
+          },
+        }
+      : undefined,
+  };
 }
 
 export function useConversations() {
@@ -191,6 +221,44 @@ export function useConversations() {
     []
   );
 
+  const updateConversationPreview = useCallback(
+    (conversationId: number, preview: string, lastMessageAt: string) => {
+      setConversations((prev) => {
+        const updated = prev.map((conv) => {
+          if (conv.id !== conversationId) return conv;
+
+          if (!conv.last_message) {
+            return {
+              ...conv,
+              last_message_at: lastMessageAt,
+              updated_at: lastMessageAt,
+            };
+          }
+
+          return {
+            ...conv,
+            last_message_at: lastMessageAt,
+            updated_at: lastMessageAt,
+            last_message: {
+              ...conv.last_message,
+              content: preview,
+              created_at: lastMessageAt,
+            },
+          };
+        });
+
+        const sorted = updated.sort((a, b) => {
+          const aTime = a.last_message_at || a.updated_at;
+          const bTime = b.last_message_at || b.updated_at;
+          return new Date(bTime).getTime() - new Date(aTime).getTime();
+        });
+
+        return sorted;
+      });
+    },
+    []
+  );
+
   const refreshConversations = useCallback(() => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -241,6 +309,7 @@ export function useConversations() {
     createConversation,
     updateConversation,
     updateConversationUnreadCount,
+    updateConversationPreview,
     clearError,
     refreshConversations,
   };
@@ -500,9 +569,23 @@ export function useConversation(conversationId: number | null) {
 
   const updateMessage = useCallback((updatedMessage: Message) => {
     if (currentConversationIdRef.current === updatedMessage.conversation_id) {
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
-      );
+      setMessages((prev) => {
+        const updated = prev.map((msg) =>
+          msg.id === updatedMessage.id ? updatedMessage : msg
+        );
+        if (updatedMessage.transaction_data) {
+          return updated.sort((a, b) => {
+            const aTime = a.transaction_data
+              ? new Date(a.transaction_data.updated_at as string).getTime()
+              : new Date(a.created_at).getTime();
+            const bTime = b.transaction_data
+              ? new Date(b.transaction_data.updated_at as string).getTime()
+              : new Date(b.created_at).getTime();
+            return aTime - bTime;
+          });
+        }
+        return updated;
+      });
     }
   }, []);
 
@@ -585,80 +668,5 @@ export function useConversation(conversationId: number | null) {
         loadConversation(conversationId, abortController.signal);
       }
     },
-  };
-}
-
-export function useUnreadCount() {
-  const [unreadCount, setUnreadCount] = useState<UnreadCount>({
-    total_unread: 0,
-    conversations: [],
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const isLoadingRef = useRef(false);
-  const { retry } = useRetry();
-
-  const loadUnreadCount = useCallback(async () => {
-    if (isLoadingRef.current) return;
-
-    isLoadingRef.current = true;
-    try {
-      const response = await retry(() => apiClient.messages.getUnreadCount());
-      setUnreadCount(response);
-    } catch (err) {
-      console.error('Failed to load unread count:', err);
-    } finally {
-      setIsLoading(false);
-      isLoadingRef.current = false;
-    }
-  }, [retry]);
-
-  const updateConversationUnreadCount = useCallback(
-    (conversationId: number, count: number) => {
-      setUnreadCount((prev) => {
-        const existingConvIndex = prev.conversations.findIndex(
-          (c) => c.conversation_id === conversationId
-        );
-        const newConversations = [...prev.conversations];
-
-        if (existingConvIndex >= 0) {
-          if (count === 0) {
-            newConversations.splice(existingConvIndex, 1);
-          } else {
-            newConversations[existingConvIndex] = {
-              conversation_id: conversationId,
-              unread_count: count,
-            };
-          }
-        } else if (count > 0) {
-          newConversations.push({
-            conversation_id: conversationId,
-            unread_count: count,
-          });
-        }
-
-        const total_unread = newConversations.reduce(
-          (sum, conv) => sum + conv.unread_count,
-          0
-        );
-
-        return {
-          total_unread,
-          conversations: newConversations,
-        };
-      });
-    },
-    []
-  );
-
-  useEffect(() => {
-    loadUnreadCount();
-  }, [loadUnreadCount]);
-
-  return {
-    unreadCount,
-    isLoading,
-    updateUnreadCount: setUnreadCount,
-    updateConversationUnreadCount,
-    refreshUnreadCount: loadUnreadCount,
   };
 }

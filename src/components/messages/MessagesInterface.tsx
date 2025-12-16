@@ -22,45 +22,9 @@ import { apiClient } from '@/lib/api';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { ConversationList } from './ConversationList';
 import { SwipeableChat } from './SwipeableChat';
-
-interface MessageUser {
-  id: number;
-  display_name: string;
-  profile_image_url?: string | null;
-}
-
-interface Message {
-  id: number;
-  conversation_id: number;
-  sender: MessageUser;
-  content: string;
-  message_type: string;
-  created_at: string;
-  edited_at?: string;
-  is_edited: boolean;
-  is_deleted: boolean;
-  reply_to_id?: number;
-  reply_to?: Message;
-  is_read: boolean;
-}
-
-interface ConversationParticipant {
-  user: MessageUser;
-  joined_at: string;
-  last_read_at?: string;
-  is_muted: boolean;
-  is_archived: boolean;
-}
-
-interface Conversation {
-  id: number;
-  participants: ConversationParticipant[];
-  last_message?: Message;
-  last_message_at?: string;
-  unread_count: number;
-  created_at: string;
-  updated_at: string;
-}
+import { TransactionToken } from '@/components/messages/TransactionToken';
+import { parseTransactionData } from '@/lib/parseTransactionData';
+import { MessageUser, Message, Conversation } from '@/types/message';
 
 interface MessagesInterfaceProps {
   conversations: Conversation[];
@@ -68,7 +32,7 @@ interface MessagesInterfaceProps {
   messages: Message[];
   currentUserId: number;
   typingUsers?: MessageUser[];
-  onSelectConversation: (conversation: Conversation) => void;
+  onSelectConversation: (conversation: Conversation | null) => void;
   onSendMessage: (content: string, replyToId?: number) => Promise<void>;
   onEditMessage: (messageId: number, content: string) => Promise<void>;
   onDeleteMessage: (messageId: number) => Promise<void>;
@@ -141,6 +105,19 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
     const isOwnMessage = message.sender.id === currentUserId;
     const canEdit = isOwnMessage && !message.is_deleted;
     const canDelete = isOwnMessage && !message.is_deleted;
+    const isTransaction = !!message.transaction_data;
+
+    const parsedTransaction = useMemo(() => {
+      if (message.transaction_data) {
+        try {
+          return parseTransactionData(message.transaction_data);
+        } catch (e) {
+          console.error('Failed to parse transaction data:', e);
+          return null;
+        }
+      }
+      return null;
+    }, [message.transaction_data]);
 
     useEffect(() => {
       if (!isEditing) {
@@ -245,15 +222,17 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
             )}
 
             <div
-              className={`relative rounded-2xl px-4 py-2 ${
-                isOwnMessage
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+              className={`relative rounded-2xl ${
+                isTransaction
+                  ? 'bg-transparent p-0'
+                  : isOwnMessage
+                    ? 'bg-indigo-600 px-4 py-2 text-white'
+                    : 'bg-gray-100 px-4 py-2 text-gray-900 dark:bg-gray-700 dark:text-white'
               } ${message.is_deleted ? 'italic opacity-60' : ''} ${
                 isSubmitting ? 'opacity-50' : ''
               }`}
             >
-              {!isOwnMessage && !isConsecutive && (
+              {!isOwnMessage && !isConsecutive && !isTransaction && (
                 <div className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">
                   {message.sender.display_name}
                 </div>
@@ -288,6 +267,22 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
                     </button>
                   </div>
                 </div>
+              ) : parsedTransaction ? (
+                <div className="w-full">
+                  <TransactionToken
+                    transaction={parsedTransaction}
+                    currentUserId={currentUserId}
+                    onUpdate={() => {
+                      window.dispatchEvent(
+                        new CustomEvent('transaction-updated', {
+                          detail: {
+                            transactionId: parsedTransaction.transaction_id,
+                          },
+                        })
+                      );
+                    }}
+                  />
+                </div>
               ) : (
                 <div className="whitespace-pre-wrap break-words">
                   {message.is_deleted
@@ -296,37 +291,40 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(
                 </div>
               )}
 
-              <div
-                className={`mt-1 flex items-center justify-between text-xs ${
-                  isOwnMessage
-                    ? 'text-indigo-200'
-                    : 'text-gray-500 dark:text-gray-400'
-                }`}
-              >
-                <span>
-                  {formatDistanceToNow(new Date(message.created_at), {
-                    addSuffix: true,
-                    locale: de,
-                  })}
-                  {message.is_edited && ' (bearbeitet)'}
-                </span>
+              {!isTransaction && !isEditing && (
+                <div
+                  className={`mt-1 flex items-center justify-between text-xs ${
+                    isOwnMessage
+                      ? 'text-indigo-200'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  <span>
+                    {formatDistanceToNow(new Date(message.created_at), {
+                      addSuffix: true,
+                      locale: de,
+                    })}
+                    {message.is_edited && ' (bearbeitet)'}
+                  </span>
 
-                {isOwnMessage && (
-                  <div className="flex items-center space-x-1">
-                    {message.is_read ? (
-                      <CheckCheck className="h-3 w-3" />
-                    ) : (
-                      <Check className="h-3 w-3" />
-                    )}
-                  </div>
-                )}
-              </div>
+                  {isOwnMessage && (
+                    <div className="flex items-center space-x-1">
+                      {message.is_read ? (
+                        <CheckCheck className="h-3 w-3" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {showActions &&
               !isEditing &&
               !message.is_deleted &&
-              !isSubmitting && (
+              !isSubmitting &&
+              !isTransaction && (
                 <div
                   className={`absolute top-0 ${isOwnMessage ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} flex items-center space-x-1 rounded-lg border bg-white p-1 shadow-lg dark:border-gray-700 dark:bg-gray-800`}
                 >
@@ -702,7 +700,8 @@ const MessagesInterface: React.FC<MessagesInterfaceProps> = ({
 
   const handleBackToList = useCallback(() => {
     setShowMobileConversationList(true);
-  }, []);
+    onSelectConversation(null);
+  }, [onSelectConversation]);
 
   const handleEditMessage = useCallback(
     async (messageId: number, content: string) => {

@@ -1,8 +1,12 @@
 'use client';
 
-import { MessageSquare, AtSign, Quote } from 'lucide-react';
+import { MessageSquare, AtSign, Quote, Coins, ArrowDown } from 'lucide-react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
-import type { Notification } from '@/types/notification';
+import type {
+  Notification,
+  ForumNotificationData,
+  CreditNotificationData,
+} from '@/types/notification';
 import { cn } from '@/lib/utils';
 
 interface NotificationItemProps {
@@ -52,6 +56,20 @@ function stripHtml(html: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
 
+function isCreditNotification(
+  type: string
+): type is 'credit_received' | 'credit_spent' {
+  return type === 'credit_received' || type === 'credit_spent';
+}
+
+function isForumNotification(
+  type: string
+): type is 'forum_reply' | 'forum_mention' | 'forum_quote' {
+  return (
+    type === 'forum_reply' || type === 'forum_mention' || type === 'forum_quote'
+  );
+}
+
 export function NotificationItem({
   notification,
   onClick,
@@ -66,26 +84,106 @@ export function NotificationItem({
         return <AtSign className="h-4 w-4 text-green-500" />;
       case 'forum_quote':
         return <Quote className="h-4 w-4 text-purple-500" />;
+      case 'credit_received':
+        return <Coins className="h-4 w-4 text-yellow-500" />;
+      case 'credit_spent':
+        return <ArrowDown className="h-4 w-4 text-orange-500" />;
       default:
         return <MessageSquare className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getMessage = () => {
-    switch (type) {
-      case 'forum_reply':
-        return `${data.actor.display_name} hat auf deinen Thread geantwortet`;
-      case 'forum_mention':
-        return `${data.actor.display_name} hat dich erwähnt`;
-      case 'forum_quote':
-        return `${data.actor.display_name} hat deinen Post zitiert`;
-      default:
-        return 'Neue Benachrichtigung';
+    if (isForumNotification(type)) {
+      const forumData = data as ForumNotificationData;
+      switch (type) {
+        case 'forum_reply':
+          return `${forumData.actor.display_name} hat auf deinen Thread geantwortet`;
+        case 'forum_mention':
+          return `${forumData.actor.display_name} hat dich erwähnt`;
+        case 'forum_quote':
+          return `${forumData.actor.display_name} hat deinen Post zitiert`;
+      }
     }
+
+    if (isCreditNotification(type)) {
+      const creditData = data as CreditNotificationData;
+      const creditText = creditData.credit_amount === 1 ? 'Credit' : 'Credits';
+
+      if (type === 'credit_received') {
+        return `Du hast ${creditData.credit_amount} ${creditText} erhalten`;
+      } else {
+        return `Du hast ${creditData.credit_amount} ${creditText} ausgegeben`;
+      }
+    }
+
+    return 'Neue Benachrichtigung';
+  };
+
+  const getActorInfo = () => {
+    if (isForumNotification(type)) {
+      const forumData = data as ForumNotificationData;
+      return {
+        display_name: forumData.actor.display_name,
+        profile_image_url: forumData.actor.profile_image_url,
+      };
+    }
+
+    if (isCreditNotification(type)) {
+      const creditData = data as CreditNotificationData;
+      if (type === 'credit_received' && creditData.sender) {
+        return {
+          display_name: creditData.sender.display_name,
+          profile_image_url: creditData.sender.profile_image_url,
+        };
+      }
+      if (type === 'credit_spent' && creditData.recipient) {
+        return {
+          display_name: creditData.recipient.display_name,
+          profile_image_url: creditData.recipient.profile_image_url,
+        };
+      }
+    }
+
+    return {
+      display_name: 'System',
+      profile_image_url: undefined,
+    };
+  };
+
+  const getPreview = () => {
+    if (isForumNotification(type)) {
+      const forumData = data as ForumNotificationData;
+      return stripHtml(forumData.content_preview);
+    }
+
+    if (isCreditNotification(type)) {
+      const creditData = data as CreditNotificationData;
+      return creditData.offer_title;
+    }
+
+    return '';
+  };
+
+  const getSubtitle = () => {
+    if (isForumNotification(type)) {
+      const forumData = data as ForumNotificationData;
+      return `in: ${forumData.thread_title}`;
+    }
+
+    if (isCreditNotification(type)) {
+      const creditData = data as CreditNotificationData;
+      const creditText = creditData.credit_amount === 1 ? 'Credit' : 'Credits';
+      return `${creditData.credit_amount} ${creditText}`;
+    }
+
+    return '';
   };
 
   const relativeTime = getRelativeTime(created_at);
-  const cleanPreview = stripHtml(data.content_preview);
+  const actorInfo = getActorInfo();
+  const preview = getPreview();
+  const subtitle = getSubtitle();
 
   return (
     <button
@@ -98,13 +196,7 @@ export function NotificationItem({
     >
       <div className="flex gap-3">
         <div className="mt-1 flex-shrink-0">
-          <ProfileAvatar
-            user={{
-              display_name: data.actor.display_name,
-              profile_image_url: data.actor.profile_image_url,
-            }}
-            size="sm"
-          />
+          <ProfileAvatar user={actorInfo} size="sm" />
         </div>
 
         <div className="min-w-0 flex-1">
@@ -120,13 +212,17 @@ export function NotificationItem({
             </p>
           </div>
 
-          <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">
-            in: <span className="font-medium">{data.thread_title}</span>
-          </p>
+          {subtitle && (
+            <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">
+              {subtitle}
+            </p>
+          )}
 
-          <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
-            {cleanPreview}
-          </p>
+          {preview && (
+            <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
+              {preview}
+            </p>
+          )}
 
           <p className="text-xs text-gray-500 dark:text-gray-500">
             {relativeTime}

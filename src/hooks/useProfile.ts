@@ -18,7 +18,7 @@ interface PrivacyUpdateData {
   first_name_private?: boolean;
   last_name_private?: boolean;
   bio_private?: boolean;
-  location_private?: boolean;
+  exact_address_private?: boolean;
   created_at_private?: boolean;
 }
 

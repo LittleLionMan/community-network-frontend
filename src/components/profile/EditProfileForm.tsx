@@ -4,13 +4,14 @@ import { useState, useCallback } from 'react';
 import { Save, Loader2, Check, X, AlertCircle } from 'lucide-react';
 import type { User } from '@/types';
 import { apiClient } from '@/lib/api';
+import { LocationInput } from '@/components/books/LocationInput';
 
 interface ProfileFormData {
   display_name: string;
   first_name: string;
   last_name: string;
   bio: string;
-  location: string;
+  exact_address: string;
 }
 
 interface EditProfileFormProps {
@@ -33,10 +34,14 @@ export function EditProfileForm({
     first_name: user.first_name || '',
     last_name: user.last_name || '',
     bio: user.bio || '',
-    location: user.location || '',
+    exact_address: user.exact_address || '',
   });
 
   const [errors, setErrors] = useState<Partial<ProfileFormData>>({});
+  const [isLocationValid, setIsLocationValid] = useState(true);
+  const [locationDistrict, setLocationDistrict] = useState<
+    string | undefined
+  >();
   const [displayNameStatus, setDisplayNameStatus] =
     useState<AvailabilityStatus>('idle');
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
@@ -112,6 +117,9 @@ export function EditProfileForm({
       displayNameStatus === 'taken'
     ) {
       newErrors.display_name = 'Display Name bereits vergeben';
+    }
+    if (formData.exact_address && !isLocationValid) {
+      newErrors.exact_address = 'Standort konnte nicht validiert werden';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -279,15 +287,32 @@ export function EditProfileForm({
         <label className="mb-1 block text-sm font-medium text-gray-700">
           Standort
         </label>
-        <input
-          type="text"
-          value={formData.location}
-          onChange={(e) => handleChange('location', e.target.value)}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          maxLength={200}
-          placeholder="z.B. München, Bayern"
+        <LocationInput
+          value={formData.exact_address}
+          onChange={(value) => handleChange('exact_address', value)}
+          onValidated={(isValid, district) => {
+            setIsLocationValid(isValid);
+            setLocationDistrict(district);
+
+            if (!isValid && formData.exact_address.length >= 3) {
+              setErrors((prev) => ({
+                ...prev,
+                exact_address: 'Standort konnte nicht gefunden werden',
+              }));
+            } else {
+              setErrors((prev) => ({
+                ...prev,
+                exact_address: undefined,
+              }));
+            }
+          }}
+          error={!!errors.exact_address}
           disabled={isLoading}
+          placeholder="z.B. Musterstraße 1, 48143 Münster"
         />
+        {errors.exact_address && (
+          <p className="mt-1 text-sm text-red-600">{errors.exact_address}</p>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           Hilft bei lokalen Events und Services
         </p>

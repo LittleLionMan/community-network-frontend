@@ -142,6 +142,9 @@ export function PublicProfileView({
       setShowMessageSuccess(false);
     }, 500);
   };
+
+  console.log(user.exact_address);
+
   return (
     <>
       <div className={`bg-white ${!isPreview ? 'border' : ''} rounded-lg p-6`}>
@@ -169,11 +172,13 @@ export function PublicProfileView({
               </p>
             )}
 
+            {user.email && <p className="text-gray-600">{user.email}</p>}
+
             <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-              {user.location && (
+              {user.exact_address && (
                 <div className="flex items-center">
                   <MapPin className="mr-1 h-4 w-4" />
-                  {user.location}
+                  {user.exact_address}
                 </div>
               )}
 

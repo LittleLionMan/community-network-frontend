@@ -45,6 +45,22 @@ import type {
   UserAchievementStats,
   AchievementCreate,
 } from '@/types/achievement';
+import type {
+  TransactionProposeTimeRequest,
+  TransactionData,
+  TransactionCreateRequest,
+  TransactionConfirmTimeRequest,
+  TransactionCancelRequest,
+  TransactionConfirmHandoverRequest,
+  TransactionHistoryItem,
+} from '@/types/transactions';
+import type {
+  AvailabilitySlotCreate,
+  AvailabilitySlotUpdate,
+  AvailabilitySlotRead,
+  AvailabilitySlotPublic,
+  AvailabilityCheckResponse,
+} from '@/types/availability';
 
 import { useAuthStore } from '@/store/auth';
 import { extendApiClientWithAdmin } from './admin-api';
@@ -76,12 +92,12 @@ interface ProfileUpdateData {
   first_name?: string;
   last_name?: string;
   bio?: string;
-  location?: string;
+  exact_address?: string;
   email_private?: boolean;
   first_name_private?: boolean;
   last_name_private?: boolean;
   bio_private?: boolean;
-  location_private?: boolean;
+  exact_address_private?: boolean;
   created_at_private?: boolean;
   email_notifications_events?: boolean;
   email_notifications_messages?: boolean;
@@ -223,6 +239,110 @@ export interface UserVotingStats {
   polls_created: number;
   votes_cast: number;
   engagement_level: 'inactive' | 'low' | 'moderate' | 'high';
+}
+
+export interface Book {
+  id: number;
+  isbn_13: string;
+  isbn_10?: string;
+  title: string;
+  description?: string;
+  authors: string[];
+  publisher?: string;
+  published_date?: string;
+  language: string;
+  page_count?: number;
+  categories: string[];
+  cover_image_url?: string;
+  thumbnail_url?: string;
+  created_at: string;
+}
+
+export interface PaginatedBookOffers {
+  items: BookOffer[];
+  total: number;
+  skip: number;
+  limit: number;
+  has_more: boolean;
+}
+
+export interface BookOffer {
+  id: number;
+  book_id: number;
+  owner_id: number;
+  condition: 'new' | 'like_new' | 'good' | 'acceptable';
+  condition_label?: string;
+  notes?: string;
+  user_comment?: string;
+  location_district?: string;
+  exact_address?: string;
+  distance_km?: number;
+  is_available: boolean;
+  created_at: string;
+  updated_at?: string;
+  reserved_until?: string;
+  reserved_by_user_id?: number;
+  custom_cover_image_url?: string;
+  book?: Book;
+  owner?: {
+    id: number;
+    display_name: string;
+    profile_image_url?: string;
+    email_verified: boolean;
+    created_at: string;
+  };
+  all_user_comments?: Array<{
+    user: {
+      id: number;
+      display_name: string;
+      profile_image_url?: string;
+    };
+    comment: string;
+    created_at: string;
+    condition: string;
+    condition_label: string;
+  }>;
+}
+
+export interface BookOfferCreate {
+  isbn: string;
+  condition: 'new' | 'like_new' | 'good' | 'acceptable';
+  notes?: string;
+  user_comment?: string;
+  custom_location?: string;
+  location_district?: string;
+}
+
+export interface BookOfferUpdate {
+  condition?: 'new' | 'like_new' | 'good' | 'acceptable';
+  notes?: string;
+  user_comment?: string;
+  custom_location?: string;
+  location_district?: string;
+  is_available?: boolean;
+}
+
+export interface BookStats {
+  available_offers: number;
+  new_this_week: number;
+  successful_exchanges: number;
+  my_offers?: number;
+  my_available?: number;
+}
+
+export interface BookFilterOptions {
+  districts: string[];
+  categories: string[];
+  languages: string[];
+}
+
+export interface LocationValidation {
+  valid: boolean;
+  district?: string;
+  lat?: number;
+  lon?: number;
+  formatted_address?: string;
+  message: string;
 }
 
 class ApiError extends Error {
@@ -521,7 +641,7 @@ class ApiClient {
           first_name: string;
           last_name: string;
           bio: string;
-          location: string;
+          exact_address: string;
           created_at: string;
           profile_image_url: string;
         }>
@@ -1148,6 +1268,246 @@ class ApiClient {
         `/api/discussions/my/posts${searchParams.toString() ? '?' + searchParams.toString() : ''}`
       );
     },
+  };
+
+  location = {
+    validate: (location: string) =>
+      this.request<LocationValidation>('/api/location/validate', {
+        method: 'POST',
+        body: JSON.stringify({ location }),
+      }),
+  };
+
+  books = {
+    searchByISBN: (isbn: string) =>
+      this.request<Book>(`/api/books/search?isbn=${encodeURIComponent(isbn)}`),
+
+    getMarketplace: (filters?: {
+      book_id?: number;
+      search?: string;
+      condition?: string[];
+      language?: string[];
+      category?: string[];
+      max_distance_km?: number;
+      district?: string[];
+      has_comments?: boolean;
+      skip?: number;
+      limit?: number;
+    }) => {
+      const params = new URLSearchParams();
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            if (Array.isArray(value)) {
+              value.forEach((v) => params.append(key, v.toString()));
+            } else {
+              params.append(key, value.toString());
+            }
+          }
+        });
+      }
+      return this.request<PaginatedBookOffers>(
+        `/api/books/marketplace${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    getMyOffers: (statusFilter?: 'active' | 'reserved' | 'completed') => {
+      const params = new URLSearchParams();
+      if (statusFilter) params.append('status_filter', statusFilter);
+      return this.request<BookOffer[]>(
+        `/api/books/offers/my${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    createOffer: (data: BookOfferCreate) =>
+      this.request<BookOffer>('/api/books/offers', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    updateOffer: (offerId: number, data: BookOfferUpdate) =>
+      this.request<BookOffer>(`/api/books/offers/${offerId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deleteOffer: (offerId: number) =>
+      this.request(`/api/books/offers/${offerId}`, {
+        method: 'DELETE',
+      }),
+
+    deleteOfferComment: (offerId: number) =>
+      this.request(`/api/books/offers/${offerId}/comment`, {
+        method: 'DELETE',
+      }),
+
+    getOffer: (offerId: number) =>
+      this.request<BookOffer>(`/api/books/offers/${offerId}`),
+
+    getStats: () => this.request<BookStats>('/api/books/stats'),
+
+    getFilterOptions: () =>
+      this.request<BookFilterOptions>('/api/books/filters/options'),
+  };
+
+  availability = {
+    createSlot: (data: AvailabilitySlotCreate) =>
+      this.request<AvailabilitySlotRead>('/api/availability/my', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    getMySlots: (includeInactive = false) => {
+      const params = new URLSearchParams();
+      if (includeInactive) params.append('include_inactive', 'true');
+      return this.request<AvailabilitySlotRead[]>(
+        `/api/availability/my${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    updateSlot: (slotId: number, data: AvailabilitySlotUpdate) =>
+      this.request<AvailabilitySlotRead>(`/api/availability/my/${slotId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+
+    deleteSlot: (slotId: number, hardDelete = false) => {
+      const params = new URLSearchParams();
+      if (hardDelete) params.append('hard_delete', 'true');
+      return this.request<{ message: string }>(
+        `/api/availability/my/${slotId}${params.toString() ? '?' + params.toString() : ''}`,
+        {
+          method: 'DELETE',
+        }
+      );
+    },
+
+    getUserAvailability: (
+      userId: number,
+      startDate?: string,
+      endDate?: string
+    ) => {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+      return this.request<AvailabilitySlotPublic[]>(
+        `/api/availability/users/${userId}${params.toString() ? '?' + params.toString() : ''}`
+      );
+    },
+
+    checkAvailability: (
+      userId: number,
+      proposedTime: string,
+      durationHours = 1
+    ) => {
+      const params = new URLSearchParams({
+        proposed_time: proposedTime,
+        duration_hours: durationHours.toString(),
+      });
+      return this.request<AvailabilityCheckResponse>(
+        `/api/availability/users/${userId}/check?${params.toString()}`
+      );
+    },
+  };
+
+  transactions = {
+    create: (providerId: number, data: TransactionCreateRequest) => {
+      const params = new URLSearchParams();
+      params.append('provider_id', providerId.toString());
+      return this.request<TransactionData>(
+        `/api/transactions?${params.toString()}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      );
+    },
+
+    getAvailableRequestSlots: () =>
+      this.request<{
+        total_credits: number;
+        active_transactions: number;
+        available_slots: number;
+      }>('/api/transactions/available-slots'),
+
+    proposeTime: (transactionId: number, data: TransactionProposeTimeRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/propose-time`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    confirmTime: (transactionId: number, data: TransactionConfirmTimeRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/confirm-time`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    updateAddress: (
+      transactionId: number,
+      data: { exact_address: string; location_district: string | null }
+    ) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/address`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    confirmHandover: (
+      transactionId: number,
+      data: TransactionConfirmHandoverRequest
+    ) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/confirm-handover`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    cancel: (transactionId: number, data: TransactionCancelRequest) =>
+      this.request<TransactionData>(
+        `/api/transactions/${transactionId}/cancel`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+
+    getById: (transactionId: number) =>
+      this.request<TransactionData>(`/api/transactions/${transactionId}`),
+
+    getUserTransactions: (status?: string, limit: number = 50) => {
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (status) params.append('status', status);
+      return this.request<TransactionHistoryItem[]>(
+        `/api/transactions?${params.toString()}`
+      );
+    },
+    canCreateMarketplaceOffer: () =>
+      this.request<{
+        can_create: boolean;
+        reason?: 'messages_disabled' | 'strangers_disabled';
+        message?: string;
+        has_active_offers?: boolean;
+        active_offers_count?: number;
+        offers_by_type?: {
+          book_offers: number;
+        };
+      }>('/api/transactions/marketplace/can-create-offer'),
+
+    getActiveMarketplaceOffersCount: () =>
+      this.request<{
+        total_count: number;
+        book_offers: number;
+      }>('/api/transactions/marketplace/active-offers-count'),
   };
 
   notifications = {

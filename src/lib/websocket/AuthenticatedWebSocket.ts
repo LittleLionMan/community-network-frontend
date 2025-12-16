@@ -6,6 +6,10 @@ import {
 } from '@/types/websocket';
 import { useAuthStore } from '@/store/auth';
 
+function hasUnderlyingError(e: Event): e is Event & { error: unknown } {
+  return 'error' in e;
+}
+
 type SendableWebSocketData = Record<string, unknown> | AuthWebSocketMessage;
 
 export class AuthenticatedWebSocket extends EventTarget {
@@ -99,7 +103,6 @@ export class AuthenticatedWebSocket extends EventTarget {
   }
 
   private handleOpen(): void {
-    console.log('🔗 WebSocket connected');
     this.setState({
       isConnected: true,
       isReconnecting: false,
@@ -112,8 +115,6 @@ export class AuthenticatedWebSocket extends EventTarget {
   }
 
   private handleClose(event: CloseEvent): void {
-    console.log('🔌 WebSocket disconnected:', event.code, event.reason);
-
     this.setState({
       isConnected: false,
       lastHeartbeat: undefined,
@@ -145,8 +146,24 @@ export class AuthenticatedWebSocket extends EventTarget {
     this.dispatchEvent(new CustomEvent('disconnected', { detail: event }));
   }
 
-  private handleError(error: Event): void {
-    console.error('🚨 WebSocket error:', error);
+  private handleError(event: Event): void {
+    console.group('🚨 WebSocket error');
+
+    console.error('Event:', event);
+
+    let underlyingError: unknown = 'None';
+    if (hasUnderlyingError(event)) {
+      underlyingError = event.error;
+    }
+
+    console.error('Underlying error:', underlyingError);
+
+    if (event.target instanceof WebSocket) {
+      console.error('WebSocket readyState:', event.target.readyState);
+    }
+
+    console.groupEnd();
+
     this.setState({ isConnected: false });
 
     this.handleAuthError({
@@ -212,7 +229,6 @@ export class AuthenticatedWebSocket extends EventTarget {
         break;
 
       case 'token_refreshed':
-        console.log('✅ Token refreshed successfully');
         this.setState({ tokenExpiring: false });
         break;
 
@@ -230,7 +246,6 @@ export class AuthenticatedWebSocket extends EventTarget {
         break;
 
       default:
-        console.log('🔐 Auth message:', message.type);
     }
   }
 
@@ -276,24 +291,17 @@ export class AuthenticatedWebSocket extends EventTarget {
       30000
     );
 
-    console.log(
-      `🔄 Reconnecting in ${delay}ms (attempt ${this.state.reconnectAttempts}/${this.config.maxReconnectAttempts})`
-    );
-
     this.reconnectTimeout = setTimeout(() => {
       this.createConnection();
     }, delay);
   }
 
   private async handleTokenExpiring(): Promise<void> {
-    console.log('🔄 Attempting to refresh token...');
-
     try {
       const authStore = useAuthStore.getState();
       const refreshed = await authStore.refreshToken();
 
       if (refreshed) {
-        console.log('✅ Token refreshed successfully');
       } else {
         throw new Error('Token refresh returned no token');
       }

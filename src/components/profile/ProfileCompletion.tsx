@@ -25,7 +25,7 @@ export function ProfileCompletion({ user }: ProfileCompletionProps) {
     {
       field: 'location',
       label: 'Standort',
-      completed: !!user.location,
+      completed: !!user.exact_address,
       required: false,
     },
     {

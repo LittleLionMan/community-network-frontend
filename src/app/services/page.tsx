@@ -9,6 +9,7 @@ import {
   HandHeart,
   Search,
   TrendingUp,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ServiceCard } from '@/components/services/ServiceCard';
@@ -30,7 +31,7 @@ export default function ServicesPage() {
     serviceType === 'all' ? undefined : serviceType === 'offering';
 
   const {
-    data: services = [],
+    data: allServices = [],
     isLoading,
     error,
     refetch,
@@ -44,11 +45,16 @@ export default function ServicesPage() {
 
   const { data: stats } = useServiceStats();
 
-  const filteredServices = useMemo(() => {
-    const filtered = services;
+  const { platformServices, userServices } = useMemo(() => {
+    const platform = allServices.filter(
+      (s) => s.service_type === 'platform_feature'
+    );
+    const users = allServices.filter(
+      (s) => s.service_type !== 'platform_feature'
+    );
 
-    return filtered;
-  }, [services]);
+    return { platformServices: platform, userServices: users };
+  }, [allServices]);
 
   const handleInterestExpressed = (serviceId: number) => {
     console.log('Interest expressed for service:', serviceId);
@@ -182,6 +188,29 @@ export default function ServicesPage() {
         </div>
       )}
 
+      {platformServices.length > 0 && (
+        <div className="mb-12">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Platform Features
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {platformServices.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                variant="card"
+                showInterestButton={false}
+                currentUserId={user?.id}
+                onExpressInterest={handleInterestExpressed}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <ServiceFilters
           searchQuery={searchQuery}
@@ -192,12 +221,12 @@ export default function ServicesPage() {
           onExcludeOwnChange={setExcludeOwn}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          resultsCount={filteredServices.length}
+          resultsCount={userServices.length}
           isAuthenticated={isAuthenticated}
         />
       </div>
 
-      {services.length > 0 && (
+      {userServices.length > 0 && (
         <div className="mb-4 flex justify-end">
           <Button
             variant="outline"
@@ -214,53 +243,54 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {filteredServices.length === 0 ? (
+      {userServices.length === 0 && platformServices.length === 0 ? (
         <div className="py-12 text-center">
-          {services.length === 0 ? (
-            <>
-              <HandHeart className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-600" />
-              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Noch keine Services
-              </h3>
-              <p className="mb-4 text-gray-600 dark:text-gray-400">
-                Es wurden noch keine Services erstellt. Sei der Erste!
-              </p>
-              {isAuthenticated && (
-                <Button asChild>
-                  <Link href="/services/create">Ersten Service erstellen</Link>
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              <Search className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-600" />
-              <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Keine Services gefunden
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Keine Services entsprechen deinen Filterkriterien.
-              </p>
-            </>
+          <HandHeart className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-600" />
+          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Noch keine Services
+          </h3>
+          <p className="mb-4 text-gray-600 dark:text-gray-400">
+            Es wurden noch keine Services erstellt. Sei der Erste!
+          </p>
+          {isAuthenticated && (
+            <Button asChild>
+              <Link href="/services/create">Ersten Service erstellen</Link>
+            </Button>
           )}
         </div>
+      ) : userServices.length === 0 ? (
+        <div className="py-12 text-center">
+          <Search className="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-600" />
+          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Keine Community Services gefunden
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Keine Services entsprechen deinen Filterkriterien.
+          </p>
+        </div>
       ) : (
-        <div
-          className={`${
-            viewMode === 'grid'
-              ? 'grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'
-              : 'space-y-4'
-          }`}
-        >
-          {filteredServices.map((service) => (
-            <ServiceCard
-              key={service.id}
-              service={service}
-              variant={viewMode === 'grid' ? 'card' : 'list'}
-              showInterestButton={isAuthenticated}
-              currentUserId={user?.id}
-              onExpressInterest={handleInterestExpressed}
-            />
-          ))}
+        <div>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Community Services
+          </h2>
+          <div
+            className={`${
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'
+                : 'space-y-4'
+            }`}
+          >
+            {userServices.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                variant={viewMode === 'grid' ? 'card' : 'list'}
+                showInterestButton={isAuthenticated}
+                currentUserId={user?.id}
+                onExpressInterest={handleInterestExpressed}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>

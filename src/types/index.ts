@@ -5,7 +5,12 @@ export interface User {
   first_name?: string;
   last_name?: string;
   bio?: string;
-  location?: string;
+  location_lat?: number;
+  location_lon?: number;
+  exact_address?: string;
+  location_district?: string;
+  book_credits_remaining: number;
+  book_credits_last_reset?: string;
   is_active: boolean;
   is_admin: boolean;
   created_at: string;
@@ -17,7 +22,7 @@ export interface User {
   first_name_private: boolean;
   last_name_private: boolean;
   bio_private: boolean;
-  location_private: boolean;
+  exact_address_private: boolean;
   created_at_private: boolean;
 
   email_notifications_events: boolean;

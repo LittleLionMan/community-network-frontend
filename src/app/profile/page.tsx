@@ -2,7 +2,16 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { User, Settings, Shield, Activity, Edit, Check, X } from 'lucide-react';
+import {
+  User,
+  Settings,
+  Shield,
+  Activity,
+  Edit,
+  Check,
+  X,
+  Calendar,
+} from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { PrivacyControls } from '@/components/profile/PrivacyControls';
@@ -11,6 +20,7 @@ import { PublicProfileView } from '@/components/profile/PublicProfileView';
 import { PasswordUpdateForm } from '@/components/profile/PasswordUpdateForm';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import { AccountDeletionModal } from '@/components/profile/AccountDeletionModal';
+import { AvailabilityManagement } from '@/components/availability/AvailabilityManagement';
 import { ThemeToggle } from '@/components/profile/ThemeToggle';
 import { apiClient } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
@@ -173,8 +183,8 @@ function ProfilePageContent() {
     if (!user.last_name_private && user.last_name)
       visibleData.last_name = user.last_name;
     if (!user.bio_private && user.bio) visibleData.bio = user.bio;
-    if (!user.location_private && user.location)
-      visibleData.location = user.location;
+    if (!user.exact_address_private && user.exact_address)
+      visibleData.exact_address = user.exact_address;
     if (!user.created_at_private) visibleData.created_at = user.created_at;
 
     if (user.profile_image_url) {
@@ -187,6 +197,7 @@ function ProfilePageContent() {
   const tabs = [
     { id: 'profile', label: 'Profil', icon: User },
     { id: 'privacy', label: 'Privatsphäre', icon: Shield },
+    { id: 'availability', label: 'Kalender', icon: Calendar },
     { id: 'activity', label: 'Aktivitäten', icon: Activity },
     { id: 'settings', label: 'Einstellungen', icon: Settings },
   ];
@@ -322,6 +333,8 @@ function ProfilePageContent() {
               isLoading={isLoading}
             />
           )}
+
+          {activeTab === 'availability' && <AvailabilityManagement />}
 
           {activeTab === 'activity' && (
             <div className="space-y-6">
@@ -461,15 +474,23 @@ function ProfilePageContent() {
                         Neue Nachrichten
                       </span>
                     </label>
-                    <label className="flex cursor-not-allowed items-center opacity-50">
+                    <label className="flex items-center">
                       <input
                         type="checkbox"
                         className="mr-2"
                         checked={user.email_notifications_newsletter || false}
-                        disabled={true}
+                        onChange={(e) =>
+                          handleNotificationChange(
+                            'email_notifications_newsletter',
+                            e.target.checked
+                          )
+                        }
+                        disabled={isLoading}
                       />
-                      <span className="text-gray-500 dark:text-gray-400">
-                        Newsletter (möglicherweise zukünftig)
+                      <span
+                        className={`dark:text-gray-200 ${isLoading ? 'opacity-50' : ''}`}
+                      >
+                        Newsletter
                       </span>
                     </label>
                   </div>

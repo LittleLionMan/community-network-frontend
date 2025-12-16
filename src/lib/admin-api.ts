@@ -148,6 +148,15 @@ interface AdminMethods {
       empty_conversations_removed: number;
     }>;
 
+    sendNewsletter: (message: string) => Promise<{
+      message: string;
+      recipients_count: number;
+      emails_sent: number;
+      emails_failed: number;
+      admin_user: string;
+      timestamp: string;
+    }>;
+
     eventCategories: {
       list: () => Promise<EventCategoryWithStats[]>;
       create: (
@@ -317,6 +326,12 @@ export function extendApiClientWithAdmin<
 
     getSecurityOverview: () =>
       apiClient.request('/api/admin/security-overview'),
+
+    sendNewsletter: (message: string) =>
+      apiClient.request('/api/admin/newsletter/send', {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      }),
 
     eventCategories: {
       list: () =>

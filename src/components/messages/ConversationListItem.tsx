@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect, useState } from 'react';
 import { Archive, VolumeX } from 'lucide-react';
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
+import { parseTransactionData } from '@/lib/parseTransactionData';
 import type { Conversation } from '@/types/message';
 
 interface ConversationListItemProps {
@@ -41,6 +42,30 @@ export const ConversationListItem: React.FC<ConversationListItemProps> =
 
     const truncatedContent = useMemo(() => {
       if (!conversation.last_message) return '';
+
+      if (conversation.last_message.transaction_data) {
+        try {
+          const trans = parseTransactionData(
+            conversation.last_message.transaction_data
+          );
+          const bookTitle = trans.offer?.title || 'Unbekanntes Buch';
+
+          const statusMap: Record<string, string> = {
+            pending: '📚 Buchausleihe angefragt',
+            accepted: '✅ Anfrage akzeptiert',
+            rejected: '❌ Anfrage abgelehnt',
+            time_confirmed: '📅 Termin bestätigt',
+            completed: '✅ Übergabe abgeschlossen',
+            cancelled: '🚫 Storniert',
+            expired: '⏰ Abgelaufen',
+          };
+
+          const statusText = statusMap[trans.status] || 'Transaction';
+          return `${statusText}: ${bookTitle}`;
+        } catch (e) {
+          console.error('Failed to parse transaction data:', e);
+        }
+      }
 
       const content = conversation.last_message.is_deleted
         ? '[Nachricht gelöscht]'
@@ -85,7 +110,18 @@ export const ConversationListItem: React.FC<ConversationListItemProps> =
             <div className="flex flex-shrink-0 items-center space-x-2">
               {conversation.last_message_at && (
                 <span className="text-xs text-gray-500">
-                  {formatTime(conversation.last_message_at)}
+                  {(() => {
+                    try {
+                      return formatTime(conversation.last_message_at);
+                    } catch (e) {
+                      console.error(
+                        'Invalid date:',
+                        conversation.last_message_at,
+                        e
+                      );
+                      return '--:--';
+                    }
+                  })()}
                 </span>
               )}
 

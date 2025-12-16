@@ -1,14 +1,16 @@
 import { useEffect, useCallback } from 'react';
-import { useNotifications } from './useNotifications';
+import { useBrowserNotifications } from './useBrowserNotifications';
 import { useAuthStore } from '@/store/auth';
 
 export function useMessageNotifications() {
-  const { showMessageNotification, permissionState } = useNotifications();
+  const { showMessageNotification, permissionState } =
+    useBrowserNotifications();
   const { user } = useAuthStore();
 
   useEffect(() => {
     const handleWebSocketMessage = (event: CustomEvent) => {
       const message = event.detail;
+
       if (
         permissionState.permission === 'granted' &&
         user &&
@@ -21,6 +23,34 @@ export function useMessageNotifications() {
           message.message.content,
           message.conversation_id
         );
+      }
+
+      if (
+        permissionState.permission === 'granted' &&
+        user &&
+        message.type === 'transaction_updated' &&
+        message.transaction_data &&
+        document.hidden
+      ) {
+        const data = message.transaction_data;
+        const isUserProvider = data.provider_id === user.id;
+        const counterpartName = isUserProvider
+          ? data.requester_display_name
+          : data.provider_display_name;
+
+        const importantStatuses = ['time_confirmed', 'completed'];
+        if (importantStatuses.includes(data.status)) {
+          const statusMessages: Record<string, string> = {
+            time_confirmed: 'Termin wurde bestätigt',
+            completed: 'Übergabe wurde abgeschlossen',
+          };
+
+          showMessageNotification(
+            counterpartName,
+            `${statusMessages[data.status]}: ${data.offer_title}`,
+            message.conversation_id
+          );
+        }
       }
     };
 

@@ -15,8 +15,9 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import {
   useConversations,
   useConversation,
-  useUnreadCount,
+  normalizeMessage,
 } from '@/hooks/useMessages';
+import { useGlobalUnreadCount } from '@/components/providers/UnreadCountProvider';
 import { useMessagePrivacy } from '@/hooks/useMessagePrivacyApi';
 import { useUserWebSocket } from '@/hooks/useUserWebSocket';
 import { useMessageSecurity } from '@/hooks/useMessageSecurity';
@@ -29,7 +30,6 @@ import type {
   Conversation,
   CreateConversationData,
   WebSocketMessage,
-  UnreadCount,
 } from '@/types/message';
 
 interface SearchUser {
@@ -257,7 +257,7 @@ const NewConversationModal = React.memo<{
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Schreibe eine Nachricht..."
             rows={3}
-            className="w-full rounded-lg border border-gray-300 bg-white p-3 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+            className="w-full resize-none rounded-lg border border-gray-300 bg-white p-3 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
             disabled={isBlocked}
           />
         </div>
@@ -321,6 +321,25 @@ export default function MessagesPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<
     number | null
   >(null);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('conversation-state-changed', {
+        detail: { conversationId: selectedConversationId },
+      })
+    );
+  }, [selectedConversationId]);
+
+  useEffect(() => {
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent('conversation-state-changed', {
+          detail: { conversationId: null },
+        })
+      );
+    };
+  }, []);
+
   const [showNewConversationModal, setShowNewConversationModal] =
     useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -349,6 +368,7 @@ export default function MessagesPage() {
     createConversation,
     refreshConversations,
     updateConversationUnreadCount,
+    updateConversationPreview,
     clearError: clearConversationError,
   } = useConversations();
 
@@ -368,14 +388,10 @@ export default function MessagesPage() {
     loadMoreMessages,
     hasMoreMessages,
     clearError: clearMessageError,
+    refreshConversation,
   } = useConversation(selectedConversationId);
 
-  const {
-    unreadCount,
-    updateUnreadCount,
-    updateConversationUnreadCount: updateUnreadForConversation,
-    refreshUnreadCount,
-  } = useUnreadCount();
+  const { unreadCount } = useGlobalUnreadCount();
 
   const {
     validateAndSendMessage,
@@ -394,9 +410,12 @@ export default function MessagesPage() {
   const { handleAuthError, isErrorDismissed, getErrorId } =
     useAuthErrorHandler();
 
-  const handleSelectConversation = useCallback((conversation: Conversation) => {
-    setSelectedConversationId(conversation.id);
-  }, []);
+  const handleSelectConversation = useCallback(
+    (conversation: Conversation | null) => {
+      setSelectedConversationId(conversation?.id ?? null);
+    },
+    []
+  );
 
   const handleSelectMessageFromSearch = useCallback(
     (conversationId: number) => {
@@ -514,16 +533,18 @@ export default function MessagesPage() {
       switch (message.type) {
         case 'new_message':
           if (message.message && message.conversation_id) {
-            refreshConversations();
+            updateConversationPreview(
+              message.conversation_id,
+              message.message.content,
+              message.message.created_at
+            );
 
             if (message.conversation_id === selectedConversationId) {
-              addMessage(message.message);
+              addMessage(normalizeMessage(message.message));
 
               if (message.message.sender.id !== user?.id) {
                 markAsRead(message.message.id);
               }
-            } else {
-              refreshUnreadCount();
             }
           }
           break;
@@ -546,18 +567,22 @@ export default function MessagesPage() {
           }
           break;
 
-        case 'messages_read':
-          if (message.user_id !== user?.id) {
-            refreshConversations();
-            refreshUnreadCount();
-          }
-          break;
+        case 'transaction_updated':
+          if (
+            message.transaction_id &&
+            message.conversation_id &&
+            message.message_id
+          ) {
+            if (message.preview && message.last_message_at) {
+              updateConversationPreview(
+                message.conversation_id,
+                message.preview,
+                message.last_message_at
+              );
+            }
 
-        case 'unread_count_update':
-          if (message.data && typeof message.data === 'object') {
-            const unreadData = message.data as unknown as UnreadCount;
-            if ('total_unread' in unreadData && 'conversations' in unreadData) {
-              updateUnreadCount(unreadData);
+            if (message.conversation_id === selectedConversationId) {
+              refreshConversation();
             }
           }
           break;
@@ -583,24 +608,49 @@ export default function MessagesPage() {
     addMessage,
     updateMessage,
     markAsRead,
-    refreshUnreadCount,
-    refreshConversations,
-    updateUnreadCount,
+    refreshConversation,
+    updateConversationUnreadCount,
+    updateConversationPreview,
   ]);
 
   useEffect(() => {
-    if (selectedConversationId && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (!lastMessage.is_read && lastMessage.sender.id !== user?.id) {
-        markAsRead(lastMessage.id);
+    const handleTransactionUpdate = (event: CustomEvent) => {
+      refreshConversations();
+    };
+
+    window.addEventListener(
+      'transaction-updated',
+      handleTransactionUpdate as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'transaction-updated',
+        handleTransactionUpdate as EventListener
+      );
+    };
+  }, [refreshConversations]);
+
+  useEffect(() => {
+    if (!selectedConversationId || messages.length === 0) return;
+
+    const unreadMessages = messages.filter((msg) => {
+      if (msg.message_type === 'transaction') {
+        return !msg.is_read;
       }
+
+      return !msg.is_read && msg.sender.id !== user?.id;
+    });
+
+    if (unreadMessages.length > 0) {
+      const lastUnreadId = unreadMessages[unreadMessages.length - 1].id;
+      markAsRead(lastUnreadId);
     }
-  }, [selectedConversationId, messages.length, user?.id, markAsRead, messages]);
+  }, [selectedConversationId, messages, user?.id, markAsRead]);
 
   useEffect(() => {
     const handleMarkedRead = (event: CustomEvent) => {
       const { conversationId } = event.detail;
-      updateUnreadForConversation(conversationId, 0);
       updateConversationUnreadCount(conversationId, 0);
     };
 
@@ -613,20 +663,39 @@ export default function MessagesPage() {
         'messages-marked-read',
         handleMarkedRead as EventListener
       );
-  }, [updateUnreadForConversation, updateConversationUnreadCount]);
+  }, [updateConversationUnreadCount]);
+
+  useEffect(() => {
+    const handlePreviewUpdate = (event: CustomEvent) => {
+      const { conversationId, preview, timestamp } = event.detail;
+
+      updateConversationPreview(conversationId, preview, timestamp);
+    };
+
+    window.addEventListener(
+      'conversation-preview-updated',
+      handlePreviewUpdate as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        'conversation-preview-updated',
+        handlePreviewUpdate as EventListener
+      );
+    };
+  }, [updateConversationPreview]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && !isConnected) {
         refreshConversations();
-        refreshUnreadCount();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () =>
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [refreshConversations, refreshUnreadCount, isConnected]);
+  }, [refreshConversations, isConnected]);
 
   useEffect(() => {
     if (authError && !isErrorDismissed(getErrorId(authError))) {
