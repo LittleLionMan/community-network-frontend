@@ -1,5 +1,7 @@
 'use client';
 
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { useState } from 'react';
 import { Plus, Edit, Trash2, Calendar, Clock, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -478,7 +480,7 @@ function CreateSlotModal({
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 shadow-xl dark:bg-gray-800 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Termin hinzufügen
+            Verfügbarkeit hinzufügen
           </h3>
           <button
             onClick={onClose}
@@ -574,84 +576,73 @@ function CreateSlotModal({
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Von
                   </label>
-                  <div className="flex gap-1">
-                    <input
-                      type="number"
-                      min="0"
-                      max="23"
-                      value={formData.start_time?.split(':')[0] || '09'}
-                      onChange={(e) => {
-                        const hour = e.target.value.padStart(2, '0');
-                        const minute =
-                          formData.start_time?.split(':')[1] || '00';
+                  <DatePicker
+                    selected={
+                      formData.start_time
+                        ? new Date(`2000-01-01T${formData.start_time}`)
+                        : new Date('2000-01-01T09:00')
+                    }
+                    onChange={(date) => {
+                      if (date) {
+                        const hours = date
+                          .getHours()
+                          .toString()
+                          .padStart(2, '0');
+                        const minutes = date
+                          .getMinutes()
+                          .toString()
+                          .padStart(2, '0');
                         setFormData({
                           ...formData,
-                          start_time: `${hour}:${minute}`,
+                          start_time: `${hours}:${minutes}`,
                         });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="09"
-                    />
-                    <span className="flex items-center text-gray-500">:</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      step="15"
-                      value={formData.start_time?.split(':')[1] || '00'}
-                      onChange={(e) => {
-                        const hour = formData.start_time?.split(':')[0] || '09';
-                        const minute = e.target.value.padStart(2, '0');
-                        setFormData({
-                          ...formData,
-                          start_time: `${hour}:${minute}`,
-                        });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="00"
-                    />
-                  </div>
+                      }
+                    }}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeFormat="HH:mm"
+                    dateFormat="HH:mm"
+                    locale={de}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+                    wrapperClassName="w-full"
+                  />
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Bis
                   </label>
-                  <div className="flex gap-1">
-                    <input
-                      type="number"
-                      min="0"
-                      max="23"
-                      value={formData.end_time?.split(':')[0] || '17'}
-                      onChange={(e) => {
-                        const hour = e.target.value.padStart(2, '0');
-                        const minute = formData.end_time?.split(':')[1] || '00';
+                  <DatePicker
+                    selected={
+                      formData.end_time
+                        ? new Date(`2000-01-01T${formData.end_time}`)
+                        : new Date('2000-01-01T17:00')
+                    }
+                    onChange={(date) => {
+                      if (date) {
+                        const hours = date
+                          .getHours()
+                          .toString()
+                          .padStart(2, '0');
+                        const minutes = date
+                          .getMinutes()
+                          .toString()
+                          .padStart(2, '0');
                         setFormData({
                           ...formData,
-                          end_time: `${hour}:${minute}`,
+                          end_time: `${hours}:${minutes}`,
                         });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="17"
-                    />
-                    <span className="flex items-center text-gray-500">:</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      step="15"
-                      value={formData.end_time?.split(':')[1] || '00'}
-                      onChange={(e) => {
-                        const hour = formData.end_time?.split(':')[0] || '17';
-                        const minute = e.target.value.padStart(2, '0');
-                        setFormData({
-                          ...formData,
-                          end_time: `${hour}:${minute}`,
-                        });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="00"
-                    />
-                  </div>
+                      }
+                    }}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeFormat="HH:mm"
+                    dateFormat="HH:mm"
+                    locale={de}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+                    wrapperClassName="w-full"
+                  />
                 </div>
               </div>
             </>
@@ -692,91 +683,73 @@ function CreateSlotModal({
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Von
                   </label>
-                  <div className="flex gap-1">
-                    <input
-                      type="number"
-                      min="0"
-                      max="23"
-                      value={
-                        formData.specific_start_time?.split(':')[0] || '09'
-                      }
-                      onChange={(e) => {
-                        const hour = e.target.value.padStart(2, '0');
-                        const minute =
-                          formData.specific_start_time?.split(':')[1] || '00';
+                  <DatePicker
+                    selected={
+                      formData.specific_start_time
+                        ? new Date(`2000-01-01T${formData.specific_start_time}`)
+                        : new Date('2000-01-01T09:00')
+                    }
+                    onChange={(date) => {
+                      if (date) {
+                        const hours = date
+                          .getHours()
+                          .toString()
+                          .padStart(2, '0');
+                        const minutes = date
+                          .getMinutes()
+                          .toString()
+                          .padStart(2, '0');
                         setFormData({
                           ...formData,
-                          specific_start_time: `${hour}:${minute}`,
+                          specific_start_time: `${hours}:${minutes}`,
                         });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="09"
-                    />
-                    <span className="flex items-center text-gray-500">:</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      step="15"
-                      value={
-                        formData.specific_start_time?.split(':')[1] || '00'
                       }
-                      onChange={(e) => {
-                        const hour =
-                          formData.specific_start_time?.split(':')[0] || '09';
-                        const minute = e.target.value.padStart(2, '0');
-                        setFormData({
-                          ...formData,
-                          specific_start_time: `${hour}:${minute}`,
-                        });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="00"
-                    />
-                  </div>
+                    }}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeFormat="HH:mm"
+                    dateFormat="HH:mm"
+                    locale={de}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+                    wrapperClassName="w-full"
+                  />
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Bis
                   </label>
-                  <div className="flex gap-1">
-                    <input
-                      type="number"
-                      min="0"
-                      max="23"
-                      value={formData.specific_end_time?.split(':')[0] || '17'}
-                      onChange={(e) => {
-                        const hour = e.target.value.padStart(2, '0');
-                        const minute =
-                          formData.specific_end_time?.split(':')[1] || '00';
+                  <DatePicker
+                    selected={
+                      formData.specific_end_time
+                        ? new Date(`2000-01-01T${formData.specific_end_time}`)
+                        : new Date('2000-01-01T17:00')
+                    }
+                    onChange={(date) => {
+                      if (date) {
+                        const hours = date
+                          .getHours()
+                          .toString()
+                          .padStart(2, '0');
+                        const minutes = date
+                          .getMinutes()
+                          .toString()
+                          .padStart(2, '0');
                         setFormData({
                           ...formData,
-                          specific_end_time: `${hour}:${minute}`,
+                          specific_end_time: `${hours}:${minutes}`,
                         });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="17"
-                    />
-                    <span className="flex items-center text-gray-500">:</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      step="15"
-                      value={formData.specific_end_time?.split(':')[1] || '00'}
-                      onChange={(e) => {
-                        const hour =
-                          formData.specific_end_time?.split(':')[0] || '17';
-                        const minute = e.target.value.padStart(2, '0');
-                        setFormData({
-                          ...formData,
-                          specific_end_time: `${hour}:${minute}`,
-                        });
-                      }}
-                      className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center dark:border-gray-600 dark:bg-gray-700"
-                      placeholder="00"
-                    />
-                  </div>
+                      }
+                    }}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeFormat="HH:mm"
+                    dateFormat="HH:mm"
+                    locale={de}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+                    wrapperClassName="w-full"
+                  />
                 </div>
               </div>
             </>

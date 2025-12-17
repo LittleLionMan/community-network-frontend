@@ -201,7 +201,7 @@ export function EditProfileForm({
   return (
     <div className="space-y-6">
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
           Display Name *
         </label>
         <div className="relative">
@@ -209,8 +209,10 @@ export function EditProfileForm({
             type="text"
             value={formData.display_name}
             onChange={(e) => handleChange('display_name', e.target.value)}
-            className={`w-full rounded-md border px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-              errors.display_name ? 'border-red-300' : 'border-gray-300'
+            className={`w-full rounded-md border px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100 ${
+              errors.display_name
+                ? 'border-red-300 dark:border-red-600'
+                : 'border-gray-300 dark:border-gray-600'
             }`}
             maxLength={20}
             disabled={isLoading}
@@ -220,40 +222,44 @@ export function EditProfileForm({
           </div>
         </div>
         {errors.display_name && (
-          <p className="mt-1 text-sm text-red-600">{errors.display_name}</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {errors.display_name}
+          </p>
         )}
         {displayNameStatus === 'available' && (
-          <p className="mt-1 text-sm text-green-600">Display Name verfügbar</p>
+          <p className="mt-1 text-sm text-green-600 dark:text-green-400">
+            Display Name verfügbar
+          </p>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Wird immer öffentlich angezeigt ({formData.display_name.length}/20)
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Vorname
           </label>
           <input
             type="text"
             value={formData.first_name}
             onChange={(e) => handleChange('first_name', e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             maxLength={100}
             disabled={isLoading}
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Nachname
           </label>
           <input
             type="text"
             value={formData.last_name}
             onChange={(e) => handleChange('last_name', e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             maxLength={100}
             disabled={isLoading}
           />
@@ -261,30 +267,34 @@ export function EditProfileForm({
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
           Bio
         </label>
         <textarea
           value={formData.bio}
           onChange={(e) => handleChange('bio', e.target.value)}
           rows={4}
-          className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.bio ? 'border-red-300' : 'border-gray-300'
+          className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-100 ${
+            errors.bio
+              ? 'border-red-300 dark:border-red-600'
+              : 'border-gray-300 dark:border-gray-600'
           }`}
           maxLength={1000}
           placeholder="Erzähle anderen von deinen Interessen und warum du Teil der Community bist..."
           disabled={isLoading}
         />
         {errors.bio && (
-          <p className="mt-1 text-sm text-red-600">{errors.bio}</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {errors.bio}
+          </p>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {formData.bio.length}/1000 Zeichen
         </p>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
           Standort
         </label>
         <LocationInput
@@ -311,9 +321,11 @@ export function EditProfileForm({
           placeholder="z.B. Musterstraße 1, 48143 Münster"
         />
         {errors.exact_address && (
-          <p className="mt-1 text-sm text-red-600">{errors.exact_address}</p>
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+            {errors.exact_address}
+          </p>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Hilft bei lokalen Events und Services
         </p>
       </div>
@@ -335,7 +347,7 @@ export function EditProfileForm({
         <button
           onClick={onCancel}
           disabled={isLoading}
-          className="rounded-md border border-gray-300 px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+          className="rounded-md border border-gray-300 px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
         >
           Abbrechen
         </button>
