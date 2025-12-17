@@ -148,7 +148,7 @@ export function RequestBookModal({
           </div>
 
           <div>
-            <div className="mb-2 flex items-center justify-between">
+            <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Terminvorschläge *{' '}
                 <span className="text-xs text-gray-500">
@@ -161,6 +161,7 @@ export function RequestBookModal({
                 size="sm"
                 onClick={() => setShowCalendar(!showCalendar)}
                 disabled={loadingAvailability}
+                className="w-full sm:w-auto"
               >
                 <Calendar className="mr-2 h-4 w-4" />
                 {showCalendar

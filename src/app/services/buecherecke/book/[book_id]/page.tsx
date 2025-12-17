@@ -225,7 +225,7 @@ export default function BookDetailPage() {
       ) && (
         <div>
           <h2 className="mb-4 text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Rezensionen ({offers[0].all_user_comments?.length || 0})
+            Kommentare ({offers[0].all_user_comments?.length || 0})
           </h2>
           <div className="space-y-4">
             {offers[0].all_user_comments?.map((comment, idx) => (
@@ -244,10 +244,6 @@ export default function BookDetailPage() {
                         {comment.user.display_name}
                       </p>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Badge variant="secondary" className="text-xs">
-                          {comment.condition_label}
-                        </Badge>
-                        <span>•</span>
                         <span>
                           {new Date(comment.created_at).toLocaleDateString(
                             'de-DE'
@@ -428,18 +424,6 @@ function OfferCard({
               </div>
             )}
           </div>
-
-          {offer.user_comment && (
-            <div className="mb-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-              <div className="mb-1 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <MessageSquare className="h-4 w-4" />
-                <span>Kommentar:</span>
-              </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                {offer.user_comment}
-              </p>
-            </div>
-          )}
 
           {!isOwnOffer && isAuthenticated && (
             <div className="group relative">

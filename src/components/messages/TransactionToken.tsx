@@ -78,6 +78,8 @@ export function TransactionToken({
   const [showProposeTimeModal, setShowProposeTimeModal] = useState(false);
   const [showConfirmTimeModal, setShowConfirmTimeModal] = useState(false);
   const [showEditAddressModal, setShowEditAddressModal] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showHandoverConfirm, setShowHandoverConfirm] = useState(false);
 
   const proposeTimeMutation = useProposeTime();
   const confirmTimeMutation = useConfirmTime();
@@ -405,7 +407,7 @@ export function TransactionToken({
           expirationInfo.type !== 'meeting_expired' && (
             <Button
               size="sm"
-              onClick={handleConfirmHandover}
+              onClick={() => setShowHandoverConfirm(true)}
               disabled={isLoading}
               className="bg-green-600 hover:bg-green-700"
             >
@@ -421,7 +423,7 @@ export function TransactionToken({
           <Button
             size="sm"
             variant="outline"
-            onClick={handleCancel}
+            onClick={() => setShowCancelConfirm(true)}
             disabled={isLoading}
             className="border-gray-400 hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-800"
           >
@@ -465,6 +467,29 @@ export function TransactionToken({
             handleUpdateAddress(address);
             setShowEditAddressModal(false);
           }}
+        />
+      )}
+
+      {showCancelConfirm && (
+        <CancelConfirmModal
+          onClose={() => setShowCancelConfirm(false)}
+          onConfirm={() => {
+            handleCancel();
+            setShowCancelConfirm(false);
+          }}
+          isPending={cancelMutation.isPending}
+        />
+      )}
+
+      {showHandoverConfirm && (
+        <HandoverConfirmModal
+          onClose={() => setShowHandoverConfirm(false)}
+          onConfirm={() => {
+            handleConfirmHandover();
+            setShowHandoverConfirm(false);
+          }}
+          isPending={confirmHandoverMutation.isPending}
+          isProvider={isProvider}
         />
       )}
     </div>
@@ -866,6 +891,113 @@ function EditAddressModal({
             className="flex-1"
           >
             Speichern
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CancelConfirmModal({
+  onClose,
+  onConfirm,
+  isPending,
+}: {
+  onClose: () => void;
+  onConfirm: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+            <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Transaktion stornieren?
+          </h3>
+        </div>
+
+        <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+          Möchtest du diese Transaktion wirklich stornieren? Diese Aktion kann
+          nicht rückgängig gemacht werden.
+        </p>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1"
+          >
+            Abbrechen
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 bg-red-600 hover:bg-red-700"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Stornieren'
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HandoverConfirmModal({
+  onClose,
+  onConfirm,
+  isPending,
+  isProvider,
+}: {
+  onClose: () => void;
+  onConfirm: () => void;
+  isPending: boolean;
+  isProvider: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Übergabe bestätigen?
+          </h3>
+        </div>
+
+        <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+          {isProvider
+            ? 'Bestätige hiermit, dass die Übergabe des Buches stattgefunden hat.'
+            : 'Mit dieser Bestätigung gibst du einen Credit für diese Transaktion frei. Der Credit wird zum Anbieter übertragen, sobald dieser die Übergabe ebenfalls bestätigt.'}
+        </p>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isPending}
+            className="flex-1"
+          >
+            Abbrechen
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 bg-green-600 hover:bg-green-700"
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Bestätigen'
+            )}
           </Button>
         </div>
       </div>

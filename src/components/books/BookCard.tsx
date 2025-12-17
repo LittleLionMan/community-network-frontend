@@ -57,8 +57,8 @@ export function BookCard({ offer, variant }: BookCardProps) {
           </div>
 
           <div
-            className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${
-              isHovered ? 'opacity-100' : 'opacity-0'
+            className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-100 transition-opacity duration-300 md:opacity-0 ${
+              isHovered ? 'md:opacity-100' : ''
             }`}
           >
             <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
@@ -140,8 +140,8 @@ export function BookCard({ offer, variant }: BookCardProps) {
           </div>
 
           <div
-            className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${
-              isHovered ? 'opacity-100' : 'opacity-0'
+            className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-100 transition-opacity duration-300 md:opacity-0 ${
+              isHovered ? 'md:opacity-100' : ''
             }`}
           >
             <div className="absolute bottom-0 left-0 right-0 p-2">

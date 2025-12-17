@@ -358,9 +358,10 @@ export function AddBookModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           {step === 'details' && (
             <Button
+              className="w-full sm:w-auto"
               variant="outline"
               onClick={() => {
                 setStep('isbn');
@@ -370,11 +371,19 @@ export function AddBookModal({
               Zurück
             </Button>
           )}
-          <Button variant="outline" onClick={onClose}>
+          <Button
+            className="w-full sm:w-auto"
+            variant="outline"
+            onClick={onClose}
+          >
             Abbrechen
           </Button>
           {step === 'details' && (
-            <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={handleSubmit}
+              disabled={isSubmitDisabled}
+            >
               {createOffer.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -182,20 +182,6 @@ export function EditBookModal({
 
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Notizen (optional)
-            </label>
-            <Textarea
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              placeholder="Interne Notizen (nicht öffentlich sichtbar)"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Öffentlicher Kommentar (optional)
             </label>
             <Textarea
