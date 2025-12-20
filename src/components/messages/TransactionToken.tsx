@@ -110,6 +110,21 @@ export function TransactionToken({
     transaction.status === 'time_confirmed' ||
     transaction.status === 'completed';
 
+  const userAlreadyConfirmed = useMemo(() => {
+    return (
+      (currentUserId === transaction.requester.id &&
+        transaction.requester_confirmed) ||
+      (currentUserId === transaction.provider.id &&
+        transaction.provider_confirmed)
+    );
+  }, [
+    currentUserId,
+    transaction.requester,
+    transaction.provider,
+    transaction.requester_confirmed,
+    transaction.provider_confirmed,
+  ]);
+
   const expirationInfo = useMemo(() => {
     const now = new Date();
 
@@ -185,6 +200,24 @@ export function TransactionToken({
     transaction.requester_confirmed,
     transaction.provider_confirmed,
   ]);
+
+  const canConfirmHandover = useMemo(() => {
+    return (
+      transaction.status === 'time_confirmed' &&
+      !userAlreadyConfirmed &&
+      !expirationInfo.isExpired &&
+      expirationInfo.type !== 'meeting_expired'
+    );
+  }, [transaction.status, userAlreadyConfirmed, expirationInfo]);
+
+  const canCancel = useMemo(() => {
+    return (
+      (transaction.status === 'pending' ||
+        transaction.status === 'time_confirmed') &&
+      !userAlreadyConfirmed &&
+      !expirationInfo.isExpired
+    );
+  }, [transaction.status, userAlreadyConfirmed, expirationInfo]);
 
   const handleProposeTime = async (proposedTimes: Date[]) => {
     const result = await proposeTimeMutation.mutateAsync({
@@ -403,23 +436,22 @@ export function TransactionToken({
           </Button>
         )}
 
-        {transaction.can_confirm_handover &&
-          expirationInfo.type !== 'meeting_expired' && (
-            <Button
-              size="sm"
-              onClick={() => setShowHandoverConfirm(true)}
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {confirmHandoverMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Übergabe bestätigen'
-              )}
-            </Button>
-          )}
+        {canConfirmHandover && (
+          <Button
+            size="sm"
+            onClick={() => setShowHandoverConfirm(true)}
+            disabled={isLoading}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {confirmHandoverMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Übergabe bestätigen'
+            )}
+          </Button>
+        )}
 
-        {transaction.can_cancel && !expirationInfo.isExpired && (
+        {canCancel && (
           <Button
             size="sm"
             variant="outline"

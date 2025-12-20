@@ -140,7 +140,7 @@ export function BookFilters({ filters, onFilterChange }: BookFiltersProps) {
               htmlFor="has-comments"
               className="text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              Nur mit Rezensionen
+              Nur mit Benutzerkommentaren
             </label>
           </div>
         </div>
