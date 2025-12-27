@@ -29,13 +29,15 @@ export default function BuechereckePage() {
     search?: string;
     condition?: string[];
     language?: string[];
-    category?: string[];
+    genre?: string[];
+    topic?: string[];
     district?: string[];
     has_comments?: boolean;
   }>({
     condition: [],
     language: [],
-    category: [],
+    genre: [],
+    topic: [],
     district: [],
     has_comments: false,
   });
@@ -62,10 +64,10 @@ export default function BuechereckePage() {
       filters.language && filters.language.length > 0
         ? filters.language
         : undefined,
-    category:
-      filters.category && filters.category.length > 0
-        ? filters.category
-        : undefined,
+    genre:
+      filters.genre && filters.genre.length > 0 ? filters.genre : undefined,
+    topic:
+      filters.topic && filters.topic.length > 0 ? filters.topic : undefined,
     district:
       filters.district && filters.district.length > 0
         ? filters.district
