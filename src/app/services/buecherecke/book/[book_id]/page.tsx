@@ -164,15 +164,38 @@ export default function BookDetailPage() {
             )}
           </div>
 
-          {book.categories && book.categories.length > 0 && (
-            <div className="mb-6">
+          {book.genre && book.genre.length > 0 && (
+            <div className="mb-4">
               <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                Kategorien:
+                Genres:
               </p>
               <div className="flex flex-wrap gap-2">
-                {book.categories.map((category: string, idx: number) => (
-                  <Badge key={idx} variant="secondary">
-                    {category}
+                {book.genre.map((genre: string, idx: number) => (
+                  <Badge
+                    key={idx}
+                    variant="secondary"
+                    className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                  >
+                    {genre}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {book.topic && book.topic.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Themen:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {book.topic.map((topic: string, idx: number) => (
+                  <Badge
+                    key={idx}
+                    variant="outline"
+                    className="border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300"
+                  >
+                    {topic}
                   </Badge>
                 ))}
               </div>

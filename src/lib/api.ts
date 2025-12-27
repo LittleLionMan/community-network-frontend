@@ -252,7 +252,8 @@ export interface Book {
   published_date?: string;
   language: string;
   page_count?: number;
-  categories: string[];
+  genre?: string[];
+  topic?: string[];
   cover_image_url?: string;
   thumbnail_url?: string;
   created_at: string;
@@ -332,7 +333,15 @@ export interface BookStats {
 
 export interface BookFilterOptions {
   districts: string[];
-  categories: string[];
+  genres: Array<{
+    slug: string;
+    name: string;
+    icon?: string;
+  }>;
+  topics: Array<{
+    slug: string;
+    name: string;
+  }>;
   languages: string[];
 }
 
@@ -1287,7 +1296,8 @@ class ApiClient {
       search?: string;
       condition?: string[];
       language?: string[];
-      category?: string[];
+      genre?: string[];
+      topic?: string[];
       max_distance_km?: number;
       district?: string[];
       has_comments?: boolean;
@@ -1346,8 +1356,10 @@ class ApiClient {
 
     getStats: () => this.request<BookStats>('/api/books/stats'),
 
-    getFilterOptions: () =>
-      this.request<BookFilterOptions>('/api/books/filters/options'),
+    getFilterOptions: (lang: string = 'de') =>
+      this.request<BookFilterOptions>(
+        `/api/books/filters/options?lang=${lang}`
+      ),
   };
 
   availability = {

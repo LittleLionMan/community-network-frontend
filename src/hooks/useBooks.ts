@@ -10,7 +10,8 @@ export function useMarketplace(filters?: {
   search?: string;
   condition?: string[];
   language?: string[];
-  category?: string[];
+  genre?: string[];
+  topic?: string[];
   max_distance_km?: number;
   district?: string[];
   has_comments?: boolean;
@@ -47,10 +48,10 @@ export function useBookStats() {
   });
 }
 
-export function useFilterOptions() {
+export function useFilterOptions(lang: string = 'de') {
   return useQuery({
-    queryKey: ['books', 'filter-options'],
-    queryFn: () => apiClient.books.getFilterOptions(),
+    queryKey: ['books', 'filter-options', lang],
+    queryFn: () => apiClient.books.getFilterOptions(lang),
     staleTime: 600000,
   });
 }

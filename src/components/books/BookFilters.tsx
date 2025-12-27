@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, X, Globe, Tag, MapPin, ChevronDown } from 'lucide-react';
+import { Search, X, Globe, MapPin, ChevronDown, BookOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,8 @@ interface BookFiltersProps {
     search?: string;
     condition?: string[];
     language?: string[];
-    category?: string[];
+    genre?: string[];
+    topic?: string[];
     district?: string[];
     has_comments?: boolean;
   };
@@ -36,7 +37,7 @@ export function BookFilters({ filters, onFilterChange }: BookFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { data: filterOptions, isLoading: isLoadingOptions } =
-    useFilterOptions();
+    useFilterOptions('de');
 
   useEffect(() => {
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -71,7 +72,8 @@ export function BookFilters({ filters, onFilterChange }: BookFiltersProps) {
       search: undefined,
       condition: [],
       language: [],
-      category: [],
+      genre: [],
+      topic: [],
       district: [],
       has_comments: false,
     });
@@ -81,7 +83,8 @@ export function BookFilters({ filters, onFilterChange }: BookFiltersProps) {
     filters.search ? 1 : 0,
     filters.condition?.length || 0,
     filters.language?.length || 0,
-    filters.category?.length || 0,
+    filters.genre?.length || 0,
+    filters.topic?.length || 0,
     filters.district?.length || 0,
     filters.has_comments ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
@@ -168,7 +171,7 @@ export function BookFilters({ filters, onFilterChange }: BookFiltersProps) {
         </div>
 
         {!isLoadingOptions && filterOptions && (
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <MultiSelect
               label="Sprache"
               icon={<Globe className="h-4 w-4" />}
@@ -185,17 +188,54 @@ export function BookFilters({ filters, onFilterChange }: BookFiltersProps) {
             />
 
             <MultiSelect
-              label="Kategorie"
-              icon={<Tag className="h-4 w-4" />}
-              options={filterOptions.categories}
-              selected={filters.category || []}
-              onChange={(selected) =>
+              label="Genre"
+              icon={<BookOpen className="h-4 w-4" />}
+              options={filterOptions.genres.map((g) => g.name)}
+              selected={
+                filters.genre?.map(
+                  (slug) =>
+                    filterOptions.genres.find((g) => g.slug === slug)?.name ||
+                    slug
+                ) || []
+              }
+              onChange={(selected) => {
+                const slugs = selected.map(
+                  (name) =>
+                    filterOptions.genres.find((g) => g.name === name)?.slug ||
+                    name
+                );
                 onFilterChange({
                   ...filters,
-                  category: selected.length > 0 ? selected : undefined,
-                })
+                  genre: slugs.length > 0 ? slugs : undefined,
+                });
+              }}
+              placeholder="Alle Genres"
+              maxDisplayed={1}
+            />
+
+            <MultiSelect
+              label="Thema"
+              icon={<BookOpen className="h-4 w-4" />}
+              options={filterOptions.topics.map((t) => t.name)}
+              selected={
+                filters.topic?.map(
+                  (slug) =>
+                    filterOptions.topics.find((t) => t.slug === slug)?.name ||
+                    slug
+                ) || []
               }
-              placeholder="Alle Kategorien"
+              onChange={(selected) => {
+                const slugs = selected.map(
+                  (name) =>
+                    filterOptions.topics.find((t) => t.name === name)?.slug ||
+                    name
+                );
+                onFilterChange({
+                  ...filters,
+                  topic: slugs.length > 0 ? slugs : undefined,
+                });
+              }}
+              placeholder="Alle Themen"
               maxDisplayed={1}
             />
 
