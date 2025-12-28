@@ -1,7 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Loader2, BookOpen, AlertCircle, Check, Camera } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Loader2,
+  BookOpen,
+  AlertCircle,
+  Check,
+  Camera,
+  Search,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +38,7 @@ export function AddBookModal({
   onSuccess,
 }: AddBookModalProps) {
   const { user } = useAuthStore();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<'isbn' | 'details'>('isbn');
   const [isbn, setIsbn] = useState('');
   const [isIsbnValid, setIsIsbnValid] = useState(false);
@@ -70,6 +78,18 @@ export function AddBookModal({
   useEffect(() => {
     setShouldSearch(false);
   }, [isbn]);
+
+  useEffect(() => {
+    if (isOpen && step === 'isbn') {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 100);
+    }
+  }, [isOpen, step]);
 
   useEffect(() => {
     if (book) {
@@ -150,7 +170,14 @@ export function AddBookModal({
   ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && !showScanner) {
+          onClose();
+        }
+      }}
+    >
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -172,6 +199,7 @@ export function AddBookModal({
               </label>
               <div className="flex gap-2">
                 <Input
+                  ref={inputRef}
                   type="text"
                   placeholder="z.B. 9783446246249"
                   value={isbn}
@@ -184,12 +212,22 @@ export function AddBookModal({
                   onClick={() => setShouldSearch(true)}
                   disabled={!isIsbnValid || isSearching}
                   className="shrink-0"
+                  title="ISBN suchen"
                 >
                   {isSearching ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Suchen'
+                    <Search className="h-4 w-4" />
                   )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowScanner(true)}
+                  className="shrink-0"
+                  title="ISBN scannen"
+                >
+                  <Camera className="h-4 w-4" />
                 </Button>
               </div>
               {isbn.length > 0 && !isIsbnValid && (
@@ -410,6 +448,8 @@ export function AddBookModal({
         <ISBNScanner
           onScan={(scannedIsbn) => {
             setIsbn(scannedIsbn);
+            setIsIsbnValid(true);
+            setShouldSearch(true);
             setShowScanner(false);
           }}
           onClose={() => setShowScanner(false)}
