@@ -34,6 +34,7 @@ export function AddBookModal({
   const [step, setStep] = useState<'isbn' | 'details'>('isbn');
   const [isbn, setIsbn] = useState('');
   const [isIsbnValid, setIsIsbnValid] = useState(false);
+  const [shouldSearch, setShouldSearch] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [condition, setCondition] = useState<
     'new' | 'like_new' | 'good' | 'acceptable'
@@ -47,7 +48,7 @@ export function AddBookModal({
 
   const { data: book, isLoading: isSearching } = useBookSearch(
     isbn,
-    isIsbnValid && isbn.length >= 10
+    shouldSearch && isIsbnValid && isbn.length >= 10
   );
   const createOffer = useCreateOffer();
 
@@ -67,6 +68,10 @@ export function AddBookModal({
   }, [isbn]);
 
   useEffect(() => {
+    setShouldSearch(false);
+  }, [isbn]);
+
+  useEffect(() => {
     if (book) {
       setStep('details');
     }
@@ -75,6 +80,7 @@ export function AddBookModal({
   const handleReset = () => {
     setStep('isbn');
     setIsbn('');
+    setShouldSearch(false);
     setCondition('good');
     setUserComment('');
     setCustomLocation('');
@@ -145,7 +151,7 @@ export function AddBookModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-amber-600" />
@@ -173,17 +179,18 @@ export function AddBookModal({
                   error={isbn.length > 0 && !isIsbnValid}
                   className="flex-1"
                 />
-                {/*
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => setShowScanner(true)}
+                  onClick={() => setShouldSearch(true)}
+                  disabled={!isIsbnValid || isSearching}
                   className="shrink-0"
-                  title="ISBN scannen"
                 >
-                  <Camera className="h-4 w-4" />
+                  {isSearching ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Suchen'
+                  )}
                 </Button>
-                */}
               </div>
               {isbn.length > 0 && !isIsbnValid && (
                 <p className="mt-1 text-sm text-red-600">
@@ -229,7 +236,7 @@ export function AddBookModal({
               </div>
             )}
 
-            {!isSearching && isIsbnValid && !book && (
+            {!isSearching && shouldSearch && isIsbnValid && !book && (
               <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
                 <AlertCircle className="h-5 w-5 flex-shrink-0" />
                 <p className="text-sm">

@@ -164,13 +164,13 @@ export default function BookDetailPage() {
             )}
           </div>
 
-          {book.genre && book.genre.length > 0 && (
+          {book.genres && book.genres.length > 0 && (
             <div className="mb-4">
               <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Genres:
               </p>
               <div className="flex flex-wrap gap-2">
-                {book.genre.map((genre: string, idx: number) => (
+                {book.genres.map((genre: string, idx: number) => (
                   <Badge
                     key={idx}
                     variant="secondary"
@@ -183,13 +183,13 @@ export default function BookDetailPage() {
             </div>
           )}
 
-          {book.topic && book.topic.length > 0 && (
+          {book.topics && book.topics.length > 0 && (
             <div className="mb-6">
               <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Themen:
               </p>
               <div className="flex flex-wrap gap-2">
-                {book.topic.map((topic: string, idx: number) => (
+                {book.topics.map((topic: string, idx: number) => (
                   <Badge
                     key={idx}
                     variant="outline"

@@ -252,8 +252,8 @@ export interface Book {
   published_date?: string;
   language: string;
   page_count?: number;
-  genre?: string[];
-  topic?: string[];
+  genres?: string[];
+  topics?: string[];
   cover_image_url?: string;
   thumbnail_url?: string;
   created_at: string;
