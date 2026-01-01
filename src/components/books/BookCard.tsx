@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { MapPin, MessageSquare, Edit, Trash2, BookOpen } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,13 @@ export function BookCard({ offer, variant }: BookCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const deleteOffer = useDeleteOffer();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const coverUrl = getBookCoverUrl(
     offer.custom_cover_image_url || offer.book?.cover_image_url
@@ -34,6 +41,11 @@ export function BookCard({ offer, variant }: BookCardProps) {
       console.error('Delete failed:', error);
     }
   };
+
+  const handleCloseModal = useCallback(() => {
+    setIsEditModalOpen(false);
+    setIsDeleteModalOpen(false);
+  }, []);
 
   if (variant === 'marketplace') {
     return (
@@ -101,103 +113,120 @@ export function BookCard({ offer, variant }: BookCardProps) {
   }
 
   return (
-    <div
-      className="group relative block"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-md transition-all duration-300">
-        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100">
-          {coverUrl ? (
-            <img
-              src={coverUrl}
-              alt={offer.book?.title || 'Buch'}
-              className="max-h-full max-w-full object-contain"
-            />
-          ) : (
-            <BookOpen className="h-16 w-16 text-amber-400" />
-          )}
-        </div>
+    <>
+      <div
+        ref={cardRef}
+        className="group relative block"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-md transition-all duration-300">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-50 to-amber-100">
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt={offer.book?.title || 'Buch'}
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <BookOpen className="h-16 w-16 text-amber-400" />
+            )}
+          </div>
 
-        <div className="absolute right-2 top-2">
-          <Badge
-            variant={
-              offer.reserved_until
-                ? 'warning'
+          <div className="absolute right-2 top-2">
+            <Badge
+              variant={
+                offer.reserved_until
+                  ? 'warning'
+                  : !offer.is_available
+                    ? 'secondary'
+                    : 'success'
+              }
+              className="px-1.5 py-0.5 text-[10px]"
+            >
+              {offer.reserved_until
+                ? 'Reserv.'
                 : !offer.is_available
-                  ? 'secondary'
-                  : 'success'
-            }
-            className="px-1.5 py-0.5 text-[10px]"
+                  ? 'Abgesch.'
+                  : 'Aktiv'}
+            </Badge>
+          </div>
+
+          <div
+            className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-100 transition-opacity duration-300 md:opacity-0 ${
+              isHovered ? 'md:opacity-100' : ''
+            }`}
           >
-            {offer.reserved_until
-              ? 'Reserv.'
-              : !offer.is_available
-                ? 'Abgesch.'
-                : 'Aktiv'}
-          </Badge>
-        </div>
+            <div className="absolute bottom-0 left-0 right-0 p-2">
+              <h3 className="mb-0.5 line-clamp-1 text-xs font-semibold text-white md:line-clamp-2 md:text-sm">
+                {offer.book?.title}
+              </h3>
+              <p className="mb-3 line-clamp-1 text-[10px] text-gray-300 md:text-xs">
+                {offer.book?.authors.join(', ')}
+              </p>
 
-        <div
-          className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-100 transition-opacity duration-300 md:opacity-0 ${
-            isHovered ? 'md:opacity-100' : ''
-          }`}
-        >
-          <div className="absolute bottom-0 left-0 right-0 p-2">
-            <h3 className="mb-0.5 line-clamp-1 text-xs font-semibold text-white md:line-clamp-2 md:text-sm">
-              {offer.book?.title}
-            </h3>
-            <p className="mb-3 line-clamp-1 text-[10px] text-gray-300 md:text-xs">
-              {offer.book?.authors.join(', ')}
-            </p>
-
-            <div className="flex gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 border-white/20 bg-white/10 px-2 py-1 text-white hover:bg-white/20"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsEditModalOpen(true);
-                }}
-              >
-                <Edit className="h-3 w-3 md:mr-1" />
-                <span className="hidden md:inline">Edit</span>
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-red-400/20 bg-red-500/10 px-2 py-1 text-red-300 hover:bg-red-500/20"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsDeleteModalOpen(true);
-                }}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
+              <div className="flex gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 border-white/20 bg-white/10 px-2 py-1 text-white hover:bg-white/20"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsEditModalOpen(true);
+                  }}
+                >
+                  <Edit className="h-3 w-3 md:mr-1" />
+                  <span className="hidden md:inline">Edit</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-400/20 bg-red-500/10 px-2 py-1 text-red-300 hover:bg-red-500/20"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsDeleteModalOpen(true);
+                  }}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {isEditModalOpen && (
-        <EditBookModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          offer={offer}
-          onSuccess={() => setIsEditModalOpen(false)}
-        />
-      )}
-
-      {isDeleteModalOpen && (
-        <DeleteBookModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={handleDeleteConfirm}
-          bookTitle={offer.book?.title}
-          isPending={deleteOffer.isPending}
-        />
-      )}
-    </div>
+      {mounted &&
+        (isEditModalOpen || isDeleteModalOpen) &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 pt-4 md:pt-20"
+            onClick={handleCloseModal}
+          >
+            <div
+              className="relative w-full max-w-lg px-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {isEditModalOpen && (
+                <EditBookModal
+                  isOpen={isEditModalOpen}
+                  onClose={() => setIsEditModalOpen(false)}
+                  offer={offer}
+                  onSuccess={() => setIsEditModalOpen(false)}
+                />
+              )}
+              {isDeleteModalOpen && (
+                <DeleteBookModal
+                  isOpen={isDeleteModalOpen}
+                  onClose={() => setIsDeleteModalOpen(false)}
+                  onConfirm={handleDeleteConfirm}
+                  bookTitle={offer.book?.title}
+                  isPending={deleteOffer.isPending}
+                />
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
