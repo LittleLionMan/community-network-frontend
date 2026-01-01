@@ -1321,11 +1321,17 @@ class ApiClient {
       );
     },
 
-    getMyOffers: (statusFilter?: 'active' | 'reserved' | 'completed') => {
+    getMyOffers: (
+      statusFilter?: 'active' | 'reserved' | 'completed',
+      skip: number = 0,
+      limit: number = 20
+    ) => {
       const params = new URLSearchParams();
       if (statusFilter) params.append('status_filter', statusFilter);
-      return this.request<BookOffer[]>(
-        `/api/books/offers/my${params.toString() ? '?' + params.toString() : ''}`
+      params.append('skip', skip.toString());
+      params.append('limit', limit.toString());
+      return this.request<PaginatedBookOffers>(
+        `/api/books/offers/my?${params.toString()}`
       );
     },
 

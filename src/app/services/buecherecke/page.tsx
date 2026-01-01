@@ -51,9 +51,9 @@ export default function BuechereckePage() {
   const {
     data: marketplaceData,
     isLoading: isLoadingMarketplace,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
+    fetchNextPage: fetchNextMarketplacePage,
+    hasNextPage: hasNextMarketplacePage,
+    isFetchingNextPage: isFetchingNextMarketplacePage,
   } = useMarketplace({
     search: filters.search,
     condition:
@@ -78,8 +78,15 @@ export default function BuechereckePage() {
   const marketplaceOffers =
     marketplaceData?.pages.flatMap((page) => page.items) ?? [];
 
-  const { data: myOffers = [], isLoading: isLoadingMyOffers } =
-    useMyOffers(myBooksStatusFilter);
+  const {
+    data: myOffersData,
+    isLoading: isLoadingMyOffers,
+    fetchNextPage: fetchNextMyOffersPage,
+    hasNextPage: hasNextMyOffersPage,
+    isFetchingNextPage: isFetchingNextMyOffersPage,
+  } = useMyOffers(myBooksStatusFilter);
+
+  const myOffers = myOffersData?.pages.flatMap((page) => page.items) ?? [];
 
   const { data: stats } = useBookStats();
 
@@ -274,15 +281,15 @@ export default function BuechereckePage() {
                     ))}
                   </div>
 
-                  {hasNextPage && (
+                  {hasNextMarketplacePage && (
                     <div className="mt-8 text-center">
                       <Button
-                        onClick={() => fetchNextPage()}
-                        disabled={isFetchingNextPage}
+                        onClick={() => fetchNextMarketplacePage()}
+                        disabled={isFetchingNextMarketplacePage}
                         variant="outline"
                         className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:border-amber-500 dark:text-amber-400 dark:hover:bg-amber-900/20"
                       >
-                        {isFetchingNextPage ? (
+                        {isFetchingNextMarketplacePage ? (
                           <>
                             <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
                             Lädt...
@@ -371,15 +378,37 @@ export default function BuechereckePage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-                    {myOffers.map((offer) => (
-                      <BookCard
-                        key={offer.id}
-                        offer={offer}
-                        variant="my-books"
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                      {myOffers.map((offer) => (
+                        <BookCard
+                          key={offer.id}
+                          offer={offer}
+                          variant="my-books"
+                        />
+                      ))}
+                    </div>
+
+                    {hasNextMyOffersPage && (
+                      <div className="mt-8 text-center">
+                        <Button
+                          onClick={() => fetchNextMyOffersPage()}
+                          disabled={isFetchingNextMyOffersPage}
+                          variant="outline"
+                          className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:border-amber-500 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                        >
+                          {isFetchingNextMyOffersPage ? (
+                            <>
+                              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-amber-600 border-t-transparent" />
+                              Lädt...
+                            </>
+                          ) : (
+                            <>Mehr Bücher laden</>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </TabsContent>
             )}

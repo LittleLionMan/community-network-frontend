@@ -34,9 +34,14 @@ export function useMarketplace(filters?: {
 export function useMyOffers(
   statusFilter?: 'active' | 'reserved' | 'completed'
 ) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['books', 'my-offers', statusFilter],
-    queryFn: () => apiClient.books.getMyOffers(statusFilter),
+    queryFn: ({ pageParam = 0 }) =>
+      apiClient.books.getMyOffers(statusFilter, pageParam),
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.skip + lastPage.limit : undefined,
+    initialPageParam: 0,
+    staleTime: 30000,
   });
 }
 
