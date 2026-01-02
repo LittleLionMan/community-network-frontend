@@ -11,8 +11,10 @@ interface EventFiltersProps {
   onSearchChange: (query: string) => void;
   selectedCategory: number | null;
   onCategoryChange: (categoryId: number | null) => void;
-  timeFilter: 'all' | 'today' | 'week' | 'month';
-  onTimeFilterChange: (filter: 'all' | 'today' | 'week' | 'month') => void;
+  timeFilter: 'all' | 'today' | 'week' | 'month' | 'past';
+  onTimeFilterChange: (
+    filter: 'all' | 'today' | 'week' | 'month' | 'past'
+  ) => void;
   viewMode: 'grid' | 'list';
   onViewModeChange: (mode: 'grid' | 'list') => void;
   resultsCount?: number;
@@ -37,6 +39,7 @@ export function EventFilters({
     { key: 'today', label: 'Heute' },
     { key: 'week', label: 'Diese Woche' },
     { key: 'month', label: 'Diesen Monat' },
+    { key: 'past', label: 'Abgeschlossene Events' },
   ] as const;
 
   const hasActiveFilters =

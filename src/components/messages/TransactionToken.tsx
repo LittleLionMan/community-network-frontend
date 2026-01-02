@@ -43,29 +43,31 @@ const statusConfig: Record<
   pending: {
     label: 'In Abstimmung',
     color:
-      'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20',
+      'text-yellow-800 bg-yellow-100 border border-yellow-300 dark:text-yellow-200 dark:bg-yellow-900/30 dark:border-yellow-700',
     icon: Clock,
   },
   time_confirmed: {
     label: 'Termin bestätigt',
     color:
-      'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20',
+      'text-green-800 bg-green-100 border border-green-300 dark:text-green-200 dark:bg-green-900/30 dark:border-green-700',
     icon: Calendar,
   },
   completed: {
     label: 'Abgeschlossen',
     color:
-      'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30',
+      'text-green-900 bg-green-200 border border-green-400 dark:text-green-100 dark:bg-green-900/40 dark:border-green-600',
     icon: CheckCircle,
   },
   cancelled: {
     label: 'Storniert',
-    color: 'text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800',
+    color:
+      'text-gray-800 bg-gray-200 border border-gray-400 dark:text-gray-200 dark:bg-gray-700 dark:border-gray-600',
     icon: XCircle,
   },
   expired: {
     label: 'Abgelaufen',
-    color: 'text-gray-500 bg-gray-50 dark:text-gray-400 dark:bg-gray-800',
+    color:
+      'text-gray-700 bg-gray-100 border border-gray-300 dark:text-gray-300 dark:bg-gray-800 dark:border-gray-700',
     icon: Clock,
   },
 };
@@ -133,6 +135,14 @@ export function TransactionToken({
         isExpired: true,
         type: 'expired',
         message: 'Diese Transaktion ist abgelaufen.',
+      };
+    }
+
+    if (transaction.status === 'cancelled') {
+      return {
+        isExpired: true,
+        type: 'cancelled',
+        message: 'Diese Transaktion wurde storniert.',
       };
     }
 
@@ -261,21 +271,21 @@ export function TransactionToken({
 
   return (
     <div className="my-4 rounded-lg border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 shadow-sm dark:border-amber-800 dark:from-amber-950/20 dark:to-gray-900">
-      <div className="mb-3 flex items-start justify-between">
-        <div className="flex items-center gap-3">
+      <div className="mb-3 space-y-3">
+        <div className="flex items-start gap-3">
           {transaction.offer.thumbnail_url ? (
             <img
               src={`${process.env.NEXT_PUBLIC_API_URL}${transaction.offer.thumbnail_url}`}
               alt={transaction.offer.title}
-              className="h-16 w-12 rounded object-cover"
+              className="h-16 w-12 flex-shrink-0 rounded object-cover"
             />
           ) : (
-            <div className="flex h-16 w-12 items-center justify-center rounded bg-amber-100 dark:bg-amber-900">
+            <div className="flex h-16 w-12 flex-shrink-0 items-center justify-center rounded bg-amber-100 dark:bg-amber-900">
               <BookOpen className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
           )}
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+          <div className="min-w-0 flex-1">
+            <h4 className="line-clamp-2 font-semibold text-gray-900 dark:text-gray-100">
               {transaction.offer.title}
             </h4>
             {transaction.offer.condition && (
@@ -285,23 +295,26 @@ export function TransactionToken({
             )}
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge className={statusInfo.color}>
-            <StatusIcon className="mr-1 h-3 w-3" />
-            {statusInfo.label}
+
+        <div className="flex flex-wrap gap-2">
+          <Badge
+            className={`${statusInfo.color} inline-flex items-center px-2.5 py-1`}
+          >
+            <StatusIcon className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-xs font-medium">{statusInfo.label}</span>
           </Badge>
 
           {expirationInfo.message && (
             <div
-              className={`rounded-md px-2 py-1 text-xs ${
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium ${
                 expirationInfo.isExpired
-                  ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                  ? 'border border-red-300 bg-red-100 text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-200'
                   : expirationInfo.type === 'expiring_soon'
-                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
-                    : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                    ? 'border border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200'
+                    : 'border border-blue-300 bg-blue-100 text-blue-800 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200'
               }`}
             >
-              <AlertCircle className="mr-1 inline h-3 w-3" />
+              <AlertCircle className="mr-1 inline h-3 w-3 flex-shrink-0" />
               {expirationInfo.message}
             </div>
           )}

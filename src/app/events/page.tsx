@@ -15,7 +15,7 @@ export default function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [timeFilter, setTimeFilter] = useState<
-    'all' | 'today' | 'week' | 'month'
+    'all' | 'today' | 'week' | 'month' | 'past'
   >('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -52,6 +52,9 @@ export default function EventsPage() {
         const eventDate = new Date(event.start_datetime);
 
         switch (timeFilter) {
+          case 'past':
+            return eventDate < now;
+
           case 'today':
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
@@ -70,6 +73,12 @@ export default function EventsPage() {
           default:
             return true;
         }
+      });
+    } else {
+      const now = new Date();
+      filtered = filtered.filter((event) => {
+        const eventDate = new Date(event.start_datetime);
+        return eventDate >= now;
       });
     }
 
